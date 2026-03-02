@@ -1,17 +1,19 @@
 package com.group09.ComicReader;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
 import com.group09.ComicReader.databinding.ActivityMainBinding;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "MainActivity";
     private ActivityMainBinding binding;
 
     @Override
@@ -20,7 +22,13 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        NavController navController = Navigation.findNavController(this, R.id.fcv_main_nav_host);
+        NavHostFragment navHostFragment =
+                (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fcv_main_nav_host);
+        if (navHostFragment == null) {
+            Log.e(TAG, "NavHostFragment is null. Skip nav setup.");
+            return;
+        }
+        NavController navController = navHostFragment.getNavController();
         NavigationUI.setupWithNavController(binding.bnvMainTabs, navController);
 
         navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
