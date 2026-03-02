@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cl_profile_menu_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/spacing_xs"
+    android:background="@drawable/bg_card_surface"
+    android:padding="@dimen/spacing_md">
+
+    <ImageView
+        android:id="@+id/img_profile_menu_icon"
+        android:layout_width="@dimen/icon_md"
+        android:layout_height="@dimen/icon_md"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_nav_profile"
+        app:tint="@color/accent_primary" />
+
+    <TextView
+        android:id="@+id/tv_profile_menu_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:textColor="@color/text_primary"
+        android:textSize="@dimen/text_md"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tv_profile_menu_badge"
+        app:layout_constraintStart_toEndOf="@id/img_profile_menu_icon"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_profile_menu_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/spacing_sm"
+        android:textColor="@color/text_secondary"
+        android:textSize="@dimen/text_sm"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/img_profile_menu_chevron"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/img_profile_menu_chevron"
+        android:layout_width="@dimen/icon_sm"
+        android:layout_height="@dimen/icon_sm"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_chevron_right_24" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

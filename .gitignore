@@ -13,7 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
-
+reactUI/
 
 HELP.md
 target/

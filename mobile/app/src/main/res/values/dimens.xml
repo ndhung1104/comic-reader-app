@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">12dp</dimen>
+    <dimen name="spacing_lg">16dp</dimen>
+    <dimen name="spacing_xl">20dp</dimen>
+    <dimen name="spacing_xxl">24dp</dimen>
+    <dimen name="spacing_xxxl">32dp</dimen>
+
+    <dimen name="radius_sm">8dp</dimen>
+    <dimen name="radius_md">12dp</dimen>
+    <dimen name="radius_lg">16dp</dimen>
+    <dimen name="radius_full">999dp</dimen>
+
+    <dimen name="text_xs">12sp</dimen>
+    <dimen name="text_sm">14sp</dimen>
+    <dimen name="text_md">16sp</dimen>
+    <dimen name="text_lg">18sp</dimen>
+    <dimen name="text_xl">22sp</dimen>
+    <dimen name="text_display">30sp</dimen>
+
+    <dimen name="icon_sm">16dp</dimen>
+    <dimen name="icon_md">20dp</dimen>
+    <dimen name="icon_lg">24dp</dimen>
+    <dimen name="icon_xl">32dp</dimen>
+
+    <dimen name="stroke_thin">1dp</dimen>
+    <dimen name="stroke_medium">2dp</dimen>
+    <dimen name="divider_height">1dp</dimen>
+    <dimen name="progress_height">8dp</dimen>
+
+    <dimen name="button_height">52dp</dimen>
+    <dimen name="input_height">52dp</dimen>
+    <dimen name="bottom_nav_height">64dp</dimen>
+    <dimen name="hero_height">260dp</dimen>
+    <dimen name="cover_daily_width">128dp</dimen>
+    <dimen name="cover_daily_height">176dp</dimen>
+    <dimen name="cover_grid_height">180dp</dimen>
+    <dimen name="cover_library_width">96dp</dimen>
+    <dimen name="cover_library_height">128dp</dimen>
+    <dimen name="cover_detail_width">160dp</dimen>
+    <dimen name="cover_detail_height">224dp</dimen>
+    <dimen name="avatar_size">72dp</dimen>
+    <dimen name="sheet_peek_padding">20dp</dimen>
+</resources>

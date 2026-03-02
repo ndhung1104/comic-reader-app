@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/onboardingFragment">
+
+    <fragment
+        android:id="@+id/onboardingFragment"
+        android:name="com.group09.ComicReader.ui.onboarding.OnboardingFragment"
+        android:label="onboarding"
+        tools:layout="@layout/fragment_onboarding">
+        <action
+            android:id="@+id/action_onboarding_to_login"
+            app:destination="@id/loginFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.group09.ComicReader.ui.login.LoginFragment"
+        android:label="login"
+        tools:layout="@layout/fragment_login">
+        <action
+            android:id="@+id/action_login_to_home"
+            app:destination="@id/homeFragment"
+            app:popUpTo="@id/onboardingFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.group09.ComicReader.ui.home.HomeFragment"
+        android:label="home"
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_home_to_comic_detail"
+            app:destination="@id/comicDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/searchFragment"
+        android:name="com.group09.ComicReader.ui.search.SearchFragment"
+        android:label="search"
+        tools:layout="@layout/fragment_search">
+        <action
+            android:id="@+id/action_search_to_comic_detail"
+            app:destination="@id/comicDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/libraryFragment"
+        android:name="com.group09.ComicReader.ui.library.LibraryFragment"
+        android:label="library"
+        tools:layout="@layout/fragment_library">
+        <action
+            android:id="@+id/action_library_to_comic_detail"
+            app:destination="@id/comicDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.group09.ComicReader.ui.profile.ProfileFragment"
+        android:label="profile"
+        tools:layout="@layout/fragment_profile">
+        <action
+            android:id="@+id/action_profile_to_wallet"
+            app:destination="@id/walletFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/walletFragment"
+        android:name="com.group09.ComicReader.ui.wallet.WalletFragment"
+        android:label="wallet"
+        tools:layout="@layout/fragment_wallet" />
+
+    <fragment
+        android:id="@+id/comicDetailFragment"
+        android:name="com.group09.ComicReader.ui.comic.ComicDetailFragment"
+        android:label="comic_detail"
+        tools:layout="@layout/fragment_comic_detail">
+        <argument
+            android:name="comicId"
+            app:argType="integer" />
+    </fragment>
+
+</navigation>

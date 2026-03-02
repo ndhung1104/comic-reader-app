@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cl_comic_chapter_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/spacing_sm"
+    android:background="@drawable/bg_card_surface"
+    android:padding="@dimen/spacing_md">
+
+    <TextView
+        android:id="@+id/tv_comic_chapter_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/text_primary"
+        android:textSize="@dimen/text_sm"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@id/img_comic_chapter_lock"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_comic_chapter_date"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:textColor="@color/text_secondary"
+        android:textSize="@dimen/text_xs"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/img_comic_chapter_lock"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_comic_chapter_title" />
+
+    <ImageView
+        android:id="@+id/img_comic_chapter_lock"
+        android:layout_width="@dimen/icon_md"
+        android:layout_height="@dimen/icon_md"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_lock_24" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

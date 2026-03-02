@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cl_library_comic_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/spacing_md"
+    android:background="@drawable/bg_card_surface"
+    android:padding="@dimen/spacing_md">
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/img_library_comic_cover"
+        android:layout_width="@dimen/cover_library_width"
+        android:layout_height="@dimen/cover_library_height"
+        android:contentDescription="@string/content_cover"
+        android:scaleType="centerCrop"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@mipmap/ic_launcher" />
+
+    <TextView
+        android:id="@+id/tv_library_comic_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/text_primary"
+        android:textSize="@dimen/text_md"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/img_library_comic_cover"
+        app:layout_constraintTop_toTopOf="@id/img_library_comic_cover" />
+
+    <TextView
+        android:id="@+id/tv_library_comic_author"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:textColor="@color/text_secondary"
+        android:textSize="@dimen/text_sm"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/img_library_comic_cover"
+        app:layout_constraintTop_toBottomOf="@id/tv_library_comic_title" />
+
+    <TextView
+        android:id="@+id/tv_library_comic_progress"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:layout_marginTop="@dimen/spacing_sm"
+        android:textColor="@color/text_secondary"
+        android:textSize="@dimen/text_xs"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/img_library_comic_cover"
+        app:layout_constraintTop_toBottomOf="@id/tv_library_comic_author" />
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/pb_library_comic_progress"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/progress_height"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:layout_marginTop="@dimen/spacing_sm"
+        app:indicatorColor="@color/accent_primary"
+        app:layout_constraintBottom_toBottomOf="@id/img_library_comic_cover"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/img_library_comic_cover"
+        app:layout_constraintTop_toBottomOf="@id/tv_library_comic_progress"
+        app:trackColor="@color/divider_color" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

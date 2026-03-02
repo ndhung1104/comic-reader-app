@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="bg_primary">#121212</color>
+    <color name="bg_surface">#1E1E1E</color>
+    <color name="accent_primary">#BB86FC</color>
+    <color name="accent_secondary">#03DAC6</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#B0B0B0</color>
+    <color name="text_muted">#8A8A8A</color>
+    <color name="divider_color">#2A2A2A</color>
+    <color name="rating_color">#FBC02D</color>
+    <color name="chip_bg">#26363E</color>
+    <color name="positive_color">#03DAC6</color>
+    <color name="danger_color">#CF6679</color>
+    <color name="transparent_black_60">#99000000</color>
+    <color name="transparent_black_80">#CC000000</color>
+    <color name="transparent_black_90">#E6000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
 </resources>

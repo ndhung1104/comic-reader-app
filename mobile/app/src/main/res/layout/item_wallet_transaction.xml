@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cl_wallet_transaction_item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/spacing_xs"
+    android:background="@drawable/bg_card_surface"
+    android:padding="@dimen/spacing_md">
+
+    <ImageView
+        android:id="@+id/img_wallet_transaction_icon"
+        android:layout_width="@dimen/icon_lg"
+        android:layout_height="@dimen/icon_lg"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_wallet_24"
+        app:tint="@color/accent_primary" />
+
+    <TextView
+        android:id="@+id/tv_wallet_transaction_type"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:textColor="@color/text_primary"
+        android:textSize="@dimen/text_sm"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@id/tv_wallet_transaction_amount"
+        app:layout_constraintStart_toEndOf="@id/img_wallet_transaction_icon"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_wallet_transaction_date"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_md"
+        android:textColor="@color/text_secondary"
+        android:textSize="@dimen/text_xs"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tv_wallet_transaction_amount"
+        app:layout_constraintStart_toEndOf="@id/img_wallet_transaction_icon"
+        app:layout_constraintTop_toBottomOf="@id/tv_wallet_transaction_type" />
+
+    <TextView
+        android:id="@+id/tv_wallet_transaction_amount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_secondary"
+        android:textSize="@dimen/text_md"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

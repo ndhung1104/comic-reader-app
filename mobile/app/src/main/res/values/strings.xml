@@ -1,3 +1,69 @@
 <resources>
     <string name="app_name">ComicReader</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_library">Library</string>
+    <string name="nav_profile">Profile</string>
+
+    <string name="onboarding_title">Dive into Infinite Worlds</string>
+    <string name="onboarding_subtitle">Read, track, and support your favorite creators.</string>
+    <string name="onboarding_get_started">Get Started</string>
+
+    <string name="login_logo">Webtoon</string>
+    <string name="login_tagline">Your stories await</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_email_hint">Enter your email</string>
+    <string name="login_password_label">Password</string>
+    <string name="login_password_hint">Enter your password</string>
+    <string name="login_forgot_password">Forgot Password?</string>
+    <string name="login_button">Login</string>
+    <string name="login_or">OR</string>
+    <string name="login_google">Continue with Google</string>
+
+    <string name="home_daily_updates">Daily Updates</string>
+    <string name="home_recommended">Recommended for You</string>
+    <string name="home_read_chapter_one">Read Chapter 1</string>
+    <string name="home_see_all">See All</string>
+
+    <string name="search_title">Search and Explore</string>
+    <string name="search_hint">Search comics...</string>
+    <string name="search_results">%1$d results found</string>
+
+    <string name="library_title">Library</string>
+    <string name="library_tab_recent">Recent</string>
+    <string name="library_tab_favorites">Favorites</string>
+    <string name="library_tab_downloads">Downloads</string>
+    <string name="library_empty_title">Your library is empty</string>
+    <string name="library_empty_subtitle">Start reading comics to see them here</string>
+
+    <string name="profile_title">Profile</string>
+    <string name="profile_creator">Become a Creator</string>
+    <string name="profile_version">Version 1.0.0</string>
+
+    <string name="wallet_title">Wallet and Coins</string>
+    <string name="wallet_current_balance">Current Balance</string>
+    <string name="wallet_coin_label">Coins</string>
+    <string name="wallet_packages">Top-up Packages</string>
+    <string name="wallet_transactions">Recent Transactions</string>
+
+    <string name="comic_synopsis">Synopsis</string>
+    <string name="comic_chapters">Chapters</string>
+    <string name="comic_not_found">Comic not found</string>
+    <string name="comic_comments">Comments</string>
+
+    <string name="reader_page">Page %1$d</string>
+    <string name="reader_previous">Previous</string>
+    <string name="reader_next">Next</string>
+
+    <string name="comment_hint">Write a comment...</string>
+    <string name="comment_send">Send</string>
+    <string name="comment_posted">Comment posted</string>
+
+    <string name="content_cover">Comic cover</string>
+    <string name="content_avatar">User avatar</string>
+    <string name="content_back">Back</string>
+    <string name="content_download">Download</string>
+    <string name="content_open_comments">Open comments</string>
+    <string name="content_close_comments">Close comments</string>
+    <string name="content_filter">Filter</string>
 </resources>
