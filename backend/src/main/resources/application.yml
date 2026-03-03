@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: comic-reader
+  profiles:
+    default: local
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 100MB
+
+server:
+  port: 8080
+
+app:
+  security:
+    jwt:
+      secret: CHANGE_THIS_SECRET_TO_A_LONG_RANDOM_STRING_1234567890ABCDEF
+      expiration-ms: 86400000
+  storage:
+    upload-dir: ./uploads

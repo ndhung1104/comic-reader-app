@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://postgres:5432/comic_reader}
+    username: ${DB_USERNAME:comic_user}
+    password: ${DB_PASSWORD:comic_pass}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    show-sql: false
+
+app:
+  storage:
+    upload-dir: /app/uploads
