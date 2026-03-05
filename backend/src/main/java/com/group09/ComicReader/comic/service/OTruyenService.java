@@ -28,7 +28,7 @@ public class OTruyenService {
         OTruyenResponseDTO response = restTemplate.getForObject(url, OTruyenResponseDTO.class);
 
         if (response != null && response.getData() != null && response.getData().getItems() != null) {
-            String imageDomain = response.getData().getAPP_DOMAIN_CDN_IMAGE();
+            String imageDomain = response.getData().getAppDomainCdnImage();
             List<OTruyenResponseDTO.Item> items = response.getData().getItems();
 
             for (OTruyenResponseDTO.Item item : items) {
@@ -39,7 +39,7 @@ public class OTruyenService {
                     comic.setAuthor("Unknown"); // Setting default as OTruyen home API lacks author
 
                     // Combine image domain and path
-                    String coverUrl = imageDomain + "/uploads/comics/" + item.getThumb_url();
+                    String coverUrl = imageDomain + "/uploads/comics/" + item.getThumbUrl();
                     comic.setCoverUrl(coverUrl);
 
                     comic.setStatus(item.getStatus() != null ? item.getStatus() : "ongoing");

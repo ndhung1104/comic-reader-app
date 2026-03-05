@@ -1,5 +1,6 @@
 package com.group09.ComicReader.comic.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public class OTruyenResponseDTO {
@@ -33,15 +34,16 @@ public class OTruyenResponseDTO {
     }
 
     public static class Data {
-        private String APP_DOMAIN_CDN_IMAGE;
+        @JsonProperty("APP_DOMAIN_CDN_IMAGE")
+        private String appDomainCdnImage;
         private List<Item> items;
 
-        public String getAPP_DOMAIN_CDN_IMAGE() {
-            return APP_DOMAIN_CDN_IMAGE;
+        public String getAppDomainCdnImage() {
+            return appDomainCdnImage;
         }
 
-        public void setAPP_DOMAIN_CDN_IMAGE(String APP_DOMAIN_CDN_IMAGE) {
-            this.APP_DOMAIN_CDN_IMAGE = APP_DOMAIN_CDN_IMAGE;
+        public void setAppDomainCdnImage(String appDomainCdnImage) {
+            this.appDomainCdnImage = appDomainCdnImage;
         }
 
         public List<Item> getItems() {
@@ -56,7 +58,9 @@ public class OTruyenResponseDTO {
     public static class Item {
         private String name;
         private String slug;
-        private String thumb_url;
+
+        @JsonProperty("thumb_url")
+        private String thumbUrl;
         private String status;
         private List<Category> category;
 
@@ -76,12 +80,12 @@ public class OTruyenResponseDTO {
             this.slug = slug;
         }
 
-        public String getThumb_url() {
-            return thumb_url;
+        public String getThumbUrl() {
+            return thumbUrl;
         }
 
-        public void setThumb_url(String thumb_url) {
-            this.thumb_url = thumb_url;
+        public void setThumbUrl(String thumbUrl) {
+            this.thumbUrl = thumbUrl;
         }
 
         public String getStatus() {
