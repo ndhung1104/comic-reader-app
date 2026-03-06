@@ -11,8 +11,8 @@ import com.group09.ComicReader.comic.repository.ComicRepository;
 import com.group09.ComicReader.common.exception.NotFoundException;
 import com.group09.ComicReader.auth.entity.UserEntity;
 import com.group09.ComicReader.auth.repository.UserRepository;
-import com.group09.ComicReader.wallet.entity.ChapterPurchaseEntity;
 import com.group09.ComicReader.wallet.repository.ChapterPurchaseRepository;
+import com.group09.ComicReader.wallet.repository.VipSubscriptionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,15 +31,18 @@ public class ComicService {
     private final ComicRepository comicRepository;
     private final ChapterRepository chapterRepository;
     private final ChapterPurchaseRepository purchaseRepository;
+    private final VipSubscriptionRepository vipRepository;
     private final UserRepository userRepository;
 
     public ComicService(ComicRepository comicRepository,
                         ChapterRepository chapterRepository,
                         ChapterPurchaseRepository purchaseRepository,
+                        VipSubscriptionRepository vipRepository,
                         UserRepository userRepository) {
         this.comicRepository = comicRepository;
         this.chapterRepository = chapterRepository;
         this.purchaseRepository = purchaseRepository;
+        this.vipRepository = vipRepository;
         this.userRepository = userRepository;
     }
 
@@ -55,8 +58,12 @@ public class ComicService {
     public List<ChapterResponse> getChapters(Long comicId) {
         List<ChapterEntity> chapters = chapterRepository.findByComicIdOrderByChapterNumberAsc(comicId);
 
-        // Get current user's purchase info
+        // Get current user info
         UserEntity user = getCurrentUser();
+
+        // VIP users see all chapters as unlocked
+        boolean isVip = vipRepository.findActiveByUserId(user.getId(), LocalDateTime.now()).isPresent();
+
         List<Long> chapterIds = chapters.stream().map(ChapterEntity::getId).toList();
         Set<Long> purchasedIds = purchaseRepository
                 .findByUserIdAndChapterIdIn(user.getId(), chapterIds)
@@ -67,8 +74,8 @@ public class ComicService {
         return chapters.stream()
                 .map(ch -> {
                     ChapterResponse r = toChapterResponse(ch);
-                    // Free chapters are always unlocked; premium chapters require purchase
-                    r.setUnlocked(!ch.isPremium() || purchasedIds.contains(ch.getId()));
+                    // Free chapters are always unlocked; VIP users unlock all; others need purchase
+                    r.setUnlocked(!ch.isPremium() || isVip || purchasedIds.contains(ch.getId()));
                     return r;
                 })
                 .toList();

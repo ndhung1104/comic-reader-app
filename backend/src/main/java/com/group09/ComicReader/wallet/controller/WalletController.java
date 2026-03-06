@@ -1,9 +1,6 @@
 package com.group09.ComicReader.wallet.controller;
 
-import com.group09.ComicReader.wallet.dto.PurchaseChapterRequest;
-import com.group09.ComicReader.wallet.dto.TopUpRequest;
-import com.group09.ComicReader.wallet.dto.TransactionResponse;
-import com.group09.ComicReader.wallet.dto.WalletResponse;
+import com.group09.ComicReader.wallet.dto.*;
 import com.group09.ComicReader.wallet.service.WalletService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,5 +39,31 @@ public class WalletController {
     @PostMapping("/purchase-chapter")
     public ResponseEntity<WalletResponse> purchaseChapter(@RequestBody PurchaseChapterRequest request) {
         return ResponseEntity.ok(walletService.purchaseChapter(request));
+    }
+
+    // ── VIP ────────────────────────────────────────────
+
+    @GetMapping("/vip")
+    public ResponseEntity<VipStatusResponse> getVipStatus() {
+        return ResponseEntity.ok(walletService.getVipStatus());
+    }
+
+    @PostMapping("/vip/purchase")
+    public ResponseEntity<VipStatusResponse> purchaseVip(@RequestBody VipPurchaseRequest request) {
+        return ResponseEntity.ok(walletService.purchaseVip(request));
+    }
+
+    // ── Ad Reward ──────────────────────────────────────
+
+    @PostMapping("/ad-reward")
+    public ResponseEntity<WalletResponse> rewardAd(@RequestBody(required = false) AdRewardRequest request) {
+        return ResponseEntity.ok(walletService.rewardAd(request));
+    }
+
+    // ── IAP Verification ───────────────────────────────
+
+    @PostMapping("/iap-verify")
+    public ResponseEntity<WalletResponse> verifyIap(@RequestBody IapVerifyRequest request) {
+        return ResponseEntity.ok(walletService.verifyIap(request));
     }
 }
