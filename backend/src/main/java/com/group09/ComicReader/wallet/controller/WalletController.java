@@ -1,5 +1,6 @@
 package com.group09.ComicReader.wallet.controller;
 
+import com.group09.ComicReader.wallet.dto.PurchaseChapterRequest;
 import com.group09.ComicReader.wallet.dto.TopUpRequest;
 import com.group09.ComicReader.wallet.dto.TransactionResponse;
 import com.group09.ComicReader.wallet.dto.WalletResponse;
@@ -36,5 +37,10 @@ public class WalletController {
     @PostMapping("/topup")
     public ResponseEntity<WalletResponse> topUp(@RequestBody TopUpRequest request) {
         return ResponseEntity.ok(walletService.topUp(request));
+    }
+
+    @PostMapping("/purchase-chapter")
+    public ResponseEntity<WalletResponse> purchaseChapter(@RequestBody PurchaseChapterRequest request) {
+        return ResponseEntity.ok(walletService.purchaseChapter(request));
     }
 }

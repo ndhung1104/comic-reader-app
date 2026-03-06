@@ -2,14 +2,19 @@ package com.group09.ComicReader.wallet.service;
 
 import com.group09.ComicReader.auth.entity.UserEntity;
 import com.group09.ComicReader.auth.repository.UserRepository;
+import com.group09.ComicReader.chapter.entity.ChapterEntity;
+import com.group09.ComicReader.chapter.repository.ChapterRepository;
 import com.group09.ComicReader.common.exception.BadRequestException;
 import com.group09.ComicReader.common.exception.NotFoundException;
+import com.group09.ComicReader.wallet.dto.PurchaseChapterRequest;
 import com.group09.ComicReader.wallet.dto.TopUpRequest;
 import com.group09.ComicReader.wallet.dto.TransactionResponse;
 import com.group09.ComicReader.wallet.dto.WalletResponse;
+import com.group09.ComicReader.wallet.entity.ChapterPurchaseEntity;
 import com.group09.ComicReader.wallet.entity.TransactionType;
 import com.group09.ComicReader.wallet.entity.UserWalletEntity;
 import com.group09.ComicReader.wallet.entity.WalletTransactionEntity;
+import com.group09.ComicReader.wallet.repository.ChapterPurchaseRepository;
 import com.group09.ComicReader.wallet.repository.UserWalletRepository;
 import com.group09.ComicReader.wallet.repository.WalletTransactionRepository;
 import org.springframework.data.domain.Page;
@@ -26,13 +31,19 @@ public class WalletService {
 
     private final UserWalletRepository walletRepository;
     private final WalletTransactionRepository transactionRepository;
+    private final ChapterPurchaseRepository purchaseRepository;
+    private final ChapterRepository chapterRepository;
     private final UserRepository userRepository;
 
     public WalletService(UserWalletRepository walletRepository,
                          WalletTransactionRepository transactionRepository,
+                         ChapterPurchaseRepository purchaseRepository,
+                         ChapterRepository chapterRepository,
                          UserRepository userRepository) {
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
+        this.purchaseRepository = purchaseRepository;
+        this.chapterRepository = chapterRepository;
         this.userRepository = userRepository;
     }
 
@@ -88,6 +99,72 @@ public class WalletService {
         tx.setBalanceAfter(newBalance);
         tx.setDescription("Top-up " + request.getAmount() + " " + currency);
         tx.setReferenceId(request.getReferenceId());
+        transactionRepository.save(tx);
+
+        return toWalletResponse(wallet);
+    }
+
+    @Transactional
+    public WalletResponse purchaseChapter(PurchaseChapterRequest request) {
+        UserEntity user = getCurrentUser();
+
+        ChapterEntity chapter = chapterRepository.findById(request.getChapterId())
+                .orElseThrow(() -> new NotFoundException("Chapter not found: " + request.getChapterId()));
+
+        if (!chapter.isPremium()) {
+            throw new BadRequestException("Chapter is not premium");
+        }
+
+        int price = chapter.getPrice() != null ? chapter.getPrice() : 0;
+        if (price <= 0) {
+            throw new BadRequestException("Chapter has no price set");
+        }
+
+        // Check already purchased
+        if (purchaseRepository.existsByUserIdAndChapterId(user.getId(), chapter.getId())) {
+            throw new BadRequestException("Chapter already purchased");
+        }
+
+        // Lock the wallet row
+        UserWalletEntity wallet = walletRepository.findByUserIdForUpdate(user.getId())
+                .orElseGet(() -> createWallet(user));
+
+        String currency = request.getCurrency() != null ? request.getCurrency() : "COIN";
+        int newBalance;
+
+        if ("POINT".equalsIgnoreCase(currency)) {
+            if (wallet.getPointBalance() < price) {
+                throw new BadRequestException("Insufficient point balance");
+            }
+            wallet.setPointBalance(wallet.getPointBalance() - price);
+            newBalance = wallet.getPointBalance();
+        } else {
+            if (wallet.getCoinBalance() < price) {
+                throw new BadRequestException("Insufficient coin balance");
+            }
+            wallet.setCoinBalance(wallet.getCoinBalance() - price);
+            newBalance = wallet.getCoinBalance();
+        }
+        wallet.setUpdatedAt(LocalDateTime.now());
+        walletRepository.save(wallet);
+
+        // Record purchase
+        ChapterPurchaseEntity purchase = new ChapterPurchaseEntity();
+        purchase.setUser(user);
+        purchase.setChapter(chapter);
+        purchase.setPricePaid(price);
+        purchase.setCurrency(currency.toUpperCase());
+        purchaseRepository.save(purchase);
+
+        // Record transaction
+        WalletTransactionEntity tx = new WalletTransactionEntity();
+        tx.setUser(user);
+        tx.setType(TransactionType.PURCHASE);
+        tx.setAmount(price);
+        tx.setCurrency(currency.toUpperCase());
+        tx.setBalanceAfter(newBalance);
+        tx.setDescription("Purchase chapter: " + chapter.getTitle());
+        tx.setReferenceId("chapter-" + chapter.getId());
         transactionRepository.save(tx);
 
         return toWalletResponse(wallet);

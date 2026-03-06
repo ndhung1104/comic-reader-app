@@ -9,23 +9,38 @@ import com.group09.ComicReader.comic.dto.ComicResponse;
 import com.group09.ComicReader.comic.entity.ComicEntity;
 import com.group09.ComicReader.comic.repository.ComicRepository;
 import com.group09.ComicReader.common.exception.NotFoundException;
+import com.group09.ComicReader.auth.entity.UserEntity;
+import com.group09.ComicReader.auth.repository.UserRepository;
+import com.group09.ComicReader.wallet.entity.ChapterPurchaseEntity;
+import com.group09.ComicReader.wallet.repository.ChapterPurchaseRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class ComicService {
 
     private final ComicRepository comicRepository;
     private final ChapterRepository chapterRepository;
+    private final ChapterPurchaseRepository purchaseRepository;
+    private final UserRepository userRepository;
 
-    public ComicService(ComicRepository comicRepository, ChapterRepository chapterRepository) {
+    public ComicService(ComicRepository comicRepository,
+                        ChapterRepository chapterRepository,
+                        ChapterPurchaseRepository purchaseRepository,
+                        UserRepository userRepository) {
         this.comicRepository = comicRepository;
         this.chapterRepository = chapterRepository;
+        this.purchaseRepository = purchaseRepository;
+        this.userRepository = userRepository;
     }
 
     public Page<ComicResponse> getComics(Pageable pageable) {
@@ -38,8 +53,24 @@ public class ComicService {
     }
 
     public List<ChapterResponse> getChapters(Long comicId) {
-        return chapterRepository.findByComicIdOrderByChapterNumberAsc(comicId).stream()
-                .map(this::toChapterResponse)
+        List<ChapterEntity> chapters = chapterRepository.findByComicIdOrderByChapterNumberAsc(comicId);
+
+        // Get current user's purchase info
+        UserEntity user = getCurrentUser();
+        List<Long> chapterIds = chapters.stream().map(ChapterEntity::getId).toList();
+        Set<Long> purchasedIds = purchaseRepository
+                .findByUserIdAndChapterIdIn(user.getId(), chapterIds)
+                .stream()
+                .map(p -> p.getChapter().getId())
+                .collect(Collectors.toSet());
+
+        return chapters.stream()
+                .map(ch -> {
+                    ChapterResponse r = toChapterResponse(ch);
+                    // Free chapters are always unlocked; premium chapters require purchase
+                    r.setUnlocked(!ch.isPremium() || purchasedIds.contains(ch.getId()));
+                    return r;
+                })
                 .toList();
     }
 
@@ -73,6 +104,9 @@ public class ComicService {
         chapter.setChapterNumber(request.getChapterNumber());
         chapter.setTitle(request.getTitle());
         chapter.setPremium(Boolean.TRUE.equals(request.getPremium()));
+        if (request.getPrice() != null) {
+            chapter.setPrice(request.getPrice());
+        }
         ChapterEntity saved = chapterRepository.save(chapter);
         return toChapterResponse(saved);
     }
@@ -109,7 +143,20 @@ public class ComicService {
         response.setChapterNumber(entity.getChapterNumber());
         response.setTitle(entity.getTitle());
         response.setPremium(entity.isPremium());
+        response.setPrice(entity.getPrice());
         return response;
+    }
+
+    private UserEntity getCurrentUser() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String email;
+        if (principal instanceof UserDetails userDetails) {
+            email = userDetails.getUsername();
+        } else {
+            email = principal.toString();
+        }
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 }
 

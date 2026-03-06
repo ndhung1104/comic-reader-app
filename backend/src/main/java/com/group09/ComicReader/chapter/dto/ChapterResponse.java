@@ -7,6 +7,8 @@ public class ChapterResponse {
     private Integer chapterNumber;
     private String title;
     private boolean premium;
+    private Integer price;
+    private boolean unlocked;
 
     public Long getId() {
         return id;
@@ -46,6 +48,22 @@ public class ChapterResponse {
 
     public void setPremium(boolean premium) {
         this.premium = premium;
+    }
+
+    public Integer getPrice() {
+        return price;
+    }
+
+    public void setPrice(Integer price) {
+        this.price = price;
+    }
+
+    public boolean isUnlocked() {
+        return unlocked;
+    }
+
+    public void setUnlocked(boolean unlocked) {
+        this.unlocked = unlocked;
     }
 }
 
