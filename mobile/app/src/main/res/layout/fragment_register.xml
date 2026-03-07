@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/cl_login_root"
+    android:id="@+id/cl_register_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_primary">
 
     <androidx.core.widget.NestedScrollView
-        android:id="@+id/nsv_login_content"
+        android:id="@+id/nsv_register_content"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:fillViewport="true"
@@ -22,11 +22,11 @@
             android:padding="@dimen/spacing_xxl">
 
             <TextView
-                android:id="@+id/tv_login_logo"
+                android:id="@+id/tv_register_logo"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="@string/login_logo"
+                android:text="@string/register_logo"
                 android:textColor="@color/accent_primary"
                 android:textSize="@dimen/text_display"
                 android:textStyle="bold"
@@ -35,34 +35,60 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
-                android:id="@+id/tv_login_tagline"
+                android:id="@+id/tv_register_tagline"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_sm"
                 android:gravity="center"
-                android:text="@string/login_tagline"
+                android:text="@string/register_tagline"
                 android:textColor="@color/text_secondary"
                 android:textSize="@dimen/text_sm"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_login_logo" />
+                app:layout_constraintTop_toBottomOf="@id/tv_register_logo" />
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_login_email"
+                android:id="@+id/til_register_full_name"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_xxxl"
+                android:hint="@string/register_full_name_label"
+                app:boxBackgroundColor="@color/bg_surface"
+                app:boxStrokeColor="@color/divider_color"
+                app:hintTextColor="@color/text_secondary"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_register_tagline">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edt_register_full_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/input_height"
+                    android:hint="@string/register_full_name_hint"
+                    android:inputType="textPersonName"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="@dimen/text_md" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_register_email"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_lg"
                 android:hint="@string/login_email_label"
                 app:boxBackgroundColor="@color/bg_surface"
                 app:boxStrokeColor="@color/divider_color"
                 app:hintTextColor="@color/text_secondary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_login_tagline">
+                app:layout_constraintTop_toBottomOf="@id/til_register_full_name">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edt_login_email"
+                    android:id="@+id/edt_register_email"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/input_height"
                     android:hint="@string/login_email_hint"
@@ -74,7 +100,7 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_login_password"
+                android:id="@+id/til_register_password"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -86,10 +112,10 @@
                 app:hintTextColor="@color/text_secondary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/til_login_email">
+                app:layout_constraintTop_toBottomOf="@id/til_register_email">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edt_login_password"
+                    android:id="@+id/edt_register_password"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/input_height"
                     android:hint="@string/login_password_hint"
@@ -100,68 +126,58 @@
 
             </com.google.android.material.textfield.TextInputLayout>
 
-            <TextView
-                android:id="@+id/tv_login_forgot"
-                android:layout_width="wrap_content"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_register_confirm_password"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_md"
-                android:text="@string/login_forgot_password"
-                android:textColor="@color/accent_secondary"
-                android:textSize="@dimen/text_sm"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:hint="@string/register_confirm_password_label"
+                app:boxBackgroundColor="@color/bg_surface"
+                app:boxStrokeColor="@color/divider_color"
+                app:endIconMode="password_toggle"
+                app:hintTextColor="@color/text_secondary"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/til_login_password" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/til_register_password">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/edt_register_confirm_password"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/input_height"
+                    android:hint="@string/register_confirm_password_hint"
+                    android:inputType="textPassword"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="@dimen/text_md" />
+
+            </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_login_submit"
+                android:id="@+id/btn_register_submit"
                 style="@style/Widget.Material3.Button"
                 android:layout_width="0dp"
                 android:layout_height="@dimen/button_height"
                 android:layout_marginTop="@dimen/spacing_lg"
-                android:text="@string/login_button"
+                android:text="@string/register_button"
                 android:textSize="@dimen/text_md"
                 app:backgroundTint="@color/accent_primary"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_login_forgot" />
+                app:layout_constraintTop_toBottomOf="@id/til_register_confirm_password" />
 
             <TextView
-                android:id="@+id/tv_login_or"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_xl"
-                android:text="@string/login_or"
-                android:textColor="@color/text_secondary"
-                android:textSize="@dimen/text_sm"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/btn_login_submit" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_login_google"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="@dimen/button_height"
-                android:layout_marginTop="@dimen/spacing_xl"
-                android:text="@string/login_google"
-                android:textSize="@dimen/text_sm"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_login_or"
-                app:strokeColor="@color/divider_color"
-                app:strokeWidth="@dimen/stroke_thin" />
-
-            <TextView
-                android:id="@+id/tv_login_sign_up"
+                android:id="@+id/tv_register_login"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_xl"
                 android:gravity="center"
-                android:text="@string/login_sign_up"
+                android:text="@string/register_login_link"
                 android:textColor="@color/accent_secondary"
                 android:textSize="@dimen/text_sm"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/btn_login_google" />
+                app:layout_constraintTop_toBottomOf="@id/btn_register_submit" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

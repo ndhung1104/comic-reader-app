@@ -9,10 +9,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavDirections;
+import androidx.navigation.NavOptions;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.ProfileMenuAdapter;
 import com.group09.ComicReader.base.BaseFragment;
+import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.databinding.FragmentProfileBinding;
 import com.group09.ComicReader.model.ProfileMenuItem;
 import com.group09.ComicReader.viewmodel.ProfileViewModel;
@@ -45,13 +49,22 @@ public class ProfileFragment extends BaseFragment {
 
         binding.btnProfileCreator.setOnClickListener(v -> showToast("Creator flow is not implemented"));
 
+        binding.btnProfileLogout.setOnClickListener(v -> {
+            new SessionManager(requireContext()).clear();
+            androidx.navigation.NavController navController = Navigation.findNavController(v);
+            NavOptions navOptions = new NavOptions.Builder()
+                .setPopUpTo(R.id.onboardingFragment, true)
+                    .build();
+            navController.navigate(R.id.loginFragment, null, navOptions);
+        });
+
         viewModel.loadData();
     }
 
     private void onMenuClicked(ProfileMenuItem item) {
         if (item.isNavigatesToWallet() && getView() != null) {
             NavDirections action = ProfileFragmentDirections.actionProfileToWallet();
-            androidx.navigation.Navigation.findNavController(getView()).navigate(action);
+            Navigation.findNavController(getView()).navigate(action);
             return;
         }
         showToast(item.getLabel());

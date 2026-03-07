@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel;
 
 import com.group09.ComicReader.data.AuthRepository;
 
-public class LoginViewModel extends ViewModel {
+public class RegisterViewModel extends ViewModel {
 
     public static class Factory implements androidx.lifecycle.ViewModelProvider.Factory {
         private final AuthRepository authRepository;
@@ -20,8 +20,8 @@ public class LoginViewModel extends ViewModel {
         @Override
         @SuppressWarnings("unchecked")
         public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
-            if (modelClass.isAssignableFrom(LoginViewModel.class)) {
-                return (T) new LoginViewModel(authRepository);
+            if (modelClass.isAssignableFrom(RegisterViewModel.class)) {
+                return (T) new RegisterViewModel(authRepository);
             }
             throw new IllegalArgumentException("Unknown ViewModel class");
         }
@@ -31,9 +31,9 @@ public class LoginViewModel extends ViewModel {
 
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>(null);
-    private final MutableLiveData<Boolean> loginSuccess = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> registerSuccess = new MutableLiveData<>(false);
 
-    public LoginViewModel(@NonNull AuthRepository authRepository) {
+    public RegisterViewModel(@NonNull AuthRepository authRepository) {
         this.authRepository = authRepository;
     }
 
@@ -45,36 +45,42 @@ public class LoginViewModel extends ViewModel {
         return errorMessage;
     }
 
-    public LiveData<Boolean> getLoginSuccess() {
-        return loginSuccess;
+    public LiveData<Boolean> getRegisterSuccess() {
+        return registerSuccess;
     }
 
-    public boolean hasToken() {
-        return authRepository.hasToken();
-    }
-
-    public void login(String email, String password) {
+    public void register(String email, String password, String confirmPassword, String fullName) {
         String safeEmail = email == null ? "" : email.trim();
         String safePassword = password == null ? "" : password.trim();
+        String safeConfirmPassword = confirmPassword == null ? "" : confirmPassword.trim();
+        String safeFullName = fullName == null ? "" : fullName.trim();
 
+        if (safeFullName.isEmpty()) {
+            errorMessage.setValue("Full name is required");
+            return;
+        }
         if (safeEmail.isEmpty()) {
             errorMessage.setValue("Email is required");
             return;
         }
-        if (safePassword.isEmpty()) {
-            errorMessage.setValue("Password is required");
+        if (safePassword.length() < 6) {
+            errorMessage.setValue("Password must be at least 6 characters");
+            return;
+        }
+        if (!safePassword.equals(safeConfirmPassword)) {
+            errorMessage.setValue("Passwords do not match");
             return;
         }
 
         loading.setValue(true);
         errorMessage.setValue(null);
-        loginSuccess.setValue(false);
+        registerSuccess.setValue(false);
 
-        authRepository.login(safeEmail, safePassword, new AuthRepository.AuthCallback() {
+        authRepository.register(safeEmail, safePassword, safeFullName, new AuthRepository.AuthCallback() {
             @Override
             public void onSuccess(@NonNull com.group09.ComicReader.model.AuthResponse authResponse) {
                 loading.postValue(false);
-                loginSuccess.postValue(true);
+                registerSuccess.postValue(true);
             }
 
             @Override

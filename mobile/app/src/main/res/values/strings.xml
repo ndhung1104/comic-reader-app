@@ -19,6 +19,16 @@
     <string name="login_button">Login</string>
     <string name="login_or">OR</string>
     <string name="login_google">Continue with Google</string>
+    <string name="login_sign_up">Don\'t have an account? Sign up</string>
+
+    <string name="register_logo">Webtoon</string>
+    <string name="register_tagline">Create your account</string>
+    <string name="register_full_name_label">Full name</string>
+    <string name="register_full_name_hint">Enter your full name</string>
+    <string name="register_confirm_password_label">Confirm password</string>
+    <string name="register_confirm_password_hint">Re-enter your password</string>
+    <string name="register_button">Create account</string>
+    <string name="register_login_link">Already have an account? Login</string>
 
     <string name="home_daily_updates">Daily Updates</string>
     <string name="home_recommended">Recommended for You</string>
@@ -38,6 +48,7 @@
 
     <string name="profile_title">Profile</string>
     <string name="profile_creator">Become a Creator</string>
+    <string name="profile_logout">Logout</string>
     <string name="profile_version">Version 1.0.0</string>
 
     <string name="wallet_title">Wallet and Coins</string>

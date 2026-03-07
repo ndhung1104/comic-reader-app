@@ -89,10 +89,28 @@
         android:layout_marginTop="@dimen/spacing_md"
         android:text="@string/profile_creator"
         android:textSize="@dimen/text_sm"
-        app:layout_constraintBottom_toTopOf="@id/tv_profile_version"
+        app:layout_constraintTop_toBottomOf="@id/rcv_profile_menu"
+        app:layout_constraintBottom_toTopOf="@id/btn_profile_logout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:strokeColor="@color/accent_primary"
+        app:strokeWidth="@dimen/stroke_medium" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_profile_logout"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/button_height"
+        android:layout_marginEnd="@dimen/spacing_lg"
+        android:layout_marginStart="@dimen/spacing_lg"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:text="@string/profile_logout"
+        android:textSize="@dimen/text_sm"
+        app:layout_constraintBottom_toTopOf="@id/tv_profile_version"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_profile_creator"
+        app:strokeColor="@color/danger_color"
         app:strokeWidth="@dimen/stroke_medium" />
 
     <TextView
