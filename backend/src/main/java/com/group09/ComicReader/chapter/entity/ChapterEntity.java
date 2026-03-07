@@ -34,6 +34,9 @@ public class ChapterEntity {
     @Column(nullable = false)
     private boolean premium;
 
+    @Column(nullable = false)
+    private Integer price = 0;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -78,6 +81,14 @@ public class ChapterEntity {
 
     public void setPremium(boolean premium) {
         this.premium = premium;
+    }
+
+    public Integer getPrice() {
+        return price;
+    }
+
+    public void setPrice(Integer price) {
+        this.price = price;
     }
 
     public LocalDateTime getCreatedAt() {

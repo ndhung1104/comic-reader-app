@@ -16,6 +16,9 @@ public class ChapterRequest {
     @NotNull
     private Boolean premium;
 
+    @Min(0)
+    private Integer price;
+
     public Integer getChapterNumber() {
         return chapterNumber;
     }
@@ -38,6 +41,14 @@ public class ChapterRequest {
 
     public void setPremium(Boolean premium) {
         this.premium = premium;
+    }
+
+    public Integer getPrice() {
+        return price;
+    }
+
+    public void setPrice(Integer price) {
+        this.price = price;
     }
 }
 

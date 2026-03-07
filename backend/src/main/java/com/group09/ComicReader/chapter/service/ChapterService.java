@@ -7,8 +7,15 @@ import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.chapter.entity.ChapterPageEntity;
 import com.group09.ComicReader.chapter.repository.ChapterPageRepository;
 import com.group09.ComicReader.chapter.repository.ChapterRepository;
+import com.group09.ComicReader.common.exception.BadRequestException;
 import com.group09.ComicReader.common.exception.NotFoundException;
 import com.group09.ComicReader.common.storage.FileStorageService;
+import com.group09.ComicReader.auth.entity.UserEntity;
+import com.group09.ComicReader.auth.repository.UserRepository;
+import com.group09.ComicReader.wallet.repository.ChapterPurchaseRepository;
+import com.group09.ComicReader.wallet.repository.VipSubscriptionRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,16 +30,40 @@ public class ChapterService {
     private final ChapterRepository chapterRepository;
     private final ChapterPageRepository chapterPageRepository;
     private final FileStorageService fileStorageService;
+    private final ChapterPurchaseRepository purchaseRepository;
+    private final VipSubscriptionRepository vipRepository;
+    private final UserRepository userRepository;
 
     public ChapterService(ChapterRepository chapterRepository,
                           ChapterPageRepository chapterPageRepository,
-                          FileStorageService fileStorageService) {
+                          FileStorageService fileStorageService,
+                          ChapterPurchaseRepository purchaseRepository,
+                          VipSubscriptionRepository vipRepository,
+                          UserRepository userRepository) {
         this.chapterRepository = chapterRepository;
         this.chapterPageRepository = chapterPageRepository;
         this.fileStorageService = fileStorageService;
+        this.purchaseRepository = purchaseRepository;
+        this.vipRepository = vipRepository;
+        this.userRepository = userRepository;
     }
 
     public List<ChapterPageResponse> getPages(Long chapterId) {
+        ChapterEntity chapter = getChapterEntity(chapterId);
+
+        // Gate premium chapters: VIP users bypass, others need purchase
+        if (chapter.isPremium()) {
+            UserEntity user = getCurrentUser();
+            boolean isVip = vipRepository.findActiveByUserId(user.getId(), LocalDateTime.now()).isPresent();
+            if (!isVip) {
+                boolean purchased = purchaseRepository
+                        .existsByUserIdAndChapterId(user.getId(), chapter.getId());
+                if (!purchased) {
+                    throw new BadRequestException("Chapter is locked. Purchase it to read.");
+                }
+            }
+        }
+
         return chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapterId).stream()
                 .map(this::toPageResponse)
                 .toList();
@@ -44,6 +75,9 @@ public class ChapterService {
         chapter.setChapterNumber(request.getChapterNumber());
         chapter.setTitle(request.getTitle());
         chapter.setPremium(Boolean.TRUE.equals(request.getPremium()));
+        if (request.getPrice() != null) {
+            chapter.setPrice(request.getPrice());
+        }
         chapter.setUpdatedAt(LocalDateTime.now());
         return toChapterResponse(chapterRepository.save(chapter));
     }
@@ -96,7 +130,20 @@ public class ChapterService {
         response.setChapterNumber(entity.getChapterNumber());
         response.setTitle(entity.getTitle());
         response.setPremium(entity.isPremium());
+        response.setPrice(entity.getPrice());
         return response;
+    }
+
+    private UserEntity getCurrentUser() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String email;
+        if (principal instanceof UserDetails userDetails) {
+            email = userDetails.getUsername();
+        } else {
+            email = principal.toString();
+        }
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 }
 

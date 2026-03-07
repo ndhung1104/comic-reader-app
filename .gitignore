@@ -36,6 +36,8 @@ target/
 *.iml
 *.ipr
 
+api_test.py
+
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
