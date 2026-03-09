@@ -61,6 +61,8 @@
     <string name="comic_chapters">Chapters</string>
     <string name="comic_not_found">Comic not found</string>
     <string name="comic_comments">Comments</string>
+    <string name="comic_no_unlocked_chapter">No unlocked chapter available</string>
+    <string name="chapter_locked_message">This chapter is locked</string>
 
     <string name="reader_page">Page %1$d</string>
     <string name="reader_previous">Previous</string>

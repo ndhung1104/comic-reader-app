@@ -17,17 +17,20 @@ import com.group09.ComicReader.model.Comic;
 public class ReaderActivity extends AppCompatActivity {
 
     public static final String EXTRA_COMIC_ID = "extra_comic_id";
+    public static final String EXTRA_CHAPTER_ID = "extra_chapter_id";
     public static final String EXTRA_CHAPTER = "extra_chapter";
 
-    public static Intent createIntent(@NonNull Context context, int comicId, int chapter) {
+    public static Intent createIntent(@NonNull Context context, int comicId, int chapterId, int chapterNumber) {
         Intent intent = new Intent(context, ReaderActivity.class);
         intent.putExtra(EXTRA_COMIC_ID, comicId);
-        intent.putExtra(EXTRA_CHAPTER, chapter);
+        intent.putExtra(EXTRA_CHAPTER_ID, chapterId);
+        intent.putExtra(EXTRA_CHAPTER, chapterNumber);
         return intent;
     }
 
     private ActivityReaderBinding binding;
     private int comicId;
+    private int chapterId;
     private int chapter;
     private int currentPage = 1;
     private final int totalPages = 15;
@@ -39,6 +42,7 @@ public class ReaderActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         comicId = getIntent().getIntExtra(EXTRA_COMIC_ID, 1);
+        chapterId = getIntent().getIntExtra(EXTRA_CHAPTER_ID, 1);
         chapter = getIntent().getIntExtra(EXTRA_CHAPTER, 1);
 
         Comic comic = ComicRepository.getInstance().getComicById(comicId);
