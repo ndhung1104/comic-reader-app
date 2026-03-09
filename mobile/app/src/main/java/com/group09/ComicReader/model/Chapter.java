@@ -6,13 +6,19 @@ public class Chapter {
     private final String title;
     private final boolean premium;
     private final String releaseDate;
+    private final boolean unlocked;
 
     public Chapter(int id, int number, String title, boolean premium, String releaseDate) {
+        this(id, number, title, premium, releaseDate, !premium);
+    }
+
+    public Chapter(int id, int number, String title, boolean premium, String releaseDate, boolean unlocked) {
         this.id = id;
         this.number = number;
         this.title = title;
         this.premium = premium;
         this.releaseDate = releaseDate;
+        this.unlocked = unlocked;
     }
 
     public int getId() { return id; }
@@ -20,4 +26,5 @@ public class Chapter {
     public String getTitle() { return title; }
     public boolean isPremium() { return premium; }
     public String getReleaseDate() { return releaseDate; }
+    public boolean isUnlocked() { return unlocked; }
 }

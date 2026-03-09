@@ -46,7 +46,7 @@ public class ChapterAdapter extends RecyclerView.Adapter<ChapterAdapter.ViewHold
         Chapter chapter = items.get(position);
         holder.binding.tvComicChapterTitle.setText(chapter.getTitle());
         holder.binding.tvComicChapterDate.setText(chapter.getReleaseDate());
-        holder.binding.imgComicChapterLock.setVisibility(chapter.isPremium() ? View.VISIBLE : View.GONE);
+        holder.binding.imgComicChapterLock.setVisibility(chapter.isUnlocked() ? View.GONE : View.VISIBLE);
         holder.binding.getRoot().setOnClickListener(v -> listener.onChapterClick(chapter));
     }
 

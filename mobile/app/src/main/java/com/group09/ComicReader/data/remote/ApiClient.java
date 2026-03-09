@@ -12,7 +12,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ApiClient {
 
     // Emulator -> host machine
-    private static final String DEFAULT_BASE_URL = "http://10.0.2.2:8080/";
+    public static final String DEFAULT_BASE_URL = "http://10.0.2.2:8080/";
 
     private final Retrofit retrofit;
 
@@ -36,5 +36,24 @@ public class ApiClient {
 
     public AuthApi authApi() {
         return retrofit.create(AuthApi.class);
+    }
+
+    public ComicApi comicApi() {
+        return retrofit.create(ComicApi.class);
+    }
+
+    public ChapterApi chapterApi() {
+        return retrofit.create(ChapterApi.class);
+    }
+
+    public static String toAbsoluteUrl(String pathOrUrl) {
+        if (pathOrUrl == null || pathOrUrl.trim().isEmpty()) {
+            return "";
+        }
+        if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+            return pathOrUrl;
+        }
+        String relative = pathOrUrl.startsWith("/") ? pathOrUrl.substring(1) : pathOrUrl;
+        return DEFAULT_BASE_URL + relative;
     }
 }
