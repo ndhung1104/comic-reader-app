@@ -61,15 +61,24 @@ public class SearchFragment extends BaseFragment {
                 return;
             }
             int checked = checkedIds.get(0);
-            String filter = "All";
-            if (checked == R.id.chip_search_action) {
-                filter = "Action";
-            } else if (checked == R.id.chip_search_romance) {
-                filter = "Romance";
-            } else if (checked == R.id.chip_search_fantasy) {
-                filter = "Fantasy";
+            com.google.android.material.chip.Chip chip = group.findViewById(checked);
+            if (chip != null) {
+                viewModel.updateFilter(chip.getText().toString());
             }
-            viewModel.updateFilter(filter);
+        });
+
+        viewModel.getFilters().observe(getViewLifecycleOwner(), filters -> {
+            if (filters == null || filters.isEmpty()) return;
+            binding.cgSearchFilters.removeAllViews();
+            for (String filter : filters) {
+                com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(requireContext(), null, com.google.android.material.R.attr.chipStyle);
+                chip.setText(filter);
+                chip.setCheckable(true);
+                binding.cgSearchFilters.addView(chip);
+            }
+            if (binding.cgSearchFilters.getChildCount() > 0 && binding.cgSearchFilters.getCheckedChipId() == android.view.View.NO_ID) {
+                ((com.google.android.material.chip.Chip) binding.cgSearchFilters.getChildAt(0)).setChecked(true);
+            }
         });
 
         viewModel.getResults().observe(getViewLifecycleOwner(), comics -> {

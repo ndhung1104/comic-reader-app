@@ -70,35 +70,6 @@
         app:layout_constraintTop_toBottomOf="@id/cl_search_header"
         app:singleSelection="true">
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_search_all"
-            style="@style/Widget.Material3.Chip.Filter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:checked="true"
-            android:text="All" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_search_action"
-            style="@style/Widget.Material3.Chip.Filter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Action" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_search_romance"
-            style="@style/Widget.Material3.Chip.Filter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Romance" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_search_fantasy"
-            style="@style/Widget.Material3.Chip.Filter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Fantasy" />
-
     </com.google.android.material.chip.ChipGroup>
 
     <TextView
