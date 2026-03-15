@@ -21,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -137,9 +139,18 @@ public class ComicService {
         response.setId(entity.getId());
         response.setTitle(entity.getTitle());
         response.setAuthor(entity.getAuthor());
+        response.setSlug(entity.getSlug());
+
+        if (entity.getGenres() != null && !entity.getGenres().trim().isEmpty()) {
+            response.setGenres(Arrays.asList(entity.getGenres().split(",")));
+        } else {
+            response.setGenres(new ArrayList<>());
+        }
+
         response.setSynopsis(entity.getSynopsis());
         response.setCoverUrl(entity.getCoverUrl());
         response.setStatus(entity.getStatus());
+        response.setUpdatedAt(entity.getUpdatedAt());
         return response;
     }
 
@@ -166,4 +177,3 @@ public class ComicService {
                 .orElseThrow(() -> new NotFoundException("User not found"));
     }
 }
-

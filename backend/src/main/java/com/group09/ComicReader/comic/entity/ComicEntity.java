@@ -23,6 +23,12 @@ public class ComicEntity {
     @Column(nullable = false)
     private String author;
 
+    @Column(unique = true)
+    private String slug;
+
+    @Column(columnDefinition = "TEXT")
+    private String genres;
+
     @Column(columnDefinition = "TEXT")
     private String synopsis;
 
@@ -60,6 +66,22 @@ public class ComicEntity {
 
     public void setAuthor(String author) {
         this.author = author;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
+    }
+
+    public String getGenres() {
+        return genres;
+    }
+
+    public void setGenres(String genres) {
+        this.genres = genres;
     }
 
     public String getSynopsis() {
@@ -102,4 +124,3 @@ public class ComicEntity {
         this.updatedAt = updatedAt;
     }
 }
-

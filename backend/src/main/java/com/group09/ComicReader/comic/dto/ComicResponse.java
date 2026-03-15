@@ -1,13 +1,19 @@
 package com.group09.ComicReader.comic.dto;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 public class ComicResponse {
 
     private Long id;
     private String title;
     private String author;
+    private String slug;
+    private List<String> genres;
     private String synopsis;
     private String coverUrl;
     private String status;
+    private LocalDateTime updatedAt;
 
     public Long getId() {
         return id;
@@ -33,6 +39,22 @@ public class ComicResponse {
         this.author = author;
     }
 
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
+    }
+
+    public List<String> getGenres() {
+        return genres;
+    }
+
+    public void setGenres(List<String> genres) {
+        this.genres = genres;
+    }
+
     public String getSynopsis() {
         return synopsis;
     }
@@ -56,5 +78,12 @@ public class ComicResponse {
     public void setStatus(String status) {
         this.status = status;
     }
-}
 
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}
