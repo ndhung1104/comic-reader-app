@@ -19,19 +19,37 @@ public class SearchViewModel extends ViewModel {
 
     public void loadInitial() {
         filters.setValue(comicRepository.getFilters());
-        results.setValue(comicRepository.searchComics(currentQuery, currentFilter));
+        fetchSearchResults();
     }
 
     public void updateQuery(String query) {
         currentQuery = query;
-        results.setValue(comicRepository.searchComics(currentQuery, currentFilter));
+        fetchSearchResults();
     }
 
     public void updateFilter(String filter) {
         currentFilter = filter;
-        results.setValue(comicRepository.searchComics(currentQuery, currentFilter));
+        fetchSearchResults();
     }
 
-    public LiveData<List<Comic>> getResults() { return results; }
-    public LiveData<List<String>> getFilters() { return filters; }
+    private void fetchSearchResults() {
+        comicRepository.searchComics(currentQuery, currentFilter, new ComicRepository.ComicListCallback() {
+            @Override
+            public void onSuccess(List<Comic> comics) {
+                results.postValue(comics);
+            }
+
+            @Override
+            public void onError(String error) {
+            }
+        });
+    }
+
+    public LiveData<List<Comic>> getResults() {
+        return results;
+    }
+
+    public LiveData<List<String>> getFilters() {
+        return filters;
+    }
 }

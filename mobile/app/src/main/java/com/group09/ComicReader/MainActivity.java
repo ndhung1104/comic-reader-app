@@ -19,11 +19,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        com.group09.ComicReader.data.ComicRepository.init(getApplicationContext());
+
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        NavHostFragment navHostFragment =
-                (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fcv_main_nav_host);
+        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.fcv_main_nav_host);
         if (navHostFragment == null) {
             Log.e(TAG, "NavHostFragment is null. Skip nav setup.");
             return;

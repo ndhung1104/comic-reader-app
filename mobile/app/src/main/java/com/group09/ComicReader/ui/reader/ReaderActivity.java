@@ -49,9 +49,6 @@ public class ReaderActivity extends AppCompatActivity {
         chapterId = getIntent().getIntExtra(EXTRA_CHAPTER_ID, 1);
         chapterNumber = getIntent().getIntExtra(EXTRA_CHAPTER, 1);
 
-        Comic comic = ComicRepository.getInstance().getComicById(comicId);
-        String title = comic == null ? getString(R.string.app_name) : comic.getTitle();
-
         ApiClient apiClient = new ApiClient(this);
         ReaderRepository readerRepository = new ReaderRepository(apiClient);
         ReaderViewModel.Factory factory = new ReaderViewModel.Factory(readerRepository);
@@ -61,7 +58,19 @@ public class ReaderActivity extends AppCompatActivity {
         binding.rcvReaderPages.setLayoutManager(new LinearLayoutManager(this));
         binding.rcvReaderPages.setAdapter(pageAdapter);
 
-        binding.tvReaderTitle.setText(title);
+        binding.tvReaderTitle.setText(getString(R.string.app_name));
+        ComicRepository.getInstance().getComicById(comicId, new ComicRepository.ComicCallback() {
+            @Override
+            public void onSuccess(Comic fetchedComic) {
+                if (fetchedComic != null && binding != null) {
+                    binding.tvReaderTitle.setText(fetchedComic.getTitle());
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+            }
+        });
         binding.tvReaderChapter.setText(getString(R.string.reader_chapter, chapterNumber));
 
         binding.btnReaderBack.setOnClickListener(v -> finish());

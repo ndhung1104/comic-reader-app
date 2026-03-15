@@ -16,12 +16,50 @@ public class HomeViewModel extends ViewModel {
     private final MutableLiveData<List<Comic>> recommended = new MutableLiveData<>();
 
     public void loadData() {
-        trendingComic.setValue(comicRepository.getTrendingComics());
-        dailyUpdates.setValue(comicRepository.getDailyUpdates());
-        recommended.setValue(comicRepository.getRecommended());
+        comicRepository.getTrendingComics(new ComicRepository.ComicListCallback() {
+            @Override
+            public void onSuccess(List<Comic> comics) {
+                trendingComic.postValue(comics);
+            }
+
+            @Override
+            public void onError(String error) {
+                // handle error or ignore
+            }
+        });
+
+        comicRepository.getDailyUpdates(new ComicRepository.ComicListCallback() {
+            @Override
+            public void onSuccess(List<Comic> comics) {
+                dailyUpdates.postValue(comics);
+            }
+
+            @Override
+            public void onError(String error) {
+            }
+        });
+
+        comicRepository.getRecommended(new ComicRepository.ComicListCallback() {
+            @Override
+            public void onSuccess(List<Comic> comics) {
+                recommended.postValue(comics);
+            }
+
+            @Override
+            public void onError(String error) {
+            }
+        });
     }
 
-    public LiveData<List<Comic>> getTrendingComic() { return trendingComic; }
-    public LiveData<List<Comic>> getDailyUpdates() { return dailyUpdates; }
-    public LiveData<List<Comic>> getRecommended() { return recommended; }
+    public LiveData<List<Comic>> getTrendingComic() {
+        return trendingComic;
+    }
+
+    public LiveData<List<Comic>> getDailyUpdates() {
+        return dailyUpdates;
+    }
+
+    public LiveData<List<Comic>> getRecommended() {
+        return recommended;
+    }
 }

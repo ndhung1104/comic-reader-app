@@ -46,7 +46,17 @@ public class ComicDetailViewModel extends ViewModel {
     }
 
     public void loadData(int comicId) {
-        comic.setValue(comicRepository.getComicById(comicId));
+        comicRepository.getComicById(comicId, new ComicRepository.ComicCallback() {
+            @Override
+            public void onSuccess(Comic fetchedComic) {
+                comic.postValue(fetchedComic);
+            }
+
+            @Override
+            public void onError(String error) {
+                errorMessage.postValue(error);
+            }
+        });
         chapterLoading.setValue(true);
         readerRepository.getComicChapters(comicId, new ReaderRepository.ChaptersCallback() {
             @Override
@@ -64,8 +74,19 @@ public class ComicDetailViewModel extends ViewModel {
         });
     }
 
-    public LiveData<Comic> getComic() { return comic; }
-    public LiveData<List<Chapter>> getChapters() { return chapters; }
-    public LiveData<Boolean> getChapterLoading() { return chapterLoading; }
-    public LiveData<String> getErrorMessage() { return errorMessage; }
+    public LiveData<Comic> getComic() {
+        return comic;
+    }
+
+    public LiveData<List<Chapter>> getChapters() {
+        return chapters;
+    }
+
+    public LiveData<Boolean> getChapterLoading() {
+        return chapterLoading;
+    }
+
+    public LiveData<String> getErrorMessage() {
+        return errorMessage;
+    }
 }

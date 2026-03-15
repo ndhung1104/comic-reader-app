@@ -14,8 +14,19 @@ public class LibraryViewModel extends ViewModel {
     private final MutableLiveData<List<Comic>> libraryComics = new MutableLiveData<>();
 
     public void loadData() {
-        libraryComics.setValue(comicRepository.getLibraryComics());
+        comicRepository.getLibraryComics(new ComicRepository.ComicListCallback() {
+            @Override
+            public void onSuccess(List<Comic> comics) {
+                libraryComics.postValue(comics);
+            }
+
+            @Override
+            public void onError(String error) {
+            }
+        });
     }
 
-    public LiveData<List<Comic>> getLibraryComics() { return libraryComics; }
+    public LiveData<List<Comic>> getLibraryComics() {
+        return libraryComics;
+    }
 }
