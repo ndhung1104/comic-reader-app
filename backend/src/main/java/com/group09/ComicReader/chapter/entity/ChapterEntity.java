@@ -43,6 +43,9 @@ public class ChapterEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Column(name = "otruyen_api_data")
+    private String otruyenApiData;
+
     public Long getId() {
         return id;
     }
@@ -106,5 +109,12 @@ public class ChapterEntity {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
-}
 
+    public String getOtruyenApiData() {
+        return otruyenApiData;
+    }
+
+    public void setOtruyenApiData(String otruyenApiData) {
+        this.otruyenApiData = otruyenApiData;
+    }
+}

@@ -1,5 +1,7 @@
 package com.group09.ComicReader.comic.service;
 
+import com.group09.ComicReader.chapter.entity.ChapterEntity;
+import com.group09.ComicReader.chapter.repository.ChapterRepository;
 import com.group09.ComicReader.comic.dto.OTruyenDetailResponseDTO;
 import com.group09.ComicReader.comic.dto.OTruyenResponseDTO;
 import com.group09.ComicReader.comic.entity.ComicEntity;
@@ -20,16 +22,18 @@ public class OTruyenService {
     private static final Logger log = LoggerFactory.getLogger(OTruyenService.class);
 
     private final ComicRepository comicRepository;
+    private final ChapterRepository chapterRepository;
     private final RestTemplate restTemplate;
 
-    public OTruyenService(ComicRepository comicRepository) {
+    public OTruyenService(ComicRepository comicRepository, ChapterRepository chapterRepository) {
         this.comicRepository = comicRepository;
+        this.chapterRepository = chapterRepository;
         this.restTemplate = new RestTemplate();
     }
 
     @Transactional
     public void syncComicsFromOTruyen() {
-        String url = "https://otruyenapi.com/v1/api/home";
+        String url = "https://otruyenapi.com/v1/api/danh-sach/dang-phat-hanh";
         OTruyenResponseDTO response = restTemplate.getForObject(url, OTruyenResponseDTO.class);
 
         if (response != null && response.getData() != null && response.getData().getItems() != null) {
@@ -96,8 +100,51 @@ public class OTruyenService {
                     comic.setCreatedAt(LocalDateTime.now());
                     comic.setUpdatedAt(LocalDateTime.now());
 
-                    comicRepository.save(comic);
+                    ComicEntity savedComic = comicRepository.save(comic);
                     log.info("Saved comic: {}", item.getName());
+
+                    // Now process detailed chapter array if we have one
+                    try {
+                        OTruyenDetailResponseDTO detailResponse = restTemplate.getForObject(
+                                "https://otruyenapi.com/v1/api/truyen-tranh/" + item.getSlug(),
+                                OTruyenDetailResponseDTO.class);
+                        if (detailResponse != null && detailResponse.getData() != null
+                                && detailResponse.getData().getItem() != null) {
+                            List<OTruyenDetailResponseDTO.ChapterItem> chapters = detailResponse.getData().getItem()
+                                    .getChapters();
+                            if (chapters != null && !chapters.isEmpty()) {
+                                // OTruyen typically has multiple servers. We pick the first one which is
+                                // usually sv1.
+                                List<OTruyenDetailResponseDTO.ServerData> serverData = chapters.get(0).getServer_data();
+                                if (serverData != null) {
+                                    for (int i = 0; i < serverData.size(); i++) {
+                                        OTruyenDetailResponseDTO.ServerData cData = serverData.get(i);
+
+                                        ChapterEntity chapter = new ChapterEntity();
+                                        chapter.setComic(savedComic);
+                                        chapter.setChapterNumber(i + 1); // Ensure sequentially numbered index
+
+                                        String title = "Chapter " + (i + 1);
+                                        if (cData.getChapter_name() != null
+                                                && !cData.getChapter_name().trim().isEmpty()) {
+                                            title = cData.getChapter_name();
+                                        }
+                                        chapter.setTitle(title);
+                                        chapter.setOtruyenApiData(cData.getChapter_api_data());
+                                        chapter.setPremium(false); // OTruyen data defaults to free
+                                        chapter.setPrice(0);
+                                        chapter.setCreatedAt(LocalDateTime.now());
+                                        chapter.setUpdatedAt(LocalDateTime.now());
+
+                                        chapterRepository.save(chapter);
+                                    }
+                                    log.info("Saved {} chapters for comic: {}", serverData.size(), item.getName());
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to parse chapters for comic: {}", item.getName(), e);
+                    }
                 }
             }
         }

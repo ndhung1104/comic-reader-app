@@ -59,6 +59,7 @@ public class OTruyenDetailResponseDTO {
         private String slug;
         private String content; // Synopsis
         private List<String> author; // The missing array
+        private List<ChapterItem> chapters; // Added chapters array
 
         public String get_id() {
             return _id;
@@ -98,6 +99,65 @@ public class OTruyenDetailResponseDTO {
 
         public void setAuthor(List<String> author) {
             this.author = author;
+        }
+
+        public List<ChapterItem> getChapters() {
+            return chapters;
+        }
+
+        public void setChapters(List<ChapterItem> chapters) {
+            this.chapters = chapters;
+        }
+    }
+
+    public static class ChapterItem {
+        private String server_name;
+        private List<ServerData> server_data;
+
+        public String getServer_name() {
+            return server_name;
+        }
+
+        public void setServer_name(String server_name) {
+            this.server_name = server_name;
+        }
+
+        public List<ServerData> getServer_data() {
+            return server_data;
+        }
+
+        public void setServer_data(List<ServerData> server_data) {
+            this.server_data = server_data;
+        }
+    }
+
+    public static class ServerData {
+        private String chapter_name;
+        private String chapter_title;
+        private String chapter_api_data;
+
+        public String getChapter_name() {
+            return chapter_name;
+        }
+
+        public void setChapter_name(String chapter_name) {
+            this.chapter_name = chapter_name;
+        }
+
+        public String getChapter_title() {
+            return chapter_title;
+        }
+
+        public void setChapter_title(String chapter_title) {
+            this.chapter_title = chapter_title;
+        }
+
+        public String getChapter_api_data() {
+            return chapter_api_data;
+        }
+
+        public void setChapter_api_data(String chapter_api_data) {
+            this.chapter_api_data = chapter_api_data;
         }
     }
 }
