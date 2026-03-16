@@ -14,6 +14,7 @@ import com.group09.ComicReader.auth.entity.UserEntity;
 import com.group09.ComicReader.auth.repository.UserRepository;
 import com.group09.ComicReader.wallet.repository.ChapterPurchaseRepository;
 import com.group09.ComicReader.wallet.repository.VipSubscriptionRepository;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import com.group09.ComicReader.comic.dto.OTruyenChapterDetailResponseDTO;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ChapterService {
@@ -57,14 +59,15 @@ public class ChapterService {
 
         // Gate premium chapters: VIP users bypass, others need purchase
         if (chapter.isPremium()) {
-            UserEntity user = getCurrentUser();
+            Optional<UserEntity> userOptional = getCurrentUserOptional();
+            if (userOptional.isEmpty()) {
+                throw new BadRequestException("Chapter is locked. Purchase it to read.");
+            }
+
+            UserEntity user = userOptional.get();
             boolean isVip = vipRepository.findActiveByUserId(user.getId(), LocalDateTime.now()).isPresent();
-            if (!isVip) {
-                boolean purchased = purchaseRepository
-                        .existsByUserIdAndChapterId(user.getId(), chapter.getId());
-                if (!purchased) {
-                    throw new BadRequestException("Chapter is locked. Purchase it to read.");
-                }
+            if (!isVip && !purchaseRepository.existsByUserIdAndChapterId(user.getId(), chapter.getId())) {
+                throw new BadRequestException("Chapter is locked. Purchase it to read.");
             }
         }
 
@@ -173,15 +176,28 @@ public class ChapterService {
         return response;
     }
 
-    private UserEntity getCurrentUser() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    private Optional<UserEntity> getCurrentUserOptional() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return Optional.empty();
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal == null) {
+            return Optional.empty();
+        }
+
         String email;
         if (principal instanceof UserDetails userDetails) {
             email = userDetails.getUsername();
         } else {
             email = principal.toString();
         }
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        if (email == null || email.isBlank() || "anonymousUser".equalsIgnoreCase(email)) {
+            return Optional.empty();
+        }
+
+        return userRepository.findByEmail(email);
     }
 }

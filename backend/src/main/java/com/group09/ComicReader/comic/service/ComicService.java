@@ -15,6 +15,7 @@ import com.group09.ComicReader.wallet.repository.ChapterPurchaseRepository;
 import com.group09.ComicReader.wallet.repository.VipSubscriptionRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -60,24 +63,35 @@ public class ComicService {
     public List<ChapterResponse> getChapters(Long comicId) {
         List<ChapterEntity> chapters = chapterRepository.findByComicIdOrderByChapterNumberAsc(comicId);
 
-        // Get current user info
-        UserEntity user = getCurrentUser();
+        Optional<UserEntity> userOptional = getCurrentUserOptional();
+        boolean isVip = false;
+        Set<Long> purchasedIds = Collections.emptySet();
 
-        // VIP users see all chapters as unlocked
-        boolean isVip = vipRepository.findActiveByUserId(user.getId(), LocalDateTime.now()).isPresent();
+        if (userOptional.isPresent()) {
+            UserEntity user = userOptional.get();
+            isVip = vipRepository.findActiveByUserId(user.getId(), LocalDateTime.now()).isPresent();
 
-        List<Long> chapterIds = chapters.stream().map(ChapterEntity::getId).toList();
-        Set<Long> purchasedIds = purchaseRepository
-                .findByUserIdAndChapterIdIn(user.getId(), chapterIds)
-                .stream()
-                .map(p -> p.getChapter().getId())
-                .collect(Collectors.toSet());
+            List<Long> chapterIds = chapters.stream().map(ChapterEntity::getId).toList();
+            purchasedIds = purchaseRepository
+                    .findByUserIdAndChapterIdIn(user.getId(), chapterIds)
+                    .stream()
+                    .map(p -> p.getChapter().getId())
+                    .collect(Collectors.toSet());
+        }
+        final boolean hasAuthenticatedUser = userOptional.isPresent();
+        final boolean userHasVip = isVip;
+        final Set<Long> userPurchasedIds = purchasedIds;
 
         return chapters.stream()
                 .map(ch -> {
                     ChapterResponse r = toChapterResponse(ch);
-                    // Free chapters are always unlocked; VIP users unlock all; others need purchase
-                    r.setUnlocked(!ch.isPremium() || isVip || purchasedIds.contains(ch.getId()));
+                    if (!ch.isPremium()) {
+                        r.setUnlocked(true);
+                    } else if (!hasAuthenticatedUser) {
+                        r.setUnlocked(false);
+                    } else {
+                        r.setUnlocked(userHasVip || userPurchasedIds.contains(ch.getId()));
+                    }
                     return r;
                 })
                 .toList();
@@ -165,15 +179,28 @@ public class ComicService {
         return response;
     }
 
-    private UserEntity getCurrentUser() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    private Optional<UserEntity> getCurrentUserOptional() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return Optional.empty();
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal == null) {
+            return Optional.empty();
+        }
+
         String email;
         if (principal instanceof UserDetails userDetails) {
             email = userDetails.getUsername();
         } else {
             email = principal.toString();
         }
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        if (email == null || email.isBlank() || "anonymousUser".equalsIgnoreCase(email)) {
+            return Optional.empty();
+        }
+
+        return userRepository.findByEmail(email);
     }
 }
