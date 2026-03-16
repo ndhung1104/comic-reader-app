@@ -39,6 +39,7 @@ public class ComicDetailViewModel extends ViewModel {
     private final MutableLiveData<List<Chapter>> chapters = new MutableLiveData<>();
     private final MutableLiveData<Boolean> chapterLoading = new MutableLiveData<>(false);
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
+    private final MutableLiveData<List<Comic>> relatedComics = new MutableLiveData<>();
 
     public ComicDetailViewModel(ComicRepository comicRepository, ReaderRepository readerRepository) {
         this.comicRepository = comicRepository;
@@ -47,6 +48,7 @@ public class ComicDetailViewModel extends ViewModel {
 
     public void loadData(int comicId) {
         comic.setValue(comicRepository.getComicById(comicId));
+        relatedComics.setValue(comicRepository.getRelatedComics(comicId));
         chapterLoading.setValue(true);
         readerRepository.getComicChapters(comicId, new ReaderRepository.ChaptersCallback() {
             @Override
@@ -68,4 +70,5 @@ public class ComicDetailViewModel extends ViewModel {
     public LiveData<List<Chapter>> getChapters() { return chapters; }
     public LiveData<Boolean> getChapterLoading() { return chapterLoading; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
+    public LiveData<List<Comic>> getRelatedComics() { return relatedComics; }
 }

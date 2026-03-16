@@ -4,6 +4,8 @@ import com.group09.ComicReader.model.Chapter;
 import com.group09.ComicReader.model.Comic;
 import com.group09.ComicReader.model.CommentItem;
 
+import java.util.Comparator;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -52,6 +54,31 @@ public class ComicRepository {
     public List<Comic> getRecommended() {
         int end = Math.min(6, comics.size());
         return new ArrayList<>(comics.subList(0, end));
+    }
+
+    public List<Comic> getRankedComics() {
+        List<Comic> result = new ArrayList<>(comics);
+        result.sort(Comparator.comparingDouble(Comic::getRating).reversed());
+        return result;
+    }
+
+    public List<Comic> getRelatedComics(int comicId) {
+        Comic target = getComicById(comicId);
+        if (target == null || target.getGenres() == null || target.getGenres().isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<Comic> result = new ArrayList<>();
+        for (Comic comic : comics) {
+            if (comic.getId() == comicId) continue;
+            for (String genre : comic.getGenres()) {
+                if (target.getGenres().contains(genre)) {
+                    result.add(comic);
+                    break;
+                }
+            }
+        }
+        result.sort(Comparator.comparingDouble(Comic::getRating).reversed());
+        return result;
     }
 
     public List<Comic> getLibraryComics() {
