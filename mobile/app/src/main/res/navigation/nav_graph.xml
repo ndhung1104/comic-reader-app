@@ -3,17 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/onboardingFragment">
-
-    <fragment
-        android:id="@+id/onboardingFragment"
-        android:name="com.group09.ComicReader.ui.onboarding.OnboardingFragment"
-        android:label="onboarding"
-        tools:layout="@layout/fragment_onboarding">
-        <action
-            android:id="@+id/action_onboarding_to_login"
-            app:destination="@id/loginFragment" />
-    </fragment>
+    app:startDestination="@id/homeFragment">
 
     <fragment
         android:id="@+id/loginFragment"
@@ -23,7 +13,7 @@
         <action
             android:id="@+id/action_login_to_home"
             app:destination="@id/homeFragment"
-            app:popUpTo="@id/onboardingFragment"
+            app:popUpTo="@id/loginFragment"
             app:popUpToInclusive="true" />
 
         <action
@@ -40,7 +30,7 @@
         <action
             android:id="@+id/action_register_to_home"
             app:destination="@id/homeFragment"
-            app:popUpTo="@id/onboardingFragment"
+            app:popUpTo="@id/loginFragment"
             app:popUpToInclusive="true" />
 
         <action
@@ -65,6 +55,16 @@
         tools:layout="@layout/fragment_search">
         <action
             android:id="@+id/action_search_to_comic_detail"
+            app:destination="@id/comicDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/rankingFragment"
+        android:name="com.group09.ComicReader.ui.ranking.RankingFragment"
+        android:label="ranking"
+        tools:layout="@layout/fragment_ranking">
+        <action
+            android:id="@+id/action_ranking_to_comic_detail"
             app:destination="@id/comicDetailFragment" />
     </fragment>
 

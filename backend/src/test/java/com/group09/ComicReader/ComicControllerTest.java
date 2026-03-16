@@ -55,5 +55,32 @@ class ComicControllerTest {
         JsonNode comicsJson = objectMapper.readTree(comicsResult);
         assertThat(comicsJson.get("content").isArray()).isTrue();
     }
+
+    @Test
+    void shouldGetComicChaptersWithoutToken() throws Exception {
+        String chaptersResult = mockMvc.perform(get("/api/v1/comics/1/chapters"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode chaptersJson = objectMapper.readTree(chaptersResult);
+        assertThat(chaptersJson.isArray()).isTrue();
+        assertThat(chaptersJson.size()).isGreaterThan(0);
+        assertThat(chaptersJson.get(0).get("unlocked").asBoolean()).isTrue();
+    }
+
+    @Test
+    void shouldGetFreeChapterPagesWithoutToken() throws Exception {
+        String pagesResult = mockMvc.perform(get("/api/v1/chapters/1/pages"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode pagesJson = objectMapper.readTree(pagesResult);
+        assertThat(pagesJson.isArray()).isTrue();
+        assertThat(pagesJson.size()).isGreaterThan(0);
+    }
 }
 

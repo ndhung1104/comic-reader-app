@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
 import com.group09.ComicReader.adapter.ChapterAdapter;
+import com.group09.ComicReader.adapter.RelatedComicAdapter;
 import com.group09.ComicReader.base.BaseFragment;
 import com.group09.ComicReader.data.ComicRepository;
 import com.group09.ComicReader.data.ReaderRepository;
@@ -34,6 +35,7 @@ public class ComicDetailFragment extends BaseFragment {
     private FragmentComicDetailBinding binding;
     private ComicDetailViewModel viewModel;
     private ChapterAdapter chapterAdapter;
+    private RelatedComicAdapter relatedComicAdapter;
     private int comicId;
     private Comic currentComic;
     private List<Chapter> currentChapters = new ArrayList<>();
@@ -60,6 +62,11 @@ public class ComicDetailFragment extends BaseFragment {
         chapterAdapter = new ChapterAdapter(this::openReaderForChapter);
         binding.rcvComicDetailChapters.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rcvComicDetailChapters.setAdapter(chapterAdapter);
+
+        relatedComicAdapter = new RelatedComicAdapter(this::openRelatedComic);
+        binding.rcvComicDetailRelated.setLayoutManager(
+                new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
+        binding.rcvComicDetailRelated.setAdapter(relatedComicAdapter);
 
         binding.btnComicDetailBack.setOnClickListener(v -> Navigation.findNavController(v).popBackStack());
         binding.btnComicDetailDownload.setOnClickListener(v -> showToast("Download is not implemented"));
@@ -98,6 +105,12 @@ public class ComicDetailFragment extends BaseFragment {
                 showToast(message);
             }
         });
+        viewModel.getRelatedComics().observe(getViewLifecycleOwner(), comics -> {
+            relatedComicAdapter.submitList(comics);
+            boolean hasRelated = comics != null && !comics.isEmpty();
+            binding.tvComicDetailRelatedLabel.setVisibility(hasRelated ? View.VISIBLE : View.GONE);
+            binding.rcvComicDetailRelated.setVisibility(hasRelated ? View.VISIBLE : View.GONE);
+        });
     }
 
     private void openReaderForChapter(Chapter chapter) {
@@ -127,6 +140,15 @@ public class ComicDetailFragment extends BaseFragment {
         }
         Intent intent = ReaderActivity.createIntent(requireContext(), currentComic.getId(), chapterId, chapterNumber);
         startActivity(intent);
+    }
+
+    private void openRelatedComic(Comic comic) {
+        if (comic == null || getView() == null) {
+            return;
+        }
+        ComicDetailFragmentArgs args = new ComicDetailFragmentArgs.Builder(comic.getId()).build();
+        Navigation.findNavController(getView()).navigate(
+                com.group09.ComicReader.R.id.comicDetailFragment, args.toBundle());
     }
 
     private void openCommentsSheet() {

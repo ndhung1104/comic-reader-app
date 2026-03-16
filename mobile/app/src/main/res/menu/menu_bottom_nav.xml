@@ -9,6 +9,10 @@
         android:icon="@drawable/ic_nav_search"
         android:title="@string/nav_search" />
     <item
+        android:id="@+id/rankingFragment"
+        android:icon="@drawable/ic_nav_ranking"
+        android:title="@string/nav_ranking" />
+    <item
         android:id="@+id/libraryFragment"
         android:icon="@drawable/ic_nav_library"
         android:title="@string/nav_library" />

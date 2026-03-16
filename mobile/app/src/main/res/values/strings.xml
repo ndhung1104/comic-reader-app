@@ -2,12 +2,11 @@
     <string name="app_name">ComicReader</string>
     <string name="nav_home">Home</string>
     <string name="nav_search">Search</string>
+    <string name="nav_ranking">Ranking</string>
     <string name="nav_library">Library</string>
     <string name="nav_profile">Profile</string>
-
-    <string name="onboarding_title">Dive into Infinite Worlds</string>
-    <string name="onboarding_subtitle">Read, track, and support your favorite creators.</string>
-    <string name="onboarding_get_started">Get Started</string>
+    <string name="ranking_title">Ranking</string>
+    <string name="comic_related">Related Comics</string>
 
     <string name="login_logo">Webtoon</string>
     <string name="login_tagline">Your stories await</string>
