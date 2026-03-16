@@ -53,7 +53,7 @@ public class ProfileFragment extends BaseFragment {
             new SessionManager(requireContext()).clear();
             androidx.navigation.NavController navController = Navigation.findNavController(v);
             NavOptions navOptions = new NavOptions.Builder()
-                .setPopUpTo(R.id.onboardingFragment, true)
+                .setPopUpTo(R.id.homeFragment, true)
                     .build();
             navController.navigate(R.id.loginFragment, null, navOptions);
         });
