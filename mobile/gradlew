@@ -117,6 +117,15 @@ esac
 CLASSPATH="\\\"\\\""
 
 
+# Fallback to Android Studio JBR when JAVA_HOME is not set.
+if [ -z "$JAVA_HOME" ] ; then
+    if [ -n "$ANDROID_STUDIO_JBR" ] && [ -x "$ANDROID_STUDIO_JBR/bin/java" ] ; then
+        JAVA_HOME="$ANDROID_STUDIO_JBR"
+    elif [ -x "/opt/android-studio/jbr/bin/java" ] ; then
+        JAVA_HOME="/opt/android-studio/jbr"
+    fi
+fi
+
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then
     if [ -x "$JAVA_HOME/jre/sh/java" ] ; then

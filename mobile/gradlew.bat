@@ -39,6 +39,9 @@ for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
 @rem Find java.exe
+@rem Fallback to Android Studio JBR when JAVA_HOME is not set.
+if not defined JAVA_HOME if defined ANDROID_STUDIO_JBR if exist "%ANDROID_STUDIO_JBR%\bin\java.exe" set JAVA_HOME=%ANDROID_STUDIO_JBR%
+if not defined JAVA_HOME if exist "C:\Program Files\Android\Android Studio\jbr\bin\java.exe" set JAVA_HOME=C:\Program Files\Android\Android Studio\jbr
 if defined JAVA_HOME goto findJavaFromJavaHome
 
 set JAVA_EXE=java.exe
