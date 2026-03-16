@@ -144,29 +144,59 @@ public class ComicRepository {
         });
     }
 
-    public List<Comic> getRankedComics() {
-        List<Comic> result = new ArrayList<>(comics);
-        result.sort(Comparator.comparingDouble(Comic::getRating).reversed());
-        return result;
+    public void getRankedComics(@NonNull ComicListCallback callback) {
+        getComics(0, 100, new ComicListCallback() {
+            @Override
+            public void onSuccess(List<Comic> comics) {
+                List<Comic> result = new ArrayList<>(comics);
+                result.sort(Comparator.comparingDouble(Comic::getRating).reversed());
+                callback.onSuccess(result);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
     }
 
-    public List<Comic> getRelatedComics(int comicId) {
-        Comic target = getComicById(comicId);
-        if (target == null || target.getGenres() == null || target.getGenres().isEmpty()) {
-            return new ArrayList<>();
-        }
-        List<Comic> result = new ArrayList<>();
-        for (Comic comic : comics) {
-            if (comic.getId() == comicId) continue;
-            for (String genre : comic.getGenres()) {
-                if (target.getGenres().contains(genre)) {
-                    result.add(comic);
-                    break;
+    public void getRelatedComics(int comicId, @NonNull ComicListCallback callback) {
+        getComics(0, 100, new ComicListCallback() {
+            @Override
+            public void onSuccess(List<Comic> comics) {
+                Comic target = null;
+                for (Comic comic : comics) {
+                    if (comic.getId() == comicId) {
+                        target = comic;
+                        break;
+                    }
                 }
+                if (target == null || target.getGenres() == null || target.getGenres().isEmpty()) {
+                    callback.onSuccess(new ArrayList<>());
+                    return;
+                }
+
+                List<Comic> result = new ArrayList<>();
+                for (Comic comic : comics) {
+                    if (comic.getId() == comicId || comic.getGenres() == null || comic.getGenres().isEmpty()) {
+                        continue;
+                    }
+                    for (String genre : comic.getGenres()) {
+                        if (target.getGenres().contains(genre)) {
+                            result.add(comic);
+                            break;
+                        }
+                    }
+                }
+                result.sort(Comparator.comparingDouble(Comic::getRating).reversed());
+                callback.onSuccess(result);
             }
-        }
-        result.sort(Comparator.comparingDouble(Comic::getRating).reversed());
-        return result;
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
     }
 
     public void getLibraryComics(@NonNull ComicListCallback callback) {

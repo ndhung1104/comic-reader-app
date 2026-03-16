@@ -10,6 +10,7 @@ import com.group09.ComicReader.data.ReaderRepository;
 import com.group09.ComicReader.model.Chapter;
 import com.group09.ComicReader.model.Comic;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ComicDetailViewModel extends ViewModel {
@@ -58,8 +59,17 @@ public class ComicDetailViewModel extends ViewModel {
                 errorMessage.postValue(error);
             }
         });
-        comic.setValue(comicRepository.getComicById(comicId));
-        relatedComics.setValue(comicRepository.getRelatedComics(comicId));
+        comicRepository.getRelatedComics(comicId, new ComicRepository.ComicListCallback() {
+            @Override
+            public void onSuccess(List<Comic> comics) {
+                relatedComics.postValue(comics);
+            }
+
+            @Override
+            public void onError(String error) {
+                relatedComics.postValue(new ArrayList<>());
+            }
+        });
         chapterLoading.setValue(true);
         readerRepository.getComicChapters(comicId, new ReaderRepository.ChaptersCallback() {
             @Override
@@ -92,9 +102,8 @@ public class ComicDetailViewModel extends ViewModel {
     public LiveData<String> getErrorMessage() {
         return errorMessage;
     }
-    public LiveData<Comic> getComic() { return comic; }
-    public LiveData<List<Chapter>> getChapters() { return chapters; }
-    public LiveData<Boolean> getChapterLoading() { return chapterLoading; }
-    public LiveData<String> getErrorMessage() { return errorMessage; }
-    public LiveData<List<Comic>> getRelatedComics() { return relatedComics; }
+
+    public LiveData<List<Comic>> getRelatedComics() {
+        return relatedComics;
+    }
 }
