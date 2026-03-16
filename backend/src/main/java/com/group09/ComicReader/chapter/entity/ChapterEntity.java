@@ -11,10 +11,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "chapters")
+@Data
+@ToString(exclude = {"comic"})
+@EqualsAndHashCode(exclude = {"comic"})
 public class ChapterEntity {
 
     @Id
@@ -45,76 +50,4 @@ public class ChapterEntity {
 
     @Column(name = "otruyen_api_data")
     private String otruyenApiData;
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public ComicEntity getComic() {
-        return comic;
-    }
-
-    public void setComic(ComicEntity comic) {
-        this.comic = comic;
-    }
-
-    public Integer getChapterNumber() {
-        return chapterNumber;
-    }
-
-    public void setChapterNumber(Integer chapterNumber) {
-        this.chapterNumber = chapterNumber;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public boolean isPremium() {
-        return premium;
-    }
-
-    public void setPremium(boolean premium) {
-        this.premium = premium;
-    }
-
-    public Integer getPrice() {
-        return price;
-    }
-
-    public void setPrice(Integer price) {
-        this.price = price;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public String getOtruyenApiData() {
-        return otruyenApiData;
-    }
-
-    public void setOtruyenApiData(String otruyenApiData) {
-        this.otruyenApiData = otruyenApiData;
-    }
 }

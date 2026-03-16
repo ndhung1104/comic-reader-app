@@ -10,10 +10,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "chapter_pages")
+@Data
+@ToString(exclude = {"chapter"})
+@EqualsAndHashCode(exclude = {"chapter"})
 public class ChapterPageEntity {
 
     @Id
@@ -32,45 +37,5 @@ public class ChapterPageEntity {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public ChapterEntity getChapter() {
-        return chapter;
-    }
-
-    public void setChapter(ChapterEntity chapter) {
-        this.chapter = chapter;
-    }
-
-    public Integer getPageNumber() {
-        return pageNumber;
-    }
-
-    public void setPageNumber(Integer pageNumber) {
-        this.pageNumber = pageNumber;
-    }
-
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
 }
 

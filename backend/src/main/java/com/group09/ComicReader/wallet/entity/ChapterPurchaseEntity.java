@@ -12,10 +12,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "chapter_purchases")
+@Data
+@ToString(exclude = {"user", "chapter"})
+@EqualsAndHashCode(exclude = {"user", "chapter"})
 public class ChapterPurchaseEntity {
 
     @Id
@@ -38,54 +43,4 @@ public class ChapterPurchaseEntity {
 
     @Column(name = "purchased_at", nullable = false)
     private LocalDateTime purchasedAt = LocalDateTime.now();
-
-    // --- Getters & Setters ---
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public UserEntity getUser() {
-        return user;
-    }
-
-    public void setUser(UserEntity user) {
-        this.user = user;
-    }
-
-    public ChapterEntity getChapter() {
-        return chapter;
-    }
-
-    public void setChapter(ChapterEntity chapter) {
-        this.chapter = chapter;
-    }
-
-    public Integer getPricePaid() {
-        return pricePaid;
-    }
-
-    public void setPricePaid(Integer pricePaid) {
-        this.pricePaid = pricePaid;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
-
-    public LocalDateTime getPurchasedAt() {
-        return purchasedAt;
-    }
-
-    public void setPurchasedAt(LocalDateTime purchasedAt) {
-        this.purchasedAt = purchasedAt;
-    }
 }

@@ -11,10 +11,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
+import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user_wallets")
+@Data
+@ToString(exclude = {"user"})
+@EqualsAndHashCode(exclude = {"user"})
 public class UserWalletEntity {
 
     @Id
@@ -36,54 +41,4 @@ public class UserWalletEntity {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
-
-    // --- Getters & Setters ---
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public UserEntity getUser() {
-        return user;
-    }
-
-    public void setUser(UserEntity user) {
-        this.user = user;
-    }
-
-    public Integer getCoinBalance() {
-        return coinBalance;
-    }
-
-    public void setCoinBalance(Integer coinBalance) {
-        this.coinBalance = coinBalance;
-    }
-
-    public Integer getPointBalance() {
-        return pointBalance;
-    }
-
-    public void setPointBalance(Integer pointBalance) {
-        this.pointBalance = pointBalance;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
 }
