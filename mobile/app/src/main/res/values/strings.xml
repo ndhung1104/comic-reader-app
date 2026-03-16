@@ -8,10 +8,6 @@
     <string name="ranking_title">Ranking</string>
     <string name="comic_related">Related Comics</string>
 
-    <string name="onboarding_title">Dive into Infinite Worlds</string>
-    <string name="onboarding_subtitle">Read, track, and support your favorite creators.</string>
-    <string name="onboarding_get_started">Get Started</string>
-
     <string name="login_logo">Webtoon</string>
     <string name="login_tagline">Your stories await</string>
     <string name="login_email_label">Email</string>
