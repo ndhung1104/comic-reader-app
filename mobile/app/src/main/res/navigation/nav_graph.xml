@@ -69,6 +69,16 @@
     </fragment>
 
     <fragment
+        android:id="@+id/rankingFragment"
+        android:name="com.group09.ComicReader.ui.ranking.RankingFragment"
+        android:label="ranking"
+        tools:layout="@layout/fragment_ranking">
+        <action
+            android:id="@+id/action_ranking_to_comic_detail"
+            app:destination="@id/comicDetailFragment" />
+    </fragment>
+
+    <fragment
         android:id="@+id/libraryFragment"
         android:name="com.group09.ComicReader.ui.library.LibraryFragment"
         android:label="library"

@@ -8,6 +8,8 @@ import com.group09.ComicReader.model.Chapter;
 import com.group09.ComicReader.model.Comic;
 import com.group09.ComicReader.model.ComicResponse;
 import com.group09.ComicReader.model.CommentItem;
+
+import java.util.Comparator;
 import com.group09.ComicReader.model.PageResponse;
 
 import java.util.ArrayList;
@@ -140,6 +142,31 @@ public class ComicRepository {
                 callback.onError(error);
             }
         });
+    }
+
+    public List<Comic> getRankedComics() {
+        List<Comic> result = new ArrayList<>(comics);
+        result.sort(Comparator.comparingDouble(Comic::getRating).reversed());
+        return result;
+    }
+
+    public List<Comic> getRelatedComics(int comicId) {
+        Comic target = getComicById(comicId);
+        if (target == null || target.getGenres() == null || target.getGenres().isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<Comic> result = new ArrayList<>();
+        for (Comic comic : comics) {
+            if (comic.getId() == comicId) continue;
+            for (String genre : comic.getGenres()) {
+                if (target.getGenres().contains(genre)) {
+                    result.add(comic);
+                    break;
+                }
+            }
+        }
+        result.sort(Comparator.comparingDouble(Comic::getRating).reversed());
+        return result;
     }
 
     public void getLibraryComics(@NonNull ComicListCallback callback) {
