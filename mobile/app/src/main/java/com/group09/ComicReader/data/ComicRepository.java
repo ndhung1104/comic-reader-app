@@ -9,6 +9,8 @@ import com.group09.ComicReader.model.Comic;
 import com.group09.ComicReader.model.ComicResponse;
 import com.group09.ComicReader.model.CommentItem;
 
+import java.util.Map;
+
 import java.util.Comparator;
 import com.group09.ComicReader.model.PageResponse;
 
@@ -26,13 +28,21 @@ public class ComicRepository {
 
     public interface ComicListCallback {
         void onSuccess(List<Comic> comics);
-
         void onError(String error);
     }
 
     public interface ComicCallback {
         void onSuccess(Comic comic);
+        void onError(String error);
+    }
 
+    public interface CommentListCallback {
+        void onSuccess(List<CommentItem> comments);
+        void onError(String error);
+    }
+
+    public interface CommentCallback {
+        void onSuccess(CommentItem comment);
         void onError(String error);
     }
 
@@ -40,7 +50,6 @@ public class ComicRepository {
     private final ApiClient apiClient;
 
     private final List<Chapter> mockedChapters;
-    private final List<CommentItem> mockedComments;
 
     private ComicRepository(Context context) {
         if (context != null) {
@@ -49,7 +58,6 @@ public class ComicRepository {
             this.apiClient = null;
         }
         mockedChapters = buildChapters();
-        mockedComments = buildComments();
     }
 
     public static void init(Context context) {
@@ -275,8 +283,52 @@ public class ComicRepository {
         return new ArrayList<>(mockedChapters);
     }
 
-    public List<CommentItem> getCommentsForComic(int comicId) {
-        return new ArrayList<>(mockedComments);
+    public void getCommentsForComic(int comicId, @NonNull CommentListCallback callback) {
+        if (apiClient == null) {
+            callback.onError("ApiClient not initialized");
+            return;
+        }
+        apiClient.commentApi().getComments(comicId).enqueue(new Callback<List<CommentItem>>() {
+            @Override
+            public void onResponse(@NonNull Call<List<CommentItem>> call,
+                    @NonNull Response<List<CommentItem>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onSuccess(response.body());
+                } else {
+                    callback.onError("Error: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<List<CommentItem>> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage());
+            }
+        });
+    }
+
+    public void postComment(int comicId, String content, @NonNull CommentCallback callback) {
+        if (apiClient == null) {
+            callback.onError("ApiClient not initialized");
+            return;
+        }
+        Map<String, String> body = new java.util.HashMap<>();
+        body.put("content", content);
+        apiClient.commentApi().postComment(comicId, body).enqueue(new Callback<CommentItem>() {
+            @Override
+            public void onResponse(@NonNull Call<CommentItem> call,
+                    @NonNull Response<CommentItem> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onSuccess(response.body());
+                } else {
+                    callback.onError("Error: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<CommentItem> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage());
+            }
+        });
     }
 
     private List<Chapter> buildChapters() {
@@ -286,12 +338,5 @@ public class ComicRepository {
             list.add(new Chapter(i, i, "Chapter " + i, premium, "Mar " + (i < 10 ? "0" + i : i) + ", 2026"));
         }
         return list;
-    }
-
-    private List<CommentItem> buildComments() {
-        return new ArrayList<>(Arrays.asList(
-                new CommentItem(1, "MangaFan2024", "", "This chapter was incredible!", "2 hours ago", 234),
-                new CommentItem(2, "ComicReader88", "", "The art keeps getting better.", "5 hours ago", 187),
-                new CommentItem(3, "WebtoonAddict", "", "Need the next chapter now.", "1 day ago", 342)));
     }
 }

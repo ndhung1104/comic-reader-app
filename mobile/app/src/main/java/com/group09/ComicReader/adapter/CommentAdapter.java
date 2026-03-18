@@ -36,14 +36,9 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         CommentItem comment = items.get(position);
         holder.binding.tvCommentUsername.setText(comment.getUsername());
-        holder.binding.tvCommentTimestamp.setText(comment.getTimestamp());
-        holder.binding.tvCommentText.setText(comment.getText());
-        holder.binding.tvCommentLikes.setText(String.valueOf(comment.getLikes()));
-        if (comment.getAvatarUrl() != null && !comment.getAvatarUrl().isEmpty()) {
-            Glide.with(holder.binding.imgCommentAvatar)
-                    .load(comment.getAvatarUrl())
-                    .into(holder.binding.imgCommentAvatar);
-        }
+        holder.binding.tvCommentTimestamp.setText(comment.getTimeAgo());
+        holder.binding.tvCommentText.setText(comment.getContent());
+        holder.binding.tvCommentLikes.setVisibility(android.view.View.GONE);
     }
 
     @Override

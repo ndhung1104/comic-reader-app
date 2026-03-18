@@ -56,6 +56,11 @@ public class CommentSheetBottomSheetFragment extends BottomSheetDialogFragment {
             adapter.submitList(comments);
             binding.rcvCommentSheetComments.scrollToPosition(0);
         });
+        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
+            if (error != null && !error.isEmpty()) {
+                android.widget.Toast.makeText(requireContext(), error, android.widget.Toast.LENGTH_SHORT).show();
+            }
+        });
         viewModel.loadComments(comicId);
     }
 

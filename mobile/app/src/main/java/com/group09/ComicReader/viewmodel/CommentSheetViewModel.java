@@ -14,20 +14,48 @@ public class CommentSheetViewModel extends ViewModel {
 
     private final ComicRepository comicRepository = ComicRepository.getInstance();
     private final MutableLiveData<List<CommentItem>> comments = new MutableLiveData<>();
+    private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
+    private int currentComicId;
 
     public void loadComments(int comicId) {
-        comments.setValue(comicRepository.getCommentsForComic(comicId));
+        this.currentComicId = comicId;
+        comicRepository.getCommentsForComic(comicId, new ComicRepository.CommentListCallback() {
+            @Override
+            public void onSuccess(List<CommentItem> result) {
+                comments.postValue(result);
+            }
+
+            @Override
+            public void onError(String error) {
+                errorMessage.postValue(error);
+                comments.postValue(new ArrayList<>());
+            }
+        });
     }
 
     public void addComment(String text) {
-        if (text == null || text.trim().isEmpty() || comments.getValue() == null) {
+        if (text == null || text.trim().isEmpty()) {
             return;
         }
-        List<CommentItem> current = new ArrayList<>(comments.getValue());
-        int nextId = current.size() + 1;
-        current.add(0, new CommentItem(nextId, "You", "", text.trim(), "Just now", 0));
-        comments.setValue(current);
+        comicRepository.postComment(currentComicId, text.trim(), new ComicRepository.CommentCallback() {
+            @Override
+            public void onSuccess(CommentItem comment) {
+                List<CommentItem> current = comments.getValue();
+                List<CommentItem> updated = new ArrayList<>();
+                updated.add(comment);
+                if (current != null) {
+                    updated.addAll(current);
+                }
+                comments.postValue(updated);
+            }
+
+            @Override
+            public void onError(String error) {
+                errorMessage.postValue(error);
+            }
+        });
     }
 
     public LiveData<List<CommentItem>> getComments() { return comments; }
+    public LiveData<String> getErrorMessage() { return errorMessage; }
 }
