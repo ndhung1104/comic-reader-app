@@ -16,8 +16,11 @@ import androidx.appcompat.widget.AppCompatImageView;
 
 public class ZoomableImageView extends AppCompatImageView {
 
+    public interface OnTransformChangeListener {
+        void onTransformChanged(float scale, float panXNorm, boolean fromUser);
+    }
+
     private final Matrix drawMatrix = new Matrix();
-    private final float[] matrixValues = new float[9];
     private final ScaleGestureDetector scaleDetector;
     private final int touchSlop;
 
@@ -25,10 +28,14 @@ public class ZoomableImageView extends AppCompatImageView {
     private float mediumScale = 2.0f;
     private float maxScale = 5.0f;
     private float normalizedScale = 1.0f;
+    private float pendingScale = 1.0f;
+    private float pendingPanXNorm = 0.5f;
     private boolean allowParentInterceptOnEdge = true;
     private boolean isDragging;
     private float lastX;
     private float lastY;
+    @Nullable
+    private OnTransformChangeListener onTransformChangeListener;
 
     public ZoomableImageView(@NonNull Context context) {
         this(context, null);
@@ -80,7 +87,37 @@ public class ZoomableImageView extends AppCompatImageView {
     }
 
     public void resetZoom() {
-        resetMatrix();
+        setZoomTransform(minScale, 0.5f);
+    }
+
+    public float getCurrentScale() {
+        return normalizedScale;
+    }
+
+    public float getCurrentPanXNorm() {
+        RectF rect = getTransformedRect();
+        if (rect == null) {
+            return 0.5f;
+        }
+        float overflowX = rect.width() - getWidth();
+        if (overflowX <= 0f) {
+            return 0.5f;
+        }
+        return clampPanXNorm((-rect.left) / overflowX);
+    }
+
+    public void setZoomScale(float scale) {
+        setZoomTransform(scale, pendingPanXNorm);
+    }
+
+    public void setZoomTransform(float scale, float panXNorm) {
+        pendingScale = clampScale(scale);
+        pendingPanXNorm = clampPanXNorm(panXNorm);
+        applyPendingTransform(false);
+    }
+
+    public void setOnTransformChangeListener(@Nullable OnTransformChangeListener listener) {
+        onTransformChangeListener = listener;
     }
 
     @Override
@@ -164,6 +201,8 @@ public class ZoomableImageView extends AppCompatImageView {
         drawMatrix.postTranslate(dx, dy);
         fixTranslation();
         setImageMatrix(drawMatrix);
+        pendingPanXNorm = getCurrentPanXNorm();
+        notifyTransformChanged(true);
 
         if (allowParentInterceptOnEdge && isVerticalEdgeReached(dy)) {
             requestParentIntercept(false);
@@ -215,6 +254,72 @@ public class ZoomableImageView extends AppCompatImageView {
         drawMatrix.postTranslate(dx, dy);
         normalizedScale = 1.0f;
         setImageMatrix(drawMatrix);
+        applyPendingTransform(false);
+    }
+
+    private float clampScale(float scale) {
+        if (scale < minScale) {
+            return minScale;
+        }
+        if (scale > maxScale) {
+            return maxScale;
+        }
+        return scale;
+    }
+
+    private float clampPanXNorm(float panXNorm) {
+        if (panXNorm < 0f) {
+            return 0f;
+        }
+        if (panXNorm > 1f) {
+            return 1f;
+        }
+        return panXNorm;
+    }
+
+    private void applyPendingTransform(boolean fromUser) {
+        Drawable drawable = getDrawable();
+        if (drawable == null || getWidth() == 0 || getHeight() == 0) {
+            return;
+        }
+        float targetScale = clampScale(pendingScale);
+        float targetPanXNorm = clampPanXNorm(pendingPanXNorm);
+        if (Math.abs(targetScale - normalizedScale) < 0.001f) {
+            applyPanX(targetPanXNorm);
+            setImageMatrix(drawMatrix);
+            notifyTransformChanged(fromUser);
+            return;
+        }
+
+        float scaleFactor = targetScale / normalizedScale;
+        drawMatrix.postScale(scaleFactor, scaleFactor, getWidth() * 0.5f, getHeight() * 0.5f);
+        normalizedScale = targetScale;
+        fixTranslation();
+        applyPanX(targetPanXNorm);
+        setImageMatrix(drawMatrix);
+        notifyTransformChanged(fromUser);
+    }
+
+    private void applyPanX(float panXNorm) {
+        RectF rect = getTransformedRect();
+        if (rect == null) {
+            return;
+        }
+        float overflowX = rect.width() - getWidth();
+        if (overflowX <= 0f) {
+            return;
+        }
+
+        float desiredLeft = -clampPanXNorm(panXNorm) * overflowX;
+        float dx = desiredLeft - rect.left;
+        drawMatrix.postTranslate(dx, 0f);
+        fixTranslation();
+    }
+
+    private void notifyTransformChanged(boolean fromUser) {
+        if (onTransformChangeListener != null) {
+            onTransformChangeListener.onTransformChanged(normalizedScale, getCurrentPanXNorm(), fromUser);
+        }
     }
 
     private void fixTranslation() {
@@ -286,13 +391,18 @@ public class ZoomableImageView extends AppCompatImageView {
 
             drawMatrix.postScale(scaleFactor, scaleFactor, detector.getFocusX(), detector.getFocusY());
             normalizedScale *= scaleFactor;
+            pendingScale = normalizedScale;
             fixTranslation();
             setImageMatrix(drawMatrix);
+            pendingPanXNorm = getCurrentPanXNorm();
+            notifyTransformChanged(true);
             return true;
         }
 
         @Override
         public void onScaleEnd(@NonNull ScaleGestureDetector detector) {
+            pendingScale = normalizedScale;
+            pendingPanXNorm = getCurrentPanXNorm();
             if (normalizedScale <= minScale) {
                 requestParentIntercept(false);
             }
