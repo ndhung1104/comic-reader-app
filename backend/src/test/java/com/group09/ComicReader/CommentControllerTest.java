@@ -1,0 +1,211 @@
+package com.group09.ComicReader;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+class CommentControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private String adminToken;
+    private String userToken;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        adminToken = loginAndGetToken("admin@comicreader.dev", "admin123");
+        userToken = loginAndGetToken("user@comicreader.dev", "user123");
+    }
+
+    private String loginAndGetToken(String email, String password) throws Exception {
+        String payload = """
+                {
+                  "email": "%s",
+                  "password": "%s"
+                }
+                """.formatted(email, password);
+
+        String result = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return objectMapper.readTree(result).get("accessToken").asText();
+    }
+
+    @Test
+    void shouldGetCommentsPublicly() throws Exception {
+        String result = mockMvc.perform(get("/api/v1/comics/1/comments"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode json = objectMapper.readTree(result);
+        assertThat(json.isArray()).isTrue();
+    }
+
+    @Test
+    void authenticatedUserShouldCreateComment() throws Exception {
+        String commentPayload = """
+                {
+                  "content": "Great comic!"
+                }
+                """;
+
+        String result = mockMvc.perform(post("/api/v1/comics/1/comments")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(commentPayload))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode commentJson = objectMapper.readTree(result);
+        assertThat(commentJson.get("content").asText()).isEqualTo("Great comic!");
+        assertThat(commentJson.get("hidden").asBoolean()).isFalse();
+        assertThat(commentJson.get("comicId").asLong()).isEqualTo(1L);
+    }
+
+    @Test
+    void unauthenticatedUserCannotCreateComment() throws Exception {
+        String commentPayload = """
+                {
+                  "content": "This should fail"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/comics/1/comments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(commentPayload))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminShouldHideAndUnhideComment() throws Exception {
+        // Create a comment as user
+        String commentPayload = """
+                {
+                  "content": "Comment to moderate"
+                }
+                """;
+
+        String createResult = mockMvc.perform(post("/api/v1/comics/1/comments")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(commentPayload))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long commentId = objectMapper.readTree(createResult).get("id").asLong();
+
+        // Admin hides comment
+        String hideResult = mockMvc.perform(put("/api/v1/admin/comments/" + commentId + "/hide")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(objectMapper.readTree(hideResult).get("hidden").asBoolean()).isTrue();
+
+        // Public list should not contain hidden comment
+        String publicResult = mockMvc.perform(get("/api/v1/comics/1/comments"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode publicComments = objectMapper.readTree(publicResult);
+        boolean foundHidden = false;
+        for (JsonNode c : publicComments) {
+            if (c.get("id").asLong() == commentId) {
+                foundHidden = true;
+                break;
+            }
+        }
+        assertThat(foundHidden).isFalse();
+
+        // Admin can see hidden comments
+        String adminResult = mockMvc.perform(get("/api/v1/admin/comics/1/comments")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode adminComments = objectMapper.readTree(adminResult).get("content");
+        boolean foundInAdmin = false;
+        for (JsonNode c : adminComments) {
+            if (c.get("id").asLong() == commentId) {
+                foundInAdmin = true;
+                assertThat(c.get("hidden").asBoolean()).isTrue();
+                break;
+            }
+        }
+        assertThat(foundInAdmin).isTrue();
+
+        // Admin unhides comment
+        String unhideResult = mockMvc.perform(put("/api/v1/admin/comments/" + commentId + "/unhide")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(objectMapper.readTree(unhideResult).get("hidden").asBoolean()).isFalse();
+    }
+
+    @Test
+    void adminShouldDeleteComment() throws Exception {
+        // Create a comment
+        String commentPayload = """
+                {
+                  "content": "To be deleted"
+                }
+                """;
+
+        String createResult = mockMvc.perform(post("/api/v1/comics/1/comments")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(commentPayload))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long commentId = objectMapper.readTree(createResult).get("id").asLong();
+
+        // Admin deletes
+        mockMvc.perform(delete("/api/v1/admin/comments/" + commentId)
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+    }
+}

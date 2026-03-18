@@ -8,6 +8,7 @@ import com.group09.ComicReader.auth.entity.UserEntity;
 import com.group09.ComicReader.auth.repository.RoleRepository;
 import com.group09.ComicReader.auth.repository.UserRepository;
 import com.group09.ComicReader.common.exception.BadRequestException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -64,9 +65,13 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
+        } catch (DisabledException e) {
+            throw new BadRequestException("Account is banned");
+        }
 
         UserEntity user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new BadRequestException("Invalid credentials"));
