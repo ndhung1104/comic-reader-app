@@ -4,25 +4,34 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.group09.ComicReader.databinding.ItemReaderPageBinding;
 import com.group09.ComicReader.model.ReaderPage;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Objects;
 
-public class ReaderPageAdapter extends RecyclerView.Adapter<ReaderPageAdapter.PageViewHolder> {
+public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter.PageViewHolder> {
 
-    private final List<ReaderPage> items = new ArrayList<>();
+    private static final DiffUtil.ItemCallback<ReaderPage> DIFF_CALLBACK =
+            new DiffUtil.ItemCallback<ReaderPage>() {
+                @Override
+                public boolean areItemsTheSame(@NonNull ReaderPage oldItem, @NonNull ReaderPage newItem) {
+                    return oldItem.getPageNumber() == newItem.getPageNumber();
+                }
 
-    public void submitList(List<ReaderPage> pages) {
-        items.clear();
-        if (pages != null) {
-            items.addAll(pages);
-        }
-        notifyDataSetChanged();
+                @Override
+                public boolean areContentsTheSame(@NonNull ReaderPage oldItem, @NonNull ReaderPage newItem) {
+                    return oldItem.getPageNumber() == newItem.getPageNumber()
+                            && Objects.equals(oldItem.getImageUrl(), newItem.getImageUrl());
+                }
+            };
+
+    public ReaderPageAdapter() {
+        super(DIFF_CALLBACK);
     }
 
     @NonNull
@@ -35,15 +44,42 @@ public class ReaderPageAdapter extends RecyclerView.Adapter<ReaderPageAdapter.Pa
 
     @Override
     public void onBindViewHolder(@NonNull PageViewHolder holder, int position) {
-        ReaderPage page = items.get(position);
+        ReaderPage page = getItem(position);
+        holder.binding.imgReaderPage.resetZoom();
+        holder.binding.imgReaderPage.setMinimumScale(1.0f);
+        holder.binding.imgReaderPage.setMediumScale(2.0f);
+        holder.binding.imgReaderPage.setMaximumScale(5.0f);
+        holder.binding.imgReaderPage.setAllowParentInterceptOnEdge(true);
+
         Glide.with(holder.binding.imgReaderPage)
                 .load(page.getImageUrl())
                 .into(holder.binding.imgReaderPage);
+
+        preloadNextPages(holder, position);
     }
 
     @Override
     public int getItemCount() {
-        return items.size();
+        return super.getItemCount();
+    }
+
+    @Override
+    public void onViewRecycled(@NonNull PageViewHolder holder) {
+        Glide.with(holder.binding.imgReaderPage).clear(holder.binding.imgReaderPage);
+        super.onViewRecycled(holder);
+    }
+
+    private void preloadNextPages(@NonNull PageViewHolder holder, int position) {
+        int preloadLimit = Math.min(getItemCount() - 1, position + 2);
+        for (int index = position + 1; index <= preloadLimit; index++) {
+            ReaderPage nextPage = getItem(index);
+            if (nextPage == null || nextPage.getImageUrl() == null || nextPage.getImageUrl().trim().isEmpty()) {
+                continue;
+            }
+            Glide.with(holder.binding.imgReaderPage)
+                    .load(nextPage.getImageUrl())
+                    .preload();
+        }
     }
 
     static class PageViewHolder extends RecyclerView.ViewHolder {

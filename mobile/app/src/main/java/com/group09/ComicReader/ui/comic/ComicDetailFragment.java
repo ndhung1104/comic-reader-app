@@ -18,6 +18,7 @@ import com.group09.ComicReader.adapter.RelatedComicAdapter;
 import com.group09.ComicReader.base.BaseFragment;
 import com.group09.ComicReader.data.ComicRepository;
 import com.group09.ComicReader.data.ReaderRepository;
+import com.group09.ComicReader.data.local.ReaderProgressStore;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.FragmentComicDetailBinding;
 import com.group09.ComicReader.model.Chapter;
@@ -36,6 +37,7 @@ public class ComicDetailFragment extends BaseFragment {
     private ComicDetailViewModel viewModel;
     private ChapterAdapter chapterAdapter;
     private RelatedComicAdapter relatedComicAdapter;
+    private ReaderProgressStore readerProgressStore;
     private int comicId;
     private Comic currentComic;
     private List<Chapter> currentChapters = new ArrayList<>();
@@ -51,6 +53,7 @@ public class ComicDetailFragment extends BaseFragment {
         ComicDetailViewModel.Factory factory =
                 new ComicDetailViewModel.Factory(comicRepository, readerRepository);
         viewModel = new ViewModelProvider(this, factory).get(ComicDetailViewModel.class);
+        readerProgressStore = new ReaderProgressStore(requireContext());
         return binding.getRoot();
     }
 
@@ -125,6 +128,11 @@ public class ComicDetailFragment extends BaseFragment {
     }
 
     private void openFirstAvailableChapter() {
+        Chapter resumedChapter = findResumableChapter();
+        if (resumedChapter != null) {
+            openReader(resumedChapter.getId(), resumedChapter.getNumber());
+            return;
+        }
         for (Chapter chapter : currentChapters) {
             if (chapter != null && chapter.isUnlocked()) {
                 openReader(chapter.getId(), chapter.getNumber());
@@ -132,6 +140,25 @@ public class ComicDetailFragment extends BaseFragment {
             }
         }
         showToast(getString(com.group09.ComicReader.R.string.comic_no_unlocked_chapter));
+    }
+
+    private Chapter findResumableChapter() {
+        if (readerProgressStore == null || currentComic == null || currentChapters == null || currentChapters.isEmpty()) {
+            return null;
+        }
+        ReaderProgressStore.ReaderProgress progress = readerProgressStore.getProgress(currentComic.getId());
+        if (progress == null) {
+            return null;
+        }
+        for (Chapter chapter : currentChapters) {
+            if (chapter == null) {
+                continue;
+            }
+            if (chapter.getId() == progress.getChapterId() && chapter.isUnlocked()) {
+                return chapter;
+            }
+        }
+        return null;
     }
 
     private void openReader(int chapterId, int chapterNumber) {

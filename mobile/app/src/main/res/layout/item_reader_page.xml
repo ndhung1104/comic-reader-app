@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <com.google.android.material.imageview.ShapeableImageView
+    <com.group09.ComicReader.ui.widget.ZoomableImageView
         android:id="@+id/img_reader_page"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
