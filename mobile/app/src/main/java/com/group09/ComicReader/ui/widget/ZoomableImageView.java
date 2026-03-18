@@ -113,8 +113,19 @@ public class ZoomableImageView extends AppCompatImageView {
                 lastY = event.getY();
                 requestParentIntercept(normalizedScale > minScale);
                 break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                isDragging = false;
+                requestParentIntercept(true);
+                break;
             case MotionEvent.ACTION_MOVE:
                 handleDrag(event);
+                break;
+            case MotionEvent.ACTION_POINTER_UP:
+                if (event.getPointerCount() > 1) {
+                    int newPointerIndex = event.getActionIndex() == 0 ? 1 : 0;
+                    lastX = event.getX(newPointerIndex);
+                    lastY = event.getY(newPointerIndex);
+                }
                 break;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
@@ -125,10 +136,8 @@ public class ZoomableImageView extends AppCompatImageView {
                 break;
         }
 
-        return normalizedScale > minScale
-                || scaleDetector.isInProgress()
-                || event.getPointerCount() > 1
-                || super.onTouchEvent(event);
+        // Always consume touch when drawable is available so we keep receiving the full gesture stream.
+        return true;
     }
 
     private void handleDrag(@NonNull MotionEvent event) {
