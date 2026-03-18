@@ -6,7 +6,6 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.group09.ComicReader.databinding.ItemCommentBinding;
 import com.group09.ComicReader.model.CommentItem;
 
