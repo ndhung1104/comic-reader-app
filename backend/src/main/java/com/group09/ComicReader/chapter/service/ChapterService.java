@@ -23,6 +23,10 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import com.group09.ComicReader.comic.dto.OTruyenChapterDetailResponseDTO;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -137,12 +141,17 @@ public class ChapterService {
         List<ChapterPageResponse> result = new ArrayList<>();
 
         for (int i = 0; i < files.length; i++) {
+            ImageDimensions imageDimensions = extractImageDimensions(files[i]);
             String imageUrl = fileStorageService.storeChapterPage(chapterId, files[i]);
 
             ChapterPageEntity page = new ChapterPageEntity();
             page.setChapter(chapter);
             page.setPageNumber(startIndex + i + 1);
             page.setImageUrl(imageUrl);
+            if (imageDimensions != null) {
+                page.setImageWidth(imageDimensions.width());
+                page.setImageHeight(imageDimensions.height());
+            }
 
             ChapterPageEntity saved = chapterPageRepository.save(page);
             result.add(toPageResponse(saved));
@@ -162,6 +171,8 @@ public class ChapterService {
         response.setChapterId(entity.getChapter().getId());
         response.setPageNumber(entity.getPageNumber());
         response.setImageUrl(entity.getImageUrl());
+        response.setImageWidth(entity.getImageWidth());
+        response.setImageHeight(entity.getImageHeight());
         return response;
     }
 
@@ -199,5 +210,28 @@ public class ChapterService {
         }
 
         return userRepository.findByEmail(email);
+    }
+
+    private ImageDimensions extractImageDimensions(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return null;
+        }
+        try (InputStream inputStream = file.getInputStream()) {
+            BufferedImage bufferedImage = ImageIO.read(inputStream);
+            if (bufferedImage == null) {
+                return null;
+            }
+            int width = bufferedImage.getWidth();
+            int height = bufferedImage.getHeight();
+            if (width <= 0 || height <= 0) {
+                return null;
+            }
+            return new ImageDimensions(width, height);
+        } catch (IOException exception) {
+            return null;
+        }
+    }
+
+    private record ImageDimensions(int width, int height) {
     }
 }

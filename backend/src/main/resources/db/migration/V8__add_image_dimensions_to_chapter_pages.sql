@@ -1,0 +1,3 @@
+ALTER TABLE chapter_pages
+    ADD COLUMN IF NOT EXISTS image_width INTEGER,
+    ADD COLUMN IF NOT EXISTS image_height INTEGER;
