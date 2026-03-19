@@ -41,6 +41,12 @@ public class CommentEntity {
     @Column(nullable = false)
     private boolean hidden = false;
 
+    @Column(nullable = false)
+    private boolean locked = false;
+
+    @Column(name = "source_type", nullable = false)
+    private String sourceType = "NORMAL";
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

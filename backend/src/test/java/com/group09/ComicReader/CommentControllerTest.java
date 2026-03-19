@@ -73,7 +73,8 @@ class CommentControllerTest {
     void authenticatedUserShouldCreateComment() throws Exception {
         String commentPayload = """
                 {
-                  "content": "Great comic!"
+                  "content": "Great comic!",
+                  "sourceType": "SOCIAL_SHARE"
                 }
                 """;
 
@@ -89,6 +90,8 @@ class CommentControllerTest {
         JsonNode commentJson = objectMapper.readTree(result);
         assertThat(commentJson.get("content").asText()).isEqualTo("Great comic!");
         assertThat(commentJson.get("hidden").asBoolean()).isFalse();
+        assertThat(commentJson.get("locked").asBoolean()).isFalse();
+        assertThat(commentJson.get("sourceType").asText()).isEqualTo("SOCIAL_SHARE");
         assertThat(commentJson.get("comicId").asLong()).isEqualTo(1L);
     }
 
@@ -181,6 +184,47 @@ class CommentControllerTest {
                 .getContentAsString();
 
         assertThat(objectMapper.readTree(unhideResult).get("hidden").asBoolean()).isFalse();
+    }
+
+    @Test
+    void adminShouldLockAndUnlockComment() throws Exception {
+        // Create a comment as user
+        String commentPayload = """
+                {
+                  "content": "Comment to lock"
+                }
+                """;
+
+        String createResult = mockMvc.perform(post("/api/v1/comics/1/comments")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(commentPayload))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long commentId = objectMapper.readTree(createResult).get("id").asLong();
+
+        // Admin locks comment
+        String lockResult = mockMvc.perform(put("/api/v1/admin/comments/" + commentId + "/lock")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(objectMapper.readTree(lockResult).get("locked").asBoolean()).isTrue();
+
+        // Admin unlocks comment
+        String unlockResult = mockMvc.perform(put("/api/v1/admin/comments/" + commentId + "/unlock")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(objectMapper.readTree(unlockResult).get("locked").asBoolean()).isFalse();
     }
 
     @Test

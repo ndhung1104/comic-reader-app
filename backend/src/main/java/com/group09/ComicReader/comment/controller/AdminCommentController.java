@@ -39,6 +39,16 @@ public class AdminCommentController {
         return ResponseEntity.ok(commentService.unhideComment(commentId));
     }
 
+    @PutMapping("/comments/{commentId}/lock")
+    public ResponseEntity<CommentResponse> lockComment(@PathVariable Long commentId) {
+        return ResponseEntity.ok(commentService.lockComment(commentId));
+    }
+
+    @PutMapping("/comments/{commentId}/unlock")
+    public ResponseEntity<CommentResponse> unlockComment(@PathVariable Long commentId) {
+        return ResponseEntity.ok(commentService.unlockComment(commentId));
+    }
+
     @DeleteMapping("/comments/{commentId}")
     public ResponseEntity<Void> deleteComment(@PathVariable Long commentId) {
         commentService.deleteComment(commentId);

@@ -52,6 +52,9 @@ public class CommentService {
         comment.setComic(comic);
         comment.setUser(user);
         comment.setContent(request.getContent());
+        if (request.getSourceType() != null && !request.getSourceType().trim().isEmpty()) {
+            comment.setSourceType(request.getSourceType().trim());
+        }
 
         CommentEntity saved = commentRepository.save(comment);
         return toCommentResponse(saved);
@@ -82,6 +85,22 @@ public class CommentService {
     }
 
     @Transactional
+    public CommentResponse lockComment(Long commentId) {
+        CommentEntity comment = getCommentEntity(commentId);
+        comment.setLocked(true);
+        comment.setUpdatedAt(LocalDateTime.now());
+        return toCommentResponse(commentRepository.save(comment));
+    }
+
+    @Transactional
+    public CommentResponse unlockComment(Long commentId) {
+        CommentEntity comment = getCommentEntity(commentId);
+        comment.setLocked(false);
+        comment.setUpdatedAt(LocalDateTime.now());
+        return toCommentResponse(commentRepository.save(comment));
+    }
+
+    @Transactional
     public void deleteComment(Long commentId) {
         CommentEntity comment = getCommentEntity(commentId);
         commentRepository.delete(comment);
@@ -100,6 +119,8 @@ public class CommentService {
         response.setUsername(entity.getUser().getFullName());
         response.setContent(entity.getContent());
         response.setHidden(entity.isHidden());
+        response.setLocked(entity.isLocked());
+        response.setSourceType(entity.getSourceType());
         response.setCreatedAt(entity.getCreatedAt());
         return response;
     }

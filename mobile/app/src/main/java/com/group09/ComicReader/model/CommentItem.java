@@ -22,6 +22,12 @@ public class CommentItem {
     @SerializedName("hidden")
     private boolean hidden;
 
+    @SerializedName("locked")
+    private boolean locked;
+
+    @SerializedName("sourceType")
+    private String sourceType;
+
     @SerializedName("createdAt")
     private String createdAt;
 
@@ -41,6 +47,8 @@ public class CommentItem {
     public String getUsername() { return username; }
     public String getContent() { return content; }
     public boolean isHidden() { return hidden; }
+    public boolean isLocked() { return locked; }
+    public String getSourceType() { return sourceType; }
     public String getCreatedAt() { return createdAt; }
 
     public String getTimeAgo() {

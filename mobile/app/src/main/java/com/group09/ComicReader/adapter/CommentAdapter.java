@@ -38,6 +38,18 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         holder.binding.tvCommentTimestamp.setText(comment.getTimeAgo());
         holder.binding.tvCommentText.setText(comment.getContent());
         holder.binding.tvCommentLikes.setVisibility(android.view.View.GONE);
+
+        if (comment.isLocked()) {
+            holder.binding.tvCommentLocked.setVisibility(android.view.View.VISIBLE);
+        } else {
+            holder.binding.tvCommentLocked.setVisibility(android.view.View.GONE);
+        }
+
+        if ("SOCIAL_SHARE".equals(comment.getSourceType())) {
+            holder.binding.tvCommentSource.setVisibility(android.view.View.VISIBLE);
+        } else {
+            holder.binding.tvCommentSource.setVisibility(android.view.View.GONE);
+        }
     }
 
     @Override

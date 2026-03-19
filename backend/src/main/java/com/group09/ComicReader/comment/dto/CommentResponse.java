@@ -10,6 +10,8 @@ public class CommentResponse {
     private String username;
     private String content;
     private boolean hidden;
+    private boolean locked;
+    private String sourceType;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -66,5 +68,21 @@ public class CommentResponse {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isLocked() {
+        return locked;
+    }
+
+    public void setLocked(boolean locked) {
+        this.locked = locked;
+    }
+
+    public String getSourceType() {
+        return sourceType;
+    }
+
+    public void setSourceType(String sourceType) {
+        this.sourceType = sourceType;
     }
 }
