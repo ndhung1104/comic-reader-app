@@ -6,6 +6,8 @@ public class ChapterPageResponse {
     private Long chapterId;
     private Integer pageNumber;
     private String imageUrl;
+    private Integer imageWidth;
+    private Integer imageHeight;
 
     public Long getId() {
         return id;
@@ -37,6 +39,22 @@ public class ChapterPageResponse {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public Integer getImageWidth() {
+        return imageWidth;
+    }
+
+    public void setImageWidth(Integer imageWidth) {
+        this.imageWidth = imageWidth;
+    }
+
+    public Integer getImageHeight() {
+        return imageHeight;
+    }
+
+    public void setImageHeight(Integer imageHeight) {
+        this.imageHeight = imageHeight;
     }
 }
 
