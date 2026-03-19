@@ -30,6 +30,7 @@ public class ZoomableImageView extends AppCompatImageView {
     private float normalizedScale = 1.0f;
     private float pendingScale = 1.0f;
     private float pendingPanXNorm = 0.5f;
+    private boolean zoomGestureEnabled = true;
     private boolean allowParentInterceptOnEdge = true;
     private boolean isDragging;
     private float lastX;
@@ -120,6 +121,13 @@ public class ZoomableImageView extends AppCompatImageView {
         onTransformChangeListener = listener;
     }
 
+    public void setZoomGestureEnabled(boolean enabled) {
+        zoomGestureEnabled = enabled;
+        if (!zoomGestureEnabled) {
+            setZoomTransform(minScale, 0.5f);
+        }
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
@@ -136,6 +144,9 @@ public class ZoomableImageView extends AppCompatImageView {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (!zoomGestureEnabled) {
+            return false;
+        }
         if (getDrawable() == null) {
             return super.onTouchEvent(event);
         }

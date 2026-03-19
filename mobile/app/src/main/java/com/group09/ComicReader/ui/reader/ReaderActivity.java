@@ -35,6 +35,7 @@ public class ReaderActivity extends AppCompatActivity {
     public static final String EXTRA_CHAPTER_ID = "extra_chapter_id";
     public static final String EXTRA_CHAPTER = "extra_chapter";
     private static final long SAVE_PROGRESS_DEBOUNCE_MS = 1500L;
+    private static final boolean ENABLE_ZOOM_CONTAINER = true;
 
     public static Intent createIntent(@NonNull Context context, int comicId, int chapterId, int chapterNumber) {
         Intent intent = new Intent(context, ReaderActivity.class);
@@ -91,11 +92,13 @@ public class ReaderActivity extends AppCompatActivity {
         viewModel = new ViewModelProvider(this, factory).get(ReaderViewModel.class);
 
         pageAdapter = new ReaderPageAdapter();
+        pageAdapter.setItemZoomEnabled(!ENABLE_ZOOM_CONTAINER);
         layoutManager = new LinearLayoutManager(this);
         binding.rcvReaderPages.setLayoutManager(layoutManager);
         binding.rcvReaderPages.setItemViewCacheSize(6);
         binding.rcvReaderPages.setAdapter(pageAdapter);
         binding.rcvReaderPages.addOnScrollListener(progressScrollListener);
+        binding.zoomContainerReader.setZoomEnabled(ENABLE_ZOOM_CONTAINER);
 
         binding.tvReaderTitle.setText(getString(R.string.app_name));
         ComicRepository.getInstance().getComicById(comicId, new ComicRepository.ComicCallback() {
@@ -113,6 +116,7 @@ public class ReaderActivity extends AppCompatActivity {
         binding.tvReaderChapter.setText(getString(R.string.reader_chapter, chapterNumber));
 
         binding.btnReaderBack.setOnClickListener(v -> {
+            resetZoomToBaseState();
             saveCurrentReadingProgress();
             finish();
         });
@@ -147,6 +151,7 @@ public class ReaderActivity extends AppCompatActivity {
 
     @Override
     protected void onPause() {
+        resetZoomToBaseState();
         saveCurrentReadingProgress();
         super.onPause();
     }
@@ -207,5 +212,11 @@ public class ReaderActivity extends AppCompatActivity {
         View firstVisibleView = layoutManager.findViewByPosition(position);
         int offset = firstVisibleView == null ? 0 : firstVisibleView.getTop();
         readerProgressStore.saveProgress(comicId, chapterId, chapterNumber, position, offset);
+    }
+
+    private void resetZoomToBaseState() {
+        if (ENABLE_ZOOM_CONTAINER && binding != null) {
+            binding.zoomContainerReader.resetZoom();
+        }
     }
 }

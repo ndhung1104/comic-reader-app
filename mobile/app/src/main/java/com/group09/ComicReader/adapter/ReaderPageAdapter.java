@@ -42,11 +42,20 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
 
     private float globalScale = ZOOM_MIN_SCALE;
     private float globalPanXNorm = 0.5f;
+    private boolean itemZoomEnabled = true;
     @Nullable
     private RecyclerView attachedRecyclerView;
 
     public ReaderPageAdapter() {
         super(DIFF_CALLBACK);
+    }
+
+    public void setItemZoomEnabled(boolean enabled) {
+        itemZoomEnabled = enabled;
+        if (!itemZoomEnabled) {
+            globalScale = ZOOM_MIN_SCALE;
+            globalPanXNorm = 0.5f;
+        }
     }
 
     @NonNull
@@ -65,22 +74,28 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
         holder.binding.imgReaderPage.setMediumScale(ZOOM_MEDIUM_SCALE);
         holder.binding.imgReaderPage.setMaximumScale(ZOOM_MAX_SCALE);
         holder.binding.imgReaderPage.setAllowParentInterceptOnEdge(true);
-        holder.binding.imgReaderPage.setZoomTransform(globalScale, globalPanXNorm);
-        holder.binding.imgReaderPage.setOnTransformChangeListener((scale, panXNorm, fromUser) -> {
-            if (!fromUser) {
-                return;
-            }
-            float clampedScale = clampScale(scale);
-            float clampedPanXNorm = clampPanXNorm(panXNorm);
-            boolean scaleChanged = Math.abs(globalScale - clampedScale) >= ZOOM_CHANGE_THRESHOLD;
-            boolean panChanged = Math.abs(globalPanXNorm - clampedPanXNorm) >= PAN_X_CHANGE_THRESHOLD;
-            if (!scaleChanged && !panChanged) {
-                return;
-            }
-            globalScale = clampedScale;
-            globalPanXNorm = clampedPanXNorm;
-            applyScaleToAttachedHolders();
-        });
+        holder.binding.imgReaderPage.setZoomGestureEnabled(itemZoomEnabled);
+        if (!itemZoomEnabled) {
+            holder.binding.imgReaderPage.setOnTransformChangeListener(null);
+            holder.binding.imgReaderPage.setZoomTransform(ZOOM_MIN_SCALE, 0.5f);
+        } else {
+            holder.binding.imgReaderPage.setZoomTransform(globalScale, globalPanXNorm);
+            holder.binding.imgReaderPage.setOnTransformChangeListener((scale, panXNorm, fromUser) -> {
+                if (!fromUser) {
+                    return;
+                }
+                float clampedScale = clampScale(scale);
+                float clampedPanXNorm = clampPanXNorm(panXNorm);
+                boolean scaleChanged = Math.abs(globalScale - clampedScale) >= ZOOM_CHANGE_THRESHOLD;
+                boolean panChanged = Math.abs(globalPanXNorm - clampedPanXNorm) >= PAN_X_CHANGE_THRESHOLD;
+                if (!scaleChanged && !panChanged) {
+                    return;
+                }
+                globalScale = clampedScale;
+                globalPanXNorm = clampedPanXNorm;
+                applyScaleToAttachedHolders();
+            });
+        }
 
         Glide.with(holder.binding.imgReaderPage)
                 .load(page.getImageUrl())
@@ -136,7 +151,7 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
     }
 
     private void applyScaleToAttachedHolders() {
-        if (attachedRecyclerView == null) {
+        if (!itemZoomEnabled || attachedRecyclerView == null) {
             return;
         }
         for (int index = 0; index < attachedRecyclerView.getChildCount(); index++) {
