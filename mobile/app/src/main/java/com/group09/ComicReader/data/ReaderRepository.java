@@ -92,7 +92,13 @@ public class ReaderRepository {
                 List<ReaderPage> pages = new ArrayList<>();
                 for (ReaderPageResponse item : body) {
                     int pageNumber = item.getPageNumber() == null ? 0 : item.getPageNumber();
-                    pages.add(new ReaderPage(pageNumber, ApiClient.toAbsoluteUrl(item.getImageUrl())));
+                    int imageWidth = item.getImageWidth() == null ? 0 : item.getImageWidth();
+                    int imageHeight = item.getImageHeight() == null ? 0 : item.getImageHeight();
+                    pages.add(new ReaderPage(
+                            pageNumber,
+                            ApiClient.toAbsoluteUrl(item.getImageUrl()),
+                            imageWidth,
+                            imageHeight));
                 }
                 pages.sort(Comparator.comparingInt(ReaderPage::getPageNumber));
                 callback.onSuccess(pages);

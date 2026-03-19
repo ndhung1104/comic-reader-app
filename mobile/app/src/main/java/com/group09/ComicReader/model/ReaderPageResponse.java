@@ -6,6 +6,8 @@ public class ReaderPageResponse {
     private Long chapterId;
     private Integer pageNumber;
     private String imageUrl;
+    private Integer imageWidth;
+    private Integer imageHeight;
 
     public Long getId() {
         return id;
@@ -21,5 +23,13 @@ public class ReaderPageResponse {
 
     public String getImageUrl() {
         return imageUrl;
+    }
+
+    public Integer getImageWidth() {
+        return imageWidth;
+    }
+
+    public Integer getImageHeight() {
+        return imageHeight;
     }
 }

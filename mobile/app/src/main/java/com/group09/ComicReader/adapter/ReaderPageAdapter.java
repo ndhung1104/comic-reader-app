@@ -34,7 +34,9 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
                 @Override
                 public boolean areContentsTheSame(@NonNull ReaderPage oldItem, @NonNull ReaderPage newItem) {
                     return oldItem.getPageNumber() == newItem.getPageNumber()
-                            && Objects.equals(oldItem.getImageUrl(), newItem.getImageUrl());
+                            && Objects.equals(oldItem.getImageUrl(), newItem.getImageUrl())
+                            && oldItem.getImageWidth() == newItem.getImageWidth()
+                            && oldItem.getImageHeight() == newItem.getImageHeight();
                 }
             };
 
@@ -58,6 +60,7 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
     @Override
     public void onBindViewHolder(@NonNull PageViewHolder holder, int position) {
         ReaderPage page = getItem(position);
+        applyPresetAspectRatio(holder, page);
         holder.binding.imgReaderPage.setMinimumScale(ZOOM_MIN_SCALE);
         holder.binding.imgReaderPage.setMediumScale(ZOOM_MEDIUM_SCALE);
         holder.binding.imgReaderPage.setMaximumScale(ZOOM_MAX_SCALE);
@@ -144,6 +147,35 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
             }
             PageViewHolder holder = (PageViewHolder) viewHolder;
             holder.binding.imgReaderPage.setZoomTransform(globalScale, globalPanXNorm);
+        }
+    }
+
+    private void applyPresetAspectRatio(@NonNull PageViewHolder holder, @NonNull ReaderPage page) {
+        ViewGroup.LayoutParams layoutParams = holder.binding.imgReaderPage.getLayoutParams();
+        if (layoutParams == null) {
+            return;
+        }
+
+        if (page.getImageWidth() <= 0 || page.getImageHeight() <= 0) {
+            holder.binding.imgReaderPage.setAdjustViewBounds(true);
+            if (layoutParams.height != ViewGroup.LayoutParams.WRAP_CONTENT) {
+                layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                holder.binding.imgReaderPage.setLayoutParams(layoutParams);
+            }
+            return;
+        }
+
+        int itemWidth = holder.itemView.getWidth();
+        if (itemWidth <= 0) {
+            itemWidth = holder.itemView.getResources().getDisplayMetrics().widthPixels;
+        }
+        float ratio = page.getImageHeight() / (float) page.getImageWidth();
+        int targetHeight = Math.max(1, Math.round(itemWidth * ratio));
+
+        holder.binding.imgReaderPage.setAdjustViewBounds(false);
+        if (layoutParams.height != targetHeight) {
+            layoutParams.height = targetHeight;
+            holder.binding.imgReaderPage.setLayoutParams(layoutParams);
         }
     }
 
