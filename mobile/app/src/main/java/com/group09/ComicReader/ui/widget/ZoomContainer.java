@@ -5,6 +5,7 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
@@ -12,6 +13,10 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 public class ZoomContainer extends FrameLayout {
+
+    public interface OnZoomStateChangeListener {
+        void onZoomStateChanged(boolean zoomed, float scaleFactor);
+    }
 
     public enum InteractionState {
         IDLE,
@@ -24,10 +29,12 @@ public class ZoomContainer extends FrameLayout {
     private static final float MIN_SCALE = 1.0f;
     private static final float MAX_SCALE = 3.0f;
     private static final float SCALE_DEAD_ZONE = 0.015f;
-    private static final float MULTI_TOUCH_DECISION_THRESHOLD_PX = 12f;
     private static final float MULTI_TOUCH_DECISION_RATIO = 1.15f;
+    private static final float MODE_SWITCH_RATIO = 1.35f;
+    private static final float SNAP_TO_MIN_SCALE_THRESHOLD = 0.05f;
 
     private final ScaleGestureDetector scaleGestureDetector;
+    private final float touchSlopPx;
 
     private enum MultiTouchMode {
         NONE,
@@ -45,10 +52,14 @@ public class ZoomContainer extends FrameLayout {
     private float initialSpan = 0f;
     private float initialFocusX = 0f;
     private float initialFocusY = 0f;
+    private float lastSpan = 0f;
     private float lastFocusX = 0f;
     private float lastFocusY = 0f;
     private MultiTouchMode multiTouchMode = MultiTouchMode.NONE;
     private InteractionState interactionState = InteractionState.IDLE;
+    @Nullable
+    private OnZoomStateChangeListener onZoomStateChangeListener;
+    private boolean lastNotifiedZoomed;
 
     public ZoomContainer(@NonNull Context context) {
         this(context, null);
@@ -61,6 +72,7 @@ public class ZoomContainer extends FrameLayout {
     public ZoomContainer(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         scaleGestureDetector = new ScaleGestureDetector(context, new ScaleListener());
+        touchSlopPx = ViewConfiguration.get(context).getScaledTouchSlop();
     }
 
     public void setZoomEnabled(boolean enabled) {
@@ -74,6 +86,20 @@ public class ZoomContainer extends FrameLayout {
         return zoomEnabled;
     }
 
+    public boolean hasActiveZoom() {
+        return isZoomed();
+    }
+
+    public void setOnZoomStateChangeListener(@Nullable OnZoomStateChangeListener listener) {
+        onZoomStateChangeListener = listener;
+        if (onZoomStateChangeListener == null) {
+            return;
+        }
+        boolean zoomed = isZoomed();
+        lastNotifiedZoomed = zoomed;
+        onZoomStateChangeListener.onZoomStateChanged(zoomed, scaleFactor);
+    }
+
     public InteractionState getInteractionState() {
         return interactionState;
     }
@@ -84,6 +110,7 @@ public class ZoomContainer extends FrameLayout {
         translationY = 0f;
         applyTransform();
         multiTouchMode = MultiTouchMode.NONE;
+        lastSpan = 0f;
         interactionState = InteractionState.IDLE;
     }
 
@@ -108,6 +135,7 @@ public class ZoomContainer extends FrameLayout {
             case MotionEvent.ACTION_POINTER_DOWN:
                 stopRecyclerScroll();
                 beginMultiTouchSession(event);
+                scaleGestureDetector.onTouchEvent(event);
                 interactionState = InteractionState.PANNING_ZOOMED;
                 return true;
             case MotionEvent.ACTION_MOVE:
@@ -120,6 +148,7 @@ public class ZoomContainer extends FrameLayout {
                 }
                 return false;
             case MotionEvent.ACTION_POINTER_UP:
+                scaleGestureDetector.onTouchEvent(event);
                 return event.getPointerCount() > 2 || isZoomed();
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
@@ -147,6 +176,7 @@ public class ZoomContainer extends FrameLayout {
             case MotionEvent.ACTION_POINTER_DOWN:
                 stopRecyclerScroll();
                 beginMultiTouchSession(event);
+                scaleGestureDetector.onTouchEvent(event);
                 interactionState = InteractionState.PANNING_ZOOMED;
                 return true;
             case MotionEvent.ACTION_MOVE:
@@ -161,6 +191,7 @@ public class ZoomContainer extends FrameLayout {
                 }
                 return false;
             case MotionEvent.ACTION_POINTER_UP:
+                scaleGestureDetector.onTouchEvent(event);
                 int remainingPointers = event.getPointerCount() - 1;
                 if (remainingPointers >= 2) {
                     beginMultiTouchSession(event);
@@ -178,12 +209,7 @@ public class ZoomContainer extends FrameLayout {
                 return true;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
-                multiTouchMode = MultiTouchMode.NONE;
-                if (!isZoomed()) {
-                    resetZoom();
-                } else {
-                    interactionState = InteractionState.PANNING_ZOOMED;
-                }
+                settleAfterGestureEnd();
                 return true;
             default:
                 return true;
@@ -194,6 +220,7 @@ public class ZoomContainer extends FrameLayout {
         initialSpan = getSpan(event);
         initialFocusX = getFocusX(event);
         initialFocusY = getFocusY(event);
+        lastSpan = initialSpan;
         lastFocusX = initialFocusX;
         lastFocusY = initialFocusY;
         multiTouchMode = MultiTouchMode.UNDECIDED;
@@ -204,10 +231,7 @@ public class ZoomContainer extends FrameLayout {
         float currentY = event.getY();
         float dx = currentX - lastTouchX;
         float dy = currentY - lastTouchY;
-        translationX += dx;
-        translationY += dy;
-        clampTranslation();
-        applyTransform();
+        panZoomTargetBy(dx, dy, true);
         lastTouchX = currentX;
         lastTouchY = currentY;
     }
@@ -216,15 +240,17 @@ public class ZoomContainer extends FrameLayout {
         float currentFocusX = getFocusX(event);
         float currentFocusY = getFocusY(event);
         float currentSpan = getSpan(event);
+        float focusStep = distance(currentFocusX, currentFocusY, lastFocusX, lastFocusY);
+        float spanStep = Math.abs(currentSpan - lastSpan);
 
         if (multiTouchMode == MultiTouchMode.UNDECIDED) {
             float spanDelta = Math.abs(currentSpan - initialSpan);
             float focusDelta = distance(currentFocusX, currentFocusY, initialFocusX, initialFocusY);
-            if (spanDelta >= MULTI_TOUCH_DECISION_THRESHOLD_PX
+            if (spanDelta >= touchSlopPx
                     && spanDelta > (focusDelta * MULTI_TOUCH_DECISION_RATIO)) {
                 multiTouchMode = MultiTouchMode.SCALE;
                 interactionState = InteractionState.ZOOMING;
-            } else if (focusDelta >= MULTI_TOUCH_DECISION_THRESHOLD_PX
+            } else if (focusDelta >= touchSlopPx
                     && focusDelta > (spanDelta * MULTI_TOUCH_DECISION_RATIO)) {
                 multiTouchMode = MultiTouchMode.PAN_2_FINGER;
                 interactionState = InteractionState.PANNING_ZOOMED;
@@ -233,8 +259,19 @@ public class ZoomContainer extends FrameLayout {
             }
         }
 
+        if (multiTouchMode == MultiTouchMode.SCALE
+                && shouldSwitchFromScaleToPan(focusStep, spanStep)) {
+            multiTouchMode = MultiTouchMode.PAN_2_FINGER;
+            interactionState = InteractionState.PANNING_ZOOMED;
+        } else if (multiTouchMode == MultiTouchMode.PAN_2_FINGER
+                && shouldSwitchFromPanToScale(spanStep, focusStep)) {
+            multiTouchMode = MultiTouchMode.SCALE;
+            interactionState = InteractionState.ZOOMING;
+        }
+
         if (multiTouchMode == MultiTouchMode.SCALE) {
             scaleGestureDetector.onTouchEvent(event);
+            lastSpan = currentSpan;
             lastFocusX = currentFocusX;
             lastFocusY = currentFocusY;
             return;
@@ -244,15 +281,83 @@ public class ZoomContainer extends FrameLayout {
             if (isZoomed()) {
                 float dx = currentFocusX - lastFocusX;
                 float dy = currentFocusY - lastFocusY;
-                translationX += dx;
-                translationY += dy;
-                clampTranslation();
-                applyTransform();
+                panZoomTargetBy(dx, dy, true);
                 interactionState = InteractionState.PANNING_ZOOMED;
             }
+            lastSpan = currentSpan;
             lastFocusX = currentFocusX;
             lastFocusY = currentFocusY;
         }
+    }
+
+    private boolean shouldSwitchFromScaleToPan(float focusStep, float spanStep) {
+        return focusStep >= touchSlopPx
+                && focusStep > (spanStep * MODE_SWITCH_RATIO);
+    }
+
+    private boolean shouldSwitchFromPanToScale(float spanStep, float focusStep) {
+        return spanStep >= touchSlopPx
+                && spanStep > (focusStep * MODE_SWITCH_RATIO);
+    }
+
+    private void settleAfterGestureEnd() {
+        multiTouchMode = MultiTouchMode.NONE;
+        lastSpan = 0f;
+        if (scaleFactor <= (MIN_SCALE + SNAP_TO_MIN_SCALE_THRESHOLD)) {
+            scaleFactor = MIN_SCALE;
+            translationX = 0f;
+            translationY = 0f;
+            applyTransform();
+            interactionState = InteractionState.IDLE;
+            return;
+        }
+        clampTranslation();
+        applyTransform();
+        interactionState = InteractionState.PANNING_ZOOMED;
+    }
+
+    private void panZoomTargetBy(float dx, float dy, boolean allowVerticalHandoff) {
+        if (!isZoomed()) {
+            return;
+        }
+        View zoomTarget = getZoomTarget();
+        if (zoomTarget == null) {
+            return;
+        }
+        translationX += dx;
+
+        float viewHeight = zoomTarget.getHeight();
+        float scaledHeight = viewHeight * scaleFactor;
+        float minY = Math.min(0f, viewHeight - scaledHeight);
+        float maxY = 0f;
+        float attemptedY = translationY + dy;
+        float clampedY = clamp(attemptedY, minY, maxY);
+        float overflowY = attemptedY - clampedY;
+        translationY = clampedY;
+
+        clampTranslation();
+        applyTransform();
+
+        if (allowVerticalHandoff && Math.abs(overflowY) > EPSILON) {
+            dispatchVerticalOverflowToRecycler(overflowY);
+        }
+    }
+
+    private void dispatchVerticalOverflowToRecycler(float overflowY) {
+        View zoomTarget = getZoomTarget();
+        if (!(zoomTarget instanceof RecyclerView)) {
+            return;
+        }
+        RecyclerView recyclerView = (RecyclerView) zoomTarget;
+        int scrollByY = Math.round((-overflowY) / Math.max(scaleFactor, MIN_SCALE));
+        if (scrollByY == 0) {
+            return;
+        }
+        int direction = scrollByY > 0 ? 1 : -1;
+        if (!recyclerView.canScrollVertically(direction)) {
+            return;
+        }
+        recyclerView.scrollBy(0, scrollByY);
     }
 
     private void applyTransform() {
@@ -266,6 +371,7 @@ public class ZoomContainer extends FrameLayout {
         zoomTarget.setScaleY(scaleFactor);
         zoomTarget.setTranslationX(translationX);
         zoomTarget.setTranslationY(translationY);
+        dispatchZoomStateIfNeeded();
     }
 
     private void clampTranslation() {
@@ -321,6 +427,18 @@ public class ZoomContainer extends FrameLayout {
 
     private boolean isZoomed() {
         return scaleFactor > (MIN_SCALE + EPSILON);
+    }
+
+    private void dispatchZoomStateIfNeeded() {
+        if (onZoomStateChangeListener == null) {
+            return;
+        }
+        boolean zoomed = isZoomed();
+        if (zoomed == lastNotifiedZoomed) {
+            return;
+        }
+        lastNotifiedZoomed = zoomed;
+        onZoomStateChangeListener.onZoomStateChanged(zoomed, scaleFactor);
     }
 
     private float getFocusX(@NonNull MotionEvent event) {
@@ -402,12 +520,7 @@ public class ZoomContainer extends FrameLayout {
 
         @Override
         public void onScaleEnd(@NonNull ScaleGestureDetector detector) {
-            multiTouchMode = MultiTouchMode.NONE;
-            if (!isZoomed()) {
-                resetZoom();
-                return;
-            }
-            interactionState = InteractionState.PANNING_ZOOMED;
+            settleAfterGestureEnd();
         }
     }
 }

@@ -15,7 +15,6 @@ import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.ReaderCommentsFooterAdapter;
 import com.group09.ComicReader.adapter.ReaderPageAdapter;
@@ -63,12 +62,14 @@ public class ReaderActivity extends AppCompatActivity {
     private ReaderProgressStore readerProgressStore;
     private ReaderProgressStore.ReaderProgress restoredProgress;
     private boolean restoredPositionApplied;
+    private boolean readerZoomed;
 
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private final Runnable saveProgressRunnable = this::saveCurrentReadingProgress;
     private final RecyclerView.OnScrollListener progressScrollListener = new RecyclerView.OnScrollListener() {
         @Override
         public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+            preloadAroundCurrentViewport();
             if (dy != 0) {
                 scheduleSaveReadingProgress();
             }
@@ -77,6 +78,7 @@ public class ReaderActivity extends AppCompatActivity {
         @Override
         public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
             if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                preloadAroundCurrentViewport();
                 scheduleSaveReadingProgress();
             }
         }
@@ -138,6 +140,10 @@ public class ReaderActivity extends AppCompatActivity {
         binding.rcvReaderPages.setAdapter(concatAdapter);
         binding.rcvReaderPages.addOnScrollListener(progressScrollListener);
         binding.zoomContainerReader.setZoomEnabled(ENABLE_ZOOM_CONTAINER);
+        binding.zoomContainerReader.setOnZoomStateChangeListener((zoomed, scaleFactor) -> {
+            readerZoomed = zoomed;
+            preloadAroundCurrentViewport();
+        });
 
         binding.tvReaderTitle.setText(getString(R.string.app_name));
         ComicRepository.getInstance().getComicById(comicId, new ComicRepository.ComicCallback() {
@@ -192,7 +198,7 @@ public class ReaderActivity extends AppCompatActivity {
             List<ReaderPage> safePages = pages == null ? Collections.emptyList() : new ArrayList<>(pages);
             pageAdapter.submitList(safePages, () -> {
                 restoreReadingPositionIfNeeded();
-                preloadInitialPages(safePages);
+                binding.rcvReaderPages.post(this::preloadAroundCurrentViewport);
             });
             boolean hasPages = !safePages.isEmpty();
             binding.tvReaderEmpty.setVisibility(hasPages ? android.view.View.GONE : android.view.View.VISIBLE);
@@ -236,19 +242,6 @@ public class ReaderActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    private void preloadInitialPages(@NonNull List<ReaderPage> pages) {
-        int preloadCount = Math.min(3, pages.size());
-        for (int index = 0; index < preloadCount; index++) {
-            ReaderPage page = pages.get(index);
-            if (page.getImageUrl() == null || page.getImageUrl().trim().isEmpty()) {
-                continue;
-            }
-            Glide.with(this)
-                    .load(page.getImageUrl())
-                    .preload();
-        }
-    }
-
     private void restoreReadingPositionIfNeeded() {
         if (restoredPositionApplied || restoredProgress == null || pageAdapter.getItemCount() == 0) {
             return;
@@ -263,8 +256,10 @@ public class ReaderActivity extends AppCompatActivity {
         int targetPosition = Math.min(restoredPosition, maxPosition);
         int targetOffset = restoredProgress.getOffset();
 
-        binding.rcvReaderPages.post(() ->
-                layoutManager.scrollToPositionWithOffset(targetPosition, targetOffset));
+        binding.rcvReaderPages.post(() -> {
+            layoutManager.scrollToPositionWithOffset(targetPosition, targetOffset);
+            binding.rcvReaderPages.post(this::preloadAroundCurrentViewport);
+        });
     }
 
     private void scheduleSaveReadingProgress() {
@@ -289,5 +284,14 @@ public class ReaderActivity extends AppCompatActivity {
         if (ENABLE_ZOOM_CONTAINER && binding != null) {
             binding.zoomContainerReader.resetZoom();
         }
+    }
+
+    private void preloadAroundCurrentViewport() {
+        if (layoutManager == null || pageAdapter == null) {
+            return;
+        }
+        int firstVisible = layoutManager.findFirstVisibleItemPosition();
+        int lastVisible = layoutManager.findLastVisibleItemPosition();
+        pageAdapter.preloadAroundVisibleRange(firstVisible, lastVisible, readerZoomed);
     }
 }
