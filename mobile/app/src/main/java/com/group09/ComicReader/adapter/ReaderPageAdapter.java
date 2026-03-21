@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestBuilder;
+import com.group09.ComicReader.R;
 import com.group09.ComicReader.databinding.ItemReaderPageBinding;
 import com.group09.ComicReader.model.ReaderPage;
 
@@ -133,6 +134,7 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
     public void onViewRecycled(@NonNull PageViewHolder holder) {
         holder.binding.imgReaderPage.setOnTransformChangeListener(null);
         Glide.with(holder.binding.imgReaderPage).clear(holder.binding.imgReaderPage);
+        holder.binding.imgReaderPage.setImageResource(R.drawable.bg_reader_page_placeholder);
         super.onViewRecycled(holder);
     }
 
@@ -249,7 +251,11 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
 
     @NonNull
     private RequestBuilder<?> buildRequest(@NonNull View requestView, @NonNull ReaderPage page) {
-        RequestBuilder<?> requestBuilder = Glide.with(requestView).load(page.getImageUrl());
+        RequestBuilder<?> requestBuilder = Glide.with(requestView)
+                .load(page.getImageUrl())
+                .placeholder(R.drawable.bg_reader_page_placeholder)
+                .error(R.drawable.bg_reader_page_placeholder)
+                .fallback(R.drawable.bg_reader_page_placeholder);
         TargetSize targetSize = resolveTargetSize(requestView, page);
         if (targetSize.isValid()) {
             requestBuilder = requestBuilder.override(targetSize.width, targetSize.height);
