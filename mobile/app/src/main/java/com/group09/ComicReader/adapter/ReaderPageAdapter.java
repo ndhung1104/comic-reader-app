@@ -3,6 +3,7 @@ package com.group09.ComicReader.adapter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -11,9 +12,11 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestBuilder;
 import com.group09.ComicReader.databinding.ItemReaderPageBinding;
 import com.group09.ComicReader.model.ReaderPage;
 
+import java.util.List;
 import java.util.Objects;
 
 public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter.PageViewHolder> {
@@ -23,6 +26,10 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
     private static final float ZOOM_MAX_SCALE = 5.0f;
     private static final float ZOOM_CHANGE_THRESHOLD = 0.01f;
     private static final float PAN_X_CHANGE_THRESHOLD = 0.01f;
+    private static final int PRELOAD_AHEAD_DEFAULT = 4;
+    private static final int PRELOAD_BEHIND_DEFAULT = 1;
+    private static final int PRELOAD_AHEAD_ZOOMED = 8;
+    private static final int PRELOAD_BEHIND_ZOOMED = 2;
 
     private static final DiffUtil.ItemCallback<ReaderPage> DIFF_CALLBACK =
             new DiffUtil.ItemCallback<ReaderPage>() {
@@ -45,6 +52,9 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
     private boolean itemZoomEnabled = true;
     @Nullable
     private RecyclerView attachedRecyclerView;
+    private int lastPreloadStart = -1;
+    private int lastPreloadEnd = -1;
+    private boolean lastPreloadZoomed;
 
     public ReaderPageAdapter() {
         super(DIFF_CALLBACK);
@@ -56,6 +66,19 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
             globalScale = ZOOM_MIN_SCALE;
             globalPanXNorm = 0.5f;
         }
+        resetPreloadWindow();
+    }
+
+    @Override
+    public void submitList(@Nullable List<ReaderPage> list) {
+        resetPreloadWindow();
+        super.submitList(list);
+    }
+
+    @Override
+    public void submitList(@Nullable List<ReaderPage> list, @Nullable Runnable commitCallback) {
+        resetPreloadWindow();
+        super.submitList(list, commitCallback);
     }
 
     @NonNull
@@ -97,11 +120,8 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
             });
         }
 
-        Glide.with(holder.binding.imgReaderPage)
-                .load(page.getImageUrl())
+        buildRequest(holder.binding.imgReaderPage, page)
                 .into(holder.binding.imgReaderPage);
-
-        preloadNextPages(holder, position);
     }
 
     @Override
@@ -120,6 +140,7 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
     public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
         super.onAttachedToRecyclerView(recyclerView);
         attachedRecyclerView = recyclerView;
+        resetPreloadWindow();
     }
 
     @Override
@@ -127,7 +148,39 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
         if (attachedRecyclerView == recyclerView) {
             attachedRecyclerView = null;
         }
+        resetPreloadWindow();
         super.onDetachedFromRecyclerView(recyclerView);
+    }
+
+    public void preloadAroundVisibleRange(int firstVisible, int lastVisible, boolean zoomed) {
+        if (attachedRecyclerView == null || getItemCount() == 0) {
+            return;
+        }
+        if (firstVisible == RecyclerView.NO_POSITION) {
+            return;
+        }
+        int safeLastVisible = lastVisible == RecyclerView.NO_POSITION ? firstVisible : lastVisible;
+        int preloadAhead = zoomed ? PRELOAD_AHEAD_ZOOMED : PRELOAD_AHEAD_DEFAULT;
+        int preloadBehind = zoomed ? PRELOAD_BEHIND_ZOOMED : PRELOAD_BEHIND_DEFAULT;
+
+        int targetStart = Math.max(0, firstVisible - preloadBehind);
+        int targetEnd = Math.min(getItemCount() - 1, safeLastVisible + preloadAhead);
+        if (targetStart > targetEnd) {
+            return;
+        }
+
+        if (targetStart >= lastPreloadStart
+                && targetEnd <= lastPreloadEnd
+                && zoomed == lastPreloadZoomed) {
+            return;
+        }
+
+        for (int index = targetStart; index <= targetEnd; index++) {
+            preloadAt(index);
+        }
+        lastPreloadStart = targetStart;
+        lastPreloadEnd = targetEnd;
+        lastPreloadZoomed = zoomed;
     }
 
     private float clampScale(float scale) {
@@ -194,16 +247,79 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
         }
     }
 
-    private void preloadNextPages(@NonNull PageViewHolder holder, int position) {
-        int preloadLimit = Math.min(getItemCount() - 1, position + 2);
-        for (int index = position + 1; index <= preloadLimit; index++) {
-            ReaderPage nextPage = getItem(index);
-            if (nextPage == null || nextPage.getImageUrl() == null || nextPage.getImageUrl().trim().isEmpty()) {
-                continue;
+    @NonNull
+    private RequestBuilder<?> buildRequest(@NonNull View requestView, @NonNull ReaderPage page) {
+        RequestBuilder<?> requestBuilder = Glide.with(requestView).load(page.getImageUrl());
+        TargetSize targetSize = resolveTargetSize(requestView, page);
+        if (targetSize.isValid()) {
+            requestBuilder = requestBuilder.override(targetSize.width, targetSize.height);
+        }
+        return requestBuilder;
+    }
+
+    private void preloadAt(int position) {
+        if (attachedRecyclerView == null || position < 0 || position >= getItemCount()) {
+            return;
+        }
+        ReaderPage page = getItem(position);
+        if (page == null || page.getImageUrl() == null || page.getImageUrl().trim().isEmpty()) {
+            return;
+        }
+        buildRequest(attachedRecyclerView, page).preload();
+    }
+
+    @NonNull
+    private TargetSize resolveTargetSize(@NonNull View referenceView, @NonNull ReaderPage page) {
+        int targetWidth = resolveTargetWidthPx(referenceView);
+        if (targetWidth <= 0) {
+            return TargetSize.invalid();
+        }
+        if (page.getImageWidth() <= 0 || page.getImageHeight() <= 0) {
+            if (referenceView instanceof ImageView) {
+                ViewGroup.LayoutParams params = ((ImageView) referenceView).getLayoutParams();
+                if (params != null && params.height > 0) {
+                    return new TargetSize(targetWidth, params.height);
+                }
             }
-            Glide.with(holder.binding.imgReaderPage)
-                    .load(nextPage.getImageUrl())
-                    .preload();
+            return TargetSize.invalid();
+        }
+        float ratio = page.getImageHeight() / (float) page.getImageWidth();
+        int targetHeight = Math.max(1, Math.round(targetWidth * ratio));
+        return new TargetSize(targetWidth, targetHeight);
+    }
+
+    private int resolveTargetWidthPx(@NonNull View referenceView) {
+        int width = referenceView.getWidth();
+        if (width > 0) {
+            return width;
+        }
+        if (attachedRecyclerView != null && attachedRecyclerView.getWidth() > 0) {
+            return attachedRecyclerView.getWidth();
+        }
+        return referenceView.getResources().getDisplayMetrics().widthPixels;
+    }
+
+    private void resetPreloadWindow() {
+        lastPreloadStart = -1;
+        lastPreloadEnd = -1;
+        lastPreloadZoomed = false;
+    }
+
+    private static final class TargetSize {
+        final int width;
+        final int height;
+
+        TargetSize(int width, int height) {
+            this.width = width;
+            this.height = height;
+        }
+
+        static TargetSize invalid() {
+            return new TargetSize(-1, -1);
+        }
+
+        boolean isValid() {
+            return width > 0 && height > 0;
         }
     }
 

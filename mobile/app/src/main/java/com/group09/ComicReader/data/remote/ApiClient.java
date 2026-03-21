@@ -12,7 +12,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ApiClient {
 
     // Emulator -> host machine
-    public static final String DEFAULT_BASE_URL = "http://10.0.2.2:8080/";
+    public static final String DEFAULT_BASE_URL = "http://localhost:8080/"; //10.0.2.2
 
     private final Retrofit retrofit;
 
