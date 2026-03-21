@@ -10,9 +10,15 @@ import java.util.List;
 
 public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
 
-    @EntityGraph(attributePaths = { "user" })
+    @EntityGraph(attributePaths = { "user", "chapter" })
     List<CommentEntity> findByComicIdAndHiddenFalseOrderByCreatedAtDesc(Long comicId);
 
-    @EntityGraph(attributePaths = { "user" })
+    @EntityGraph(attributePaths = { "user", "chapter" })
+    Page<CommentEntity> findByComicIdAndHiddenFalseOrderByCreatedAtDesc(Long comicId, Pageable pageable);
+
+    @EntityGraph(attributePaths = { "user", "chapter" })
+    Page<CommentEntity> findByComicIdAndChapterIdAndHiddenFalseOrderByCreatedAtDesc(Long comicId, Long chapterId, Pageable pageable);
+
+    @EntityGraph(attributePaths = { "user", "chapter" })
     Page<CommentEntity> findByComicIdOrderByCreatedAtDesc(Long comicId, Pageable pageable);
 }

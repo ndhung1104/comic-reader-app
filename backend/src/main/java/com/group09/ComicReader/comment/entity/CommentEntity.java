@@ -1,6 +1,7 @@
 package com.group09.ComicReader.comment.entity;
 
 import com.group09.ComicReader.auth.entity.UserEntity;
+import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.comic.entity.ComicEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -30,6 +31,10 @@ public class CommentEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "comic_id", nullable = false)
     private ComicEntity comic;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chapter_id")
+    private ChapterEntity chapter;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

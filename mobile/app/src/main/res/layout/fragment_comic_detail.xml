@@ -204,7 +204,6 @@
                 android:layout_marginStart="@dimen/spacing_lg"
                 android:layout_marginTop="@dimen/spacing_sm"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_chapter_label" />
@@ -232,10 +231,20 @@
                 android:layout_marginTop="@dimen/spacing_sm"
                 android:clipToPadding="false"
                 android:paddingEnd="@dimen/spacing_lg"
-                app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_related_label" />
+
+            <include
+                android:id="@+id/inc_comic_detail_comments_footer"
+                layout="@layout/item_reader_comments_footer"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xl"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/rcv_comic_detail_related" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

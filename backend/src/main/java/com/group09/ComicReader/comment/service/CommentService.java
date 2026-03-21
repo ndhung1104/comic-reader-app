@@ -2,12 +2,15 @@ package com.group09.ComicReader.comment.service;
 
 import com.group09.ComicReader.auth.entity.UserEntity;
 import com.group09.ComicReader.auth.repository.UserRepository;
+import com.group09.ComicReader.chapter.entity.ChapterEntity;
+import com.group09.ComicReader.chapter.service.ChapterService;
 import com.group09.ComicReader.comic.entity.ComicEntity;
 import com.group09.ComicReader.comic.service.ComicService;
 import com.group09.ComicReader.comment.dto.CommentRequest;
 import com.group09.ComicReader.comment.dto.CommentResponse;
 import com.group09.ComicReader.comment.entity.CommentEntity;
 import com.group09.ComicReader.comment.repository.CommentRepository;
+import com.group09.ComicReader.common.exception.BadRequestException;
 import com.group09.ComicReader.common.exception.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,13 +29,16 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final ComicService comicService;
     private final UserRepository userRepository;
+    private final ChapterService chapterService;
 
     public CommentService(CommentRepository commentRepository,
             ComicService comicService,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            ChapterService chapterService) {
         this.commentRepository = commentRepository;
         this.comicService = comicService;
         this.userRepository = userRepository;
+        this.chapterService = chapterService;
     }
 
     public List<CommentResponse> getCommentsByComic(Long comicId) {
@@ -48,8 +54,18 @@ public class CommentService {
         ComicEntity comic = comicService.getComicEntity(comicId);
         UserEntity user = getCurrentUser();
 
+        ChapterEntity chapter = null;
+        if (request.getChapterId() != null) {
+            chapter = chapterService.getChapterEntity(request.getChapterId());
+            if (chapter.getComic() == null || chapter.getComic().getId() == null
+                    || !chapter.getComic().getId().equals(comicId)) {
+                throw new BadRequestException("Chapter does not belong to this comic");
+            }
+        }
+
         CommentEntity comment = new CommentEntity();
         comment.setComic(comic);
+        comment.setChapter(chapter);
         comment.setUser(user);
         comment.setContent(request.getContent());
         if (request.getSourceType() != null && !request.getSourceType().trim().isEmpty()) {
@@ -58,6 +74,16 @@ public class CommentService {
 
         CommentEntity saved = commentRepository.save(comment);
         return toCommentResponse(saved);
+    }
+
+    public Page<CommentResponse> getCommentsByComicPaged(Long comicId, Long chapterId, Pageable pageable) {
+        comicService.getComicEntity(comicId); // validate comic exists
+        if (chapterId != null) {
+            return commentRepository.findByComicIdAndChapterIdAndHiddenFalseOrderByCreatedAtDesc(comicId, chapterId, pageable)
+                    .map(this::toCommentResponse);
+        }
+        return commentRepository.findByComicIdAndHiddenFalseOrderByCreatedAtDesc(comicId, pageable)
+                .map(this::toCommentResponse);
     }
 
     // --- Admin methods ---
@@ -122,6 +148,12 @@ public class CommentService {
         response.setLocked(entity.isLocked());
         response.setSourceType(entity.getSourceType());
         response.setCreatedAt(entity.getCreatedAt());
+
+        if (entity.getChapter() != null) {
+            response.setChapterId(entity.getChapter().getId());
+            response.setChapterNumber(entity.getChapter().getChapterNumber());
+            response.setChapterTitle(entity.getChapter().getTitle());
+        }
         return response;
     }
 

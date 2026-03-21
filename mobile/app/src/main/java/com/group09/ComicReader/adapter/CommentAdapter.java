@@ -6,6 +6,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.group09.ComicReader.R;
 import com.group09.ComicReader.databinding.ItemCommentBinding;
 import com.group09.ComicReader.model.CommentItem;
 
@@ -45,7 +46,12 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
             holder.binding.tvCommentLocked.setVisibility(android.view.View.GONE);
         }
 
-        if ("SOCIAL_SHARE".equals(comment.getSourceType())) {
+        if (comment.getChapterNumber() != null && comment.getChapterNumber() > 0) {
+            holder.binding.tvCommentSource.setText(
+                    holder.itemView.getContext().getString(R.string.comment_chapter, comment.getChapterNumber()));
+            holder.binding.tvCommentSource.setVisibility(android.view.View.VISIBLE);
+        } else if ("SOCIAL_SHARE".equals(comment.getSourceType())) {
+            holder.binding.tvCommentSource.setText("Social");
             holder.binding.tvCommentSource.setVisibility(android.view.View.VISIBLE);
         } else {
             holder.binding.tvCommentSource.setVisibility(android.view.View.GONE);

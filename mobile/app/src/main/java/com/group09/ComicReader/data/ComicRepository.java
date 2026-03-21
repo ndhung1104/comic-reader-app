@@ -8,6 +8,8 @@ import com.group09.ComicReader.model.Chapter;
 import com.group09.ComicReader.model.Comic;
 import com.group09.ComicReader.model.ComicResponse;
 import com.group09.ComicReader.model.CommentItem;
+import com.group09.ComicReader.model.CommentPageResponse;
+import com.group09.ComicReader.model.CreateCommentRequest;
 
 import java.util.Map;
 
@@ -19,6 +21,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+
+import okhttp3.ResponseBody;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -43,6 +47,12 @@ public class ComicRepository {
 
     public interface CommentCallback {
         void onSuccess(CommentItem comment);
+        void onError(String error);
+    }
+
+    public interface PagedCommentCallback {
+        void onSuccess(List<CommentItem> comments, boolean hasMore);
+
         void onError(String error);
     }
 
@@ -306,13 +316,44 @@ public class ComicRepository {
         });
     }
 
-    public void postComment(int comicId, String content, @NonNull CommentCallback callback) {
+    public void getCommentsForComicPaged(int comicId, Integer chapterId, int page, int size,
+            @NonNull PagedCommentCallback callback) {
         if (apiClient == null) {
             callback.onError("ApiClient not initialized");
             return;
         }
-        Map<String, String> body = new java.util.HashMap<>();
-        body.put("content", content);
+        Long chapterIdLong = chapterId == null || chapterId <= 0 ? null : chapterId.longValue();
+        apiClient.commentApi().getCommentsPaged(comicId, page, size, chapterIdLong)
+                .enqueue(new Callback<CommentPageResponse>() {
+                    @Override
+                    public void onResponse(@NonNull Call<CommentPageResponse> call,
+                            @NonNull Response<CommentPageResponse> response) {
+                        if (!response.isSuccessful() || response.body() == null) {
+                            callback.onError("Error: " + response.code());
+                            return;
+                        }
+                        List<CommentItem> content = response.body().getContent();
+                        callback.onSuccess(content == null ? new ArrayList<>() : content, !response.body().isLast());
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<CommentPageResponse> call, @NonNull Throwable t) {
+                        callback.onError(t.getMessage());
+                    }
+                });
+    }
+
+    public void postComment(int comicId, String content, @NonNull CommentCallback callback) {
+        postComment(comicId, null, content, callback);
+    }
+
+    public void postComment(int comicId, Integer chapterId, String content, @NonNull CommentCallback callback) {
+        if (apiClient == null) {
+            callback.onError("ApiClient not initialized");
+            return;
+        }
+        Long chapterIdLong = chapterId == null || chapterId <= 0 ? null : chapterId.longValue();
+        CreateCommentRequest body = new CreateCommentRequest(content, "NORMAL", chapterIdLong);
         apiClient.commentApi().postComment(comicId, body).enqueue(new Callback<CommentItem>() {
             @Override
             public void onResponse(@NonNull Call<CommentItem> call,
@@ -320,7 +361,25 @@ public class ComicRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onSuccess(response.body());
                 } else {
-                    callback.onError("Error: " + response.code());
+                    int code = response.code();
+                    if (code == 401 || code == 403) {
+                        String errorBodyText = null;
+                        try {
+                            ResponseBody errorBody = response.errorBody();
+                            if (errorBody != null) {
+                                errorBodyText = errorBody.string();
+                            }
+                        } catch (Exception ignored) {
+                        }
+
+                        if (errorBodyText != null && errorBodyText.toLowerCase(Locale.US).contains("banned")) {
+                            callback.onError("Account is banned");
+                        } else {
+                            callback.onError("Session expired. Please log in again.");
+                        }
+                        return;
+                    }
+                    callback.onError("Error: " + code);
                 }
             }
 

@@ -31,6 +31,15 @@ public class CommentItem {
     @SerializedName("createdAt")
     private String createdAt;
 
+    @SerializedName("chapterId")
+    private Long chapterId;
+
+    @SerializedName("chapterNumber")
+    private Integer chapterNumber;
+
+    @SerializedName("chapterTitle")
+    private String chapterTitle;
+
     public CommentItem() {
     }
 
@@ -50,6 +59,10 @@ public class CommentItem {
     public boolean isLocked() { return locked; }
     public String getSourceType() { return sourceType; }
     public String getCreatedAt() { return createdAt; }
+
+    public Long getChapterId() { return chapterId; }
+    public Integer getChapterNumber() { return chapterNumber; }
+    public String getChapterTitle() { return chapterTitle; }
 
     public String getTimeAgo() {
         if (createdAt == null || createdAt.isEmpty()) {

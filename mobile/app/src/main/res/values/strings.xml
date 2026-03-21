@@ -88,6 +88,8 @@
     <string name="comment_empty">No comments yet. Be the first to comment!</string>
     <string name="comment_login_required">Log in to post a comment</string>
     <string name="comment_count">Comments (%1$d)</string>
+    <string name="comment_chapter">Chapter %1$d</string>
+    <string name="comment_see_more">See more</string>
 
     <string name="content_cover">Comic cover</string>
     <string name="content_avatar">User avatar</string>
