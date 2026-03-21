@@ -6,7 +6,9 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.VelocityTracker;
 import android.widget.FrameLayout;
+import android.widget.OverScroller;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -32,9 +34,13 @@ public class ZoomContainer extends FrameLayout {
     private static final float MULTI_TOUCH_DECISION_RATIO = 1.15f;
     private static final float MODE_SWITCH_RATIO = 1.35f;
     private static final float SNAP_TO_MIN_SCALE_THRESHOLD = 0.05f;
+    private static final float HANDOFF_SCALE_DAMPING_POWER = 0.5f;
 
     private final ScaleGestureDetector scaleGestureDetector;
+    private final OverScroller panScroller;
     private final float touchSlopPx;
+    private final int minFlingVelocity;
+    private final int maxFlingVelocity;
 
     private enum MultiTouchMode {
         NONE,
@@ -55,11 +61,39 @@ public class ZoomContainer extends FrameLayout {
     private float lastSpan = 0f;
     private float lastFocusX = 0f;
     private float lastFocusY = 0f;
+    private int lastScrollerX = 0;
+    private int lastScrollerY = 0;
     private MultiTouchMode multiTouchMode = MultiTouchMode.NONE;
     private InteractionState interactionState = InteractionState.IDLE;
     @Nullable
     private OnZoomStateChangeListener onZoomStateChangeListener;
     private boolean lastNotifiedZoomed;
+    @Nullable
+    private VelocityTracker velocityTracker;
+
+    private final Runnable panFlingRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (getZoomTarget() == null || panScroller.isFinished()) {
+                return;
+            }
+            if (!panScroller.computeScrollOffset()) {
+                return;
+            }
+
+            int currentX = panScroller.getCurrX();
+            int currentY = panScroller.getCurrY();
+            float dx = currentX - lastScrollerX;
+            float dy = currentY - lastScrollerY;
+            lastScrollerX = currentX;
+            lastScrollerY = currentY;
+
+            panZoomTargetBy(dx, dy, true);
+            if (!panScroller.isFinished()) {
+                postOnAnimation(this);
+            }
+        }
+    };
 
     public ZoomContainer(@NonNull Context context) {
         this(context, null);
@@ -72,7 +106,11 @@ public class ZoomContainer extends FrameLayout {
     public ZoomContainer(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         scaleGestureDetector = new ScaleGestureDetector(context, new ScaleListener());
-        touchSlopPx = ViewConfiguration.get(context).getScaledTouchSlop();
+        ViewConfiguration viewConfiguration = ViewConfiguration.get(context);
+        panScroller = new OverScroller(context);
+        touchSlopPx = viewConfiguration.getScaledTouchSlop();
+        minFlingVelocity = viewConfiguration.getScaledMinimumFlingVelocity();
+        maxFlingVelocity = viewConfiguration.getScaledMaximumFlingVelocity();
     }
 
     public void setZoomEnabled(boolean enabled) {
@@ -105,6 +143,7 @@ public class ZoomContainer extends FrameLayout {
     }
 
     public void resetZoom() {
+        stopPanFling();
         scaleFactor = MIN_SCALE;
         translationX = 0f;
         translationY = 0f;
@@ -123,6 +162,7 @@ public class ZoomContainer extends FrameLayout {
         int action = event.getActionMasked();
         switch (action) {
             case MotionEvent.ACTION_DOWN:
+                stopAllOngoingMotion();
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
                 multiTouchMode = MultiTouchMode.NONE;
@@ -133,7 +173,7 @@ public class ZoomContainer extends FrameLayout {
                 interactionState = InteractionState.SCROLLING;
                 return false;
             case MotionEvent.ACTION_POINTER_DOWN:
-                stopRecyclerScroll();
+                stopAllOngoingMotion();
                 beginMultiTouchSession(event);
                 scaleGestureDetector.onTouchEvent(event);
                 interactionState = InteractionState.PANNING_ZOOMED;
@@ -166,15 +206,20 @@ public class ZoomContainer extends FrameLayout {
             return super.onTouchEvent(event);
         }
 
+        ensureVelocityTracker();
+        velocityTracker.addMovement(event);
         int action = event.getActionMasked();
         switch (action) {
             case MotionEvent.ACTION_DOWN:
+                velocityTracker.clear();
+                velocityTracker.addMovement(event);
+                stopAllOngoingMotion();
                 lastTouchX = event.getX();
                 lastTouchY = event.getY();
                 multiTouchMode = MultiTouchMode.NONE;
                 return true;
             case MotionEvent.ACTION_POINTER_DOWN:
-                stopRecyclerScroll();
+                stopAllOngoingMotion();
                 beginMultiTouchSession(event);
                 scaleGestureDetector.onTouchEvent(event);
                 interactionState = InteractionState.PANNING_ZOOMED;
@@ -208,7 +253,12 @@ public class ZoomContainer extends FrameLayout {
                 }
                 return true;
             case MotionEvent.ACTION_UP:
+                tryStartPanFlingFromTouch(event);
+                recycleVelocityTracker();
+                settleAfterGestureEnd();
+                return true;
             case MotionEvent.ACTION_CANCEL:
+                recycleVelocityTracker();
                 settleAfterGestureEnd();
                 return true;
             default:
@@ -304,6 +354,7 @@ public class ZoomContainer extends FrameLayout {
         multiTouchMode = MultiTouchMode.NONE;
         lastSpan = 0f;
         if (scaleFactor <= (MIN_SCALE + SNAP_TO_MIN_SCALE_THRESHOLD)) {
+            stopPanFling();
             scaleFactor = MIN_SCALE;
             translationX = 0f;
             translationY = 0f;
@@ -349,7 +400,7 @@ public class ZoomContainer extends FrameLayout {
             return;
         }
         RecyclerView recyclerView = (RecyclerView) zoomTarget;
-        int scrollByY = Math.round((-overflowY) / Math.max(scaleFactor, MIN_SCALE));
+        int scrollByY = Math.round((-overflowY) / getHandoffDampingFactor());
         if (scrollByY == 0) {
             return;
         }
@@ -358,6 +409,123 @@ public class ZoomContainer extends FrameLayout {
             return;
         }
         recyclerView.scrollBy(0, scrollByY);
+    }
+
+    private float getHandoffDampingFactor() {
+        return (float) Math.pow(Math.max(scaleFactor, MIN_SCALE), HANDOFF_SCALE_DAMPING_POWER);
+    }
+
+    private void tryStartPanFlingFromTouch(@NonNull MotionEvent event) {
+        if (!isZoomed() || velocityTracker == null) {
+            return;
+        }
+        int pointerId = event.getPointerId(event.getActionIndex());
+        velocityTracker.computeCurrentVelocity(1000, maxFlingVelocity);
+        float velocityX = velocityTracker.getXVelocity(pointerId);
+        float velocityY = velocityTracker.getYVelocity(pointerId);
+
+        boolean shouldFlingX = Math.abs(velocityX) >= minFlingVelocity;
+        boolean shouldFlingY = Math.abs(velocityY) >= minFlingVelocity;
+        if (!shouldFlingX && !shouldFlingY) {
+            return;
+        }
+
+        if (tryDispatchVerticalFlingToRecycler(velocityY)) {
+            return;
+        }
+        startPanFling(velocityX, velocityY);
+    }
+
+    private boolean tryDispatchVerticalFlingToRecycler(float touchVelocityY) {
+        View zoomTarget = getZoomTarget();
+        if (!(zoomTarget instanceof RecyclerView) || !isZoomed()) {
+            return false;
+        }
+        RecyclerView recyclerView = (RecyclerView) zoomTarget;
+        boolean atTopBound = translationY >= -EPSILON;
+
+        float viewHeight = zoomTarget.getHeight();
+        float scaledHeight = viewHeight * scaleFactor;
+        float minY = Math.min(0f, viewHeight - scaledHeight);
+        boolean atBottomBound = translationY <= (minY + EPSILON);
+
+        boolean movingDown = touchVelocityY > 0f;
+        boolean movingUp = touchVelocityY < 0f;
+        boolean shouldHandoff = (atTopBound && movingDown) || (atBottomBound && movingUp);
+        if (!shouldHandoff) {
+            return false;
+        }
+
+        int recyclerVelocityY = Math.round((-touchVelocityY) / getHandoffDampingFactor());
+        if (Math.abs(recyclerVelocityY) < minFlingVelocity) {
+            return false;
+        }
+        int direction = recyclerVelocityY > 0 ? 1 : -1;
+        if (!recyclerView.canScrollVertically(direction)) {
+            return false;
+        }
+        stopPanFling();
+        recyclerView.fling(0, recyclerVelocityY);
+        return true;
+    }
+
+    private void startPanFling(float velocityX, float velocityY) {
+        View zoomTarget = getZoomTarget();
+        if (zoomTarget == null) {
+            return;
+        }
+        if (!isZoomed()) {
+            return;
+        }
+        stopPanFling();
+        float viewWidth = zoomTarget.getWidth();
+        float viewHeight = zoomTarget.getHeight();
+        float scaledWidth = viewWidth * scaleFactor;
+        float scaledHeight = viewHeight * scaleFactor;
+        float minX = Math.min(0f, viewWidth - scaledWidth);
+        float minY = Math.min(0f, viewHeight - scaledHeight);
+        int startX = Math.round(translationX);
+        int startY = Math.round(translationY);
+
+        panScroller.fling(
+                startX,
+                startY,
+                Math.round(velocityX),
+                Math.round(velocityY),
+                Math.round(minX),
+                0,
+                Math.round(minY),
+                0
+        );
+        lastScrollerX = startX;
+        lastScrollerY = startY;
+        postOnAnimation(panFlingRunnable);
+    }
+
+    private void stopPanFling() {
+        removeCallbacks(panFlingRunnable);
+        if (!panScroller.isFinished()) {
+            panScroller.forceFinished(true);
+        }
+    }
+
+    private void stopAllOngoingMotion() {
+        stopPanFling();
+        stopRecyclerScroll();
+    }
+
+    private void ensureVelocityTracker() {
+        if (velocityTracker == null) {
+            velocityTracker = VelocityTracker.obtain();
+        }
+    }
+
+    private void recycleVelocityTracker() {
+        if (velocityTracker == null) {
+            return;
+        }
+        velocityTracker.recycle();
+        velocityTracker = null;
     }
 
     private void applyTransform() {

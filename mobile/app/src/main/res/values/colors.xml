@@ -8,6 +8,8 @@
     <color name="text_secondary">#B0B0B0</color>
     <color name="text_muted">#8A8A8A</color>
     <color name="divider_color">#2A2A2A</color>
+    <color name="reader_placeholder_bg">#2B2B2B</color>
+    <color name="reader_placeholder_line">#383838</color>
     <color name="rating_color">#FBC02D</color>
     <color name="chip_bg">#26363E</color>
     <color name="positive_color">#03DAC6</color>
