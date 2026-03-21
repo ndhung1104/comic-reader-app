@@ -13,9 +13,20 @@ public class CreateCommentRequest {
     @SerializedName("chapterId")
     private final Long chapterId;
 
+    @SerializedName("parentCommentId")
+    private final Long parentCommentId;
+
     public CreateCommentRequest(String content, String sourceType, Long chapterId) {
         this.content = content;
         this.sourceType = sourceType;
         this.chapterId = chapterId;
+        this.parentCommentId = null;
+    }
+
+    public CreateCommentRequest(String content, String sourceType, Long chapterId, Long parentCommentId) {
+        this.content = content;
+        this.sourceType = sourceType;
+        this.chapterId = chapterId;
+        this.parentCommentId = parentCommentId;
     }
 }

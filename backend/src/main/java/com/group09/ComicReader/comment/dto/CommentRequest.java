@@ -15,6 +15,8 @@ public class CommentRequest {
 
     private Long chapterId;
 
+    private Long parentCommentId;
+
     public String getContent() {
         return content;
     }
@@ -37,5 +39,13 @@ public class CommentRequest {
 
     public void setChapterId(Long chapterId) {
         this.chapterId = chapterId;
+    }
+
+    public Long getParentCommentId() {
+        return parentCommentId;
+    }
+
+    public void setParentCommentId(Long parentCommentId) {
+        this.parentCommentId = parentCommentId;
     }
 }

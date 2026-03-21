@@ -13,15 +13,15 @@
         android:layout_marginStart="@dimen/spacing_xl"
         android:layout_marginEnd="@dimen/spacing_xl"
         android:background="@drawable/bg_card_surface"
-        android:padding="@dimen/spacing_md"
+        android:padding="@dimen/spacing_sm"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/img_comment_avatar"
-            android:layout_width="@dimen/icon_xl"
-            android:layout_height="@dimen/icon_xl"
+            android:layout_width="@dimen/icon_lg"
+            android:layout_height="@dimen/icon_lg"
             android:contentDescription="@string/content_avatar"
             android:scaleType="centerCrop"
             app:layout_constraintStart_toStartOf="parent"
@@ -98,6 +98,19 @@
             android:textColor="@color/text_secondary"
             android:textSize="@dimen/text_xs"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/img_comment_avatar"
+            app:layout_constraintTop_toBottomOf="@id/tv_comment_text" />
+
+        <TextView
+            android:id="@+id/tv_comment_reply"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:paddingVertical="@dimen/spacing_xs"
+            android:text="@string/comment_reply"
+            android:textColor="@color/accent_secondary"
+            android:textSize="@dimen/text_xs"
             app:layout_constraintStart_toEndOf="@id/img_comment_avatar"
             app:layout_constraintTop_toBottomOf="@id/tv_comment_text" />
 

@@ -90,6 +90,8 @@
     <string name="comment_count">Comments (%1$d)</string>
     <string name="comment_chapter">Chapter %1$d</string>
     <string name="comment_see_more">See more</string>
+    <string name="comment_reply">Reply</string>
+    <string name="comment_cancel">Cancel</string>
 
     <string name="content_cover">Comic cover</string>
     <string name="content_avatar">User avatar</string>

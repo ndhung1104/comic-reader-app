@@ -23,12 +23,18 @@ public class ReaderCommentsFooterAdapter extends RecyclerView.Adapter<ReaderComm
         void onSeeMoreClicked();
 
         void onSendComment(@NonNull String text);
+
+        void onReplyToComment(@NonNull CommentItem comment);
+
+        void onCancelReply();
     }
 
     private final Listener listener;
     private List<CommentItem> comments = new ArrayList<>();
     private boolean hasMore = false;
     private boolean isLoggedIn = false;
+    @Nullable
+    private String replyingToLabel = null;
 
     public ReaderCommentsFooterAdapter(@NonNull Listener listener) {
         this.listener = listener;
@@ -49,17 +55,17 @@ public class ReaderCommentsFooterAdapter extends RecyclerView.Adapter<ReaderComm
         notifyItemChanged(0);
     }
 
+    public void setReplyingToLabel(@Nullable String label) {
+        this.replyingToLabel = label;
+        notifyItemChanged(0);
+    }
+
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         ItemReaderCommentsFooterBinding binding = ItemReaderCommentsFooterBinding.inflate(
                 LayoutInflater.from(parent.getContext()), parent, false);
         return new ViewHolder(binding, listener);
-    }
-
-    @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(comments, hasMore, isLoggedIn);
     }
 
     @Override
@@ -79,14 +85,22 @@ public class ReaderCommentsFooterAdapter extends RecyclerView.Adapter<ReaderComm
             super(binding.getRoot());
             this.binding = binding;
             this.listener = listener;
-            this.commentAdapter = new CommentAdapter();
+            this.commentAdapter = new CommentAdapter(comment -> {
+                if (isLoggedIn == null || !isLoggedIn) {
+                    Toast.makeText(binding.getRoot().getContext(), R.string.comment_login_required, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                listener.onReplyToComment(comment);
+            });
             binding.rcvReaderComments.setAdapter(commentAdapter);
             binding.tvReaderCommentsSeeMore.setOnClickListener(v -> listener.onSeeMoreClicked());
+
+            binding.tvReaderCommentsCancelReply.setOnClickListener(v -> listener.onCancelReply());
 
             binding.tilReaderCommentsInput.setEndIconOnClickListener(v -> submitComment());
         }
 
-        void bind(List<CommentItem> comments, boolean hasMore, boolean isLoggedIn) {
+        void bind(List<CommentItem> comments, boolean hasMore, boolean isLoggedIn, @Nullable String replyingToLabel) {
             this.isLoggedIn = isLoggedIn;
 
             commentAdapter.submitList(comments);
@@ -96,6 +110,12 @@ public class ReaderCommentsFooterAdapter extends RecyclerView.Adapter<ReaderComm
             binding.tvReaderCommentsEmpty.setVisibility(hasComments ? View.GONE : View.VISIBLE);
 
             binding.tvReaderCommentsSeeMore.setVisibility(hasMore ? View.VISIBLE : View.GONE);
+
+            boolean isReplying = replyingToLabel != null && !replyingToLabel.trim().isEmpty();
+            binding.clReaderCommentsReplying.setVisibility(isReplying ? View.VISIBLE : View.GONE);
+            if (isReplying) {
+                binding.tvReaderCommentsReplyingTo.setText(replyingToLabel);
+            }
 
             binding.edtReaderCommentsInput.setEnabled(isLoggedIn);
             binding.tilReaderCommentsInput.setHint(isLoggedIn
@@ -120,5 +140,10 @@ public class ReaderCommentsFooterAdapter extends RecyclerView.Adapter<ReaderComm
             listener.onSendComment(text.trim());
             binding.edtReaderCommentsInput.setText("");
         }
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        holder.bind(comments, hasMore, isLoggedIn, replyingToLabel);
     }
 }

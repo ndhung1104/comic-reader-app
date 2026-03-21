@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import org.json.JSONObject;
+
 import okhttp3.ResponseBody;
 
 import retrofit2.Call;
@@ -348,12 +350,16 @@ public class ComicRepository {
     }
 
     public void postComment(int comicId, Integer chapterId, String content, @NonNull CommentCallback callback) {
+        postComment(comicId, chapterId, null, content, callback);
+    }
+
+    public void postComment(int comicId, Integer chapterId, Long parentCommentId, String content, @NonNull CommentCallback callback) {
         if (apiClient == null) {
             callback.onError("ApiClient not initialized");
             return;
         }
         Long chapterIdLong = chapterId == null || chapterId <= 0 ? null : chapterId.longValue();
-        CreateCommentRequest body = new CreateCommentRequest(content, "NORMAL", chapterIdLong);
+        CreateCommentRequest body = new CreateCommentRequest(content, "NORMAL", chapterIdLong, parentCommentId);
         apiClient.commentApi().postComment(comicId, body).enqueue(new Callback<CommentItem>() {
             @Override
             public void onResponse(@NonNull Call<CommentItem> call,
@@ -379,6 +385,28 @@ public class ComicRepository {
                         }
                         return;
                     }
+
+                    String errorBodyText = null;
+                    try {
+                        ResponseBody errorBody = response.errorBody();
+                        if (errorBody != null) {
+                            errorBodyText = errorBody.string();
+                        }
+                    } catch (Exception ignored) {
+                    }
+
+                    if (errorBodyText != null && !errorBodyText.trim().isEmpty()) {
+                        try {
+                            JSONObject obj = new JSONObject(errorBodyText);
+                            String msg = obj.optString("error", null);
+                            if (msg != null && !msg.trim().isEmpty()) {
+                                callback.onError(msg);
+                                return;
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+
                     callback.onError("Error: " + code);
                 }
             }

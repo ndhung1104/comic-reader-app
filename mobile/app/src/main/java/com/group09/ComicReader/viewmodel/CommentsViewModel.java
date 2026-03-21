@@ -1,6 +1,7 @@
 package com.group09.ComicReader.viewmodel;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -22,6 +23,11 @@ public class CommentsViewModel extends ViewModel {
     private final MutableLiveData<Boolean> hasMore = new MutableLiveData<>(false);
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<Boolean> postSuccess = new MutableLiveData<>();
+    private final MutableLiveData<CommentItem> lastPostedComment = new MutableLiveData<>();
+    private final MutableLiveData<String> replyingToLabel = new MutableLiveData<>(null);
+
+    @Nullable
+    private Long replyParentCommentId = null;
 
     private int comicId;
     @Nullable
@@ -42,6 +48,7 @@ public class CommentsViewModel extends ViewModel {
     public void refresh() {
         currentPage = 0;
         comments.postValue(new ArrayList<>());
+        cancelReply();
         loadPage(0);
     }
 
@@ -58,15 +65,35 @@ public class CommentsViewModel extends ViewModel {
     public void addComment(String text) {
         if (text == null || text.trim().isEmpty()) return;
 
-        comicRepository.postComment(comicId, chapterId, text.trim(), new ComicRepository.CommentCallback() {
+        Long parentId = replyParentCommentId;
+        comicRepository.postComment(comicId, chapterId, parentId, text.trim(), new ComicRepository.CommentCallback() {
             @Override
             public void onSuccess(CommentItem comment) {
                 List<CommentItem> current = comments.getValue();
                 List<CommentItem> updated = new ArrayList<>();
-                updated.add(comment);
-                if (current != null) updated.addAll(current);
+
+                if (parentId == null) {
+                    updated.add(comment);
+                    if (current != null) updated.addAll(current);
+                } else {
+                    if (current != null) updated.addAll(current);
+                    int parentIndex = indexOfCommentId(updated, parentId);
+                    if (parentIndex >= 0) {
+                        int parentDepth = updated.get(parentIndex).getDepth();
+                        int insertIndex = parentIndex + 1;
+                        while (insertIndex < updated.size() && updated.get(insertIndex).getDepth() > parentDepth) {
+                            insertIndex++;
+                        }
+                        updated.add(insertIndex, comment);
+                    } else {
+                        updated.add(0, comment);
+                    }
+                }
+
                 comments.postValue(updated);
                 postSuccess.postValue(true);
+                lastPostedComment.postValue(comment);
+                cancelReply();
             }
 
             @Override
@@ -74,6 +101,25 @@ public class CommentsViewModel extends ViewModel {
                 errorMessage.postValue(error);
             }
         });
+    }
+
+    private int indexOfCommentId(@NonNull List<CommentItem> list, long id) {
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i) != null && list.get(i).getId() == id) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public void startReply(@NonNull CommentItem parent) {
+        replyParentCommentId = parent.getId();
+        replyingToLabel.postValue("Replying to " + (parent.getUsername() == null ? "" : parent.getUsername()));
+    }
+
+    public void cancelReply() {
+        replyParentCommentId = null;
+        replyingToLabel.postValue(null);
     }
 
     private void loadPage(int page) {
@@ -126,5 +172,13 @@ public class CommentsViewModel extends ViewModel {
 
     public LiveData<Boolean> getPostSuccess() {
         return postSuccess;
+    }
+
+    public LiveData<CommentItem> getLastPostedComment() {
+        return lastPostedComment;
+    }
+
+    public LiveData<String> getReplyingToLabel() {
+        return replyingToLabel;
     }
 }

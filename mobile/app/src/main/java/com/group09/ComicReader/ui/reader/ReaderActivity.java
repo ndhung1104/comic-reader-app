@@ -77,6 +77,20 @@ public class ReaderActivity extends AppCompatActivity {
                     commentsViewModel.addComment(text);
                 }
             }
+
+            @Override
+            public void onReplyToComment(@NonNull com.group09.ComicReader.model.CommentItem comment) {
+                if (commentsViewModel != null) {
+                    commentsViewModel.startReply(comment);
+                }
+            }
+
+            @Override
+            public void onCancelReply() {
+                if (commentsViewModel != null) {
+                    commentsViewModel.cancelReply();
+                }
+            }
         });
 
         ConcatAdapter concatAdapter = new ConcatAdapter(pageAdapter, commentsFooterAdapter);
@@ -104,6 +118,7 @@ public class ReaderActivity extends AppCompatActivity {
         commentsViewModel.init(comicId, chapterId);
         commentsViewModel.getComments().observe(this, comments -> commentsFooterAdapter.setComments(comments));
         commentsViewModel.getHasMore().observe(this, more -> commentsFooterAdapter.setHasMore(more != null && more));
+        commentsViewModel.getReplyingToLabel().observe(this, label -> commentsFooterAdapter.setReplyingToLabel(label));
 
         SessionManager sessionManager = new SessionManager(this);
         commentsFooterAdapter.setLoggedIn(sessionManager.hasToken());

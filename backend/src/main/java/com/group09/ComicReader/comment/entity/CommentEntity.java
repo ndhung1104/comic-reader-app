@@ -40,6 +40,17 @@ public class CommentEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_comment_id")
+    private CommentEntity parentComment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "root_comment_id")
+    private CommentEntity rootComment;
+
+    @Column(nullable = false)
+    private int depth = 0;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 

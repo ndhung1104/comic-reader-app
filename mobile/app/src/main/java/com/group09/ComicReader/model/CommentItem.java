@@ -40,6 +40,15 @@ public class CommentItem {
     @SerializedName("createdAt")
     private String createdAt;
 
+    @SerializedName("parentCommentId")
+    private Long parentCommentId;
+
+    @SerializedName("rootCommentId")
+    private Long rootCommentId;
+
+    @SerializedName("depth")
+    private Integer depth;
+
     @SerializedName("chapterId")
     private Long chapterId;
 
@@ -68,6 +77,10 @@ public class CommentItem {
     public boolean isLocked() { return locked; }
     public String getSourceType() { return sourceType; }
     public String getCreatedAt() { return createdAt; }
+
+    public Long getParentCommentId() { return parentCommentId; }
+    public Long getRootCommentId() { return rootCommentId; }
+    public int getDepth() { return depth == null ? 0 : Math.max(0, depth); }
 
     public Long getChapterId() { return chapterId; }
     public Integer getChapterNumber() { return chapterNumber; }

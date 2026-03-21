@@ -15,7 +15,21 @@ import java.util.List;
 
 public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHolder> {
 
+    public interface Listener {
+        void onReplyClicked(@NonNull CommentItem comment);
+    }
+
+    private final Listener listener;
+
     private final List<CommentItem> items = new ArrayList<>();
+
+    public CommentAdapter() {
+        this.listener = null;
+    }
+
+    public CommentAdapter(Listener listener) {
+        this.listener = listener;
+    }
 
     public void submitList(List<CommentItem> comments) {
         items.clear();
@@ -35,7 +49,19 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         CommentItem comment = items.get(position);
-        holder.binding.tvCommentUsername.setText(comment.getUsername());
+        int depth = Math.max(0, comment.getDepth());
+        String username = comment.getUsername() == null ? "" : comment.getUsername();
+        if (depth > 0) {
+            int capped = Math.min(depth, 4);
+            StringBuilder prefix = new StringBuilder();
+            for (int i = 0; i < capped; i++) {
+                prefix.append("↳");
+            }
+            prefix.append(" ");
+            holder.binding.tvCommentUsername.setText(prefix + username);
+        } else {
+            holder.binding.tvCommentUsername.setText(username);
+        }
         holder.binding.tvCommentTimestamp.setText(comment.getTimeAgo());
         holder.binding.tvCommentText.setText(comment.getContent());
         holder.binding.tvCommentLikes.setVisibility(android.view.View.GONE);
@@ -56,6 +82,23 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         } else {
             holder.binding.tvCommentSource.setVisibility(android.view.View.GONE);
         }
+
+        int baseStart = holder.itemView.getResources().getDimensionPixelSize(R.dimen.spacing_sm);
+        int baseEnd = holder.itemView.getResources().getDimensionPixelSize(R.dimen.spacing_lg);
+        int indentPerLevel = holder.itemView.getResources().getDimensionPixelSize(R.dimen.spacing_xxxl);
+        depth = Math.max(0, comment.getDepth());
+        int extraIndent = Math.min(depth, 4) * indentPerLevel;
+
+        ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) holder.binding.clCommentCard.getLayoutParams();
+        lp.leftMargin = baseStart + extraIndent;
+        lp.rightMargin = baseEnd;
+        holder.binding.clCommentCard.setLayoutParams(lp);
+
+        boolean canReply = listener != null && !comment.isLocked();
+        holder.binding.tvCommentReply.setVisibility(canReply ? android.view.View.VISIBLE : android.view.View.GONE);
+        holder.binding.tvCommentReply.setOnClickListener(v -> {
+            if (listener != null) listener.onReplyClicked(comment);
+        });
     }
 
     @Override

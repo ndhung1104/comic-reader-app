@@ -95,7 +95,20 @@ public class ComicDetailFragment extends BaseFragment {
     }
 
     private void setupCommentsFooter() {
-        commentsAdapter = new CommentAdapter();
+        commentsAdapter = new CommentAdapter(comment -> {
+            boolean isLoggedIn = sessionManager != null && sessionManager.hasToken();
+            if (!isLoggedIn) {
+                showToast(getString(com.group09.ComicReader.R.string.comment_login_required));
+                return;
+            }
+            commentsViewModel.startReply(comment);
+            binding.nsvComicDetailContent.post(() -> {
+                if (binding == null) return;
+                View footer = binding.incComicDetailCommentsFooter.getRoot();
+                binding.nsvComicDetailContent.smoothScrollTo(0, footer.getTop());
+                binding.incComicDetailCommentsFooter.edtReaderCommentsInput.requestFocus();
+            });
+        });
         binding.incComicDetailCommentsFooter.rcvReaderComments.setAdapter(commentsAdapter);
 
         binding.incComicDetailCommentsFooter.tvReaderCommentsSeeMore.setOnClickListener(v ->
@@ -121,9 +134,19 @@ public class ComicDetailFragment extends BaseFragment {
             if (success != null && success) {
                 showToast(getString(com.group09.ComicReader.R.string.comment_posted));
                 binding.incComicDetailCommentsFooter.edtReaderCommentsInput.setText("");
-                binding.incComicDetailCommentsFooter.rcvReaderComments.scrollToPosition(0);
             }
         });
+
+        commentsViewModel.getReplyingToLabel().observe(getViewLifecycleOwner(), label -> {
+            boolean isReplying = label != null && !label.trim().isEmpty();
+            binding.incComicDetailCommentsFooter.clReaderCommentsReplying.setVisibility(isReplying ? View.VISIBLE : View.GONE);
+            if (isReplying) {
+                binding.incComicDetailCommentsFooter.tvReaderCommentsReplyingTo.setText(label);
+            }
+        });
+
+        binding.incComicDetailCommentsFooter.tvReaderCommentsCancelReply.setOnClickListener(v ->
+                commentsViewModel.cancelReply());
 
         commentsViewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
             if (error != null && !error.trim().isEmpty()) {
