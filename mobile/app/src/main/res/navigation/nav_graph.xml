@@ -89,6 +89,12 @@
     </fragment>
 
     <fragment
+        android:id="@+id/accountDetailsFragment"
+        android:name="com.group09.ComicReader.ui.profile.AccountDetailsFragment"
+        android:label="account_details"
+        tools:layout="@layout/fragment_account_details" />
+
+    <fragment
         android:id="@+id/walletFragment"
         android:name="com.group09.ComicReader.ui.wallet.WalletFragment"
         android:label="wallet"

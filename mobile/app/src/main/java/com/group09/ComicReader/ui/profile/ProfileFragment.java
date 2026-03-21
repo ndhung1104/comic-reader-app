@@ -16,16 +16,23 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.ProfileMenuAdapter;
 import com.group09.ComicReader.base.BaseFragment;
+import com.group09.ComicReader.data.AccountRepository;
 import com.group09.ComicReader.data.local.SessionManager;
+import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.FragmentProfileBinding;
 import com.group09.ComicReader.model.ProfileMenuItem;
+import com.group09.ComicReader.model.UserProfileResponse;
 import com.group09.ComicReader.viewmodel.ProfileViewModel;
+
+import com.google.android.material.button.MaterialButton;
 
 public class ProfileFragment extends BaseFragment {
 
     private FragmentProfileBinding binding;
     private ProfileViewModel viewModel;
     private ProfileMenuAdapter adapter;
+    private SessionManager sessionManager;
+    private AccountRepository accountRepository;
 
     @Nullable
     @Override
@@ -33,6 +40,8 @@ public class ProfileFragment extends BaseFragment {
                              @Nullable Bundle savedInstanceState) {
         binding = FragmentProfileBinding.inflate(inflater, container, false);
         viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
+        sessionManager = new SessionManager(requireContext());
+        accountRepository = new AccountRepository(new ApiClient(requireContext()));
         return binding.getRoot();
     }
 
@@ -49,20 +58,103 @@ public class ProfileFragment extends BaseFragment {
 
         binding.btnProfileCreator.setOnClickListener(v -> showToast("Creator flow is not implemented"));
 
-        binding.btnProfileLogout.setOnClickListener(v -> {
-            new SessionManager(requireContext()).clear();
-            androidx.navigation.NavController navController = Navigation.findNavController(v);
-            NavOptions navOptions = new NavOptions.Builder()
-                .setPopUpTo(R.id.homeFragment, true)
-                    .build();
-            navController.navigate(R.id.loginFragment, null, navOptions);
-        });
-
+        renderForAuthState();
         viewModel.loadData();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        renderForAuthState();
+    }
+
+    private void renderForAuthState() {
+        boolean isLoggedIn = sessionManager.hasToken();
+
+        if (isLoggedIn) {
+            String name = sessionManager.getFullName();
+            String email = sessionManager.getEmail();
+            if (email == null) email = "";
+            if (name == null || name.trim().isEmpty()) {
+                name = email.trim().isEmpty() ? getString(R.string.profile_guest_name) : email;
+            }
+            viewModel.setUserInfo(name, email);
+
+            maybeFetchMe();
+
+            binding.btnProfileCreator.setVisibility(View.VISIBLE);
+            setAuthButtonToLogout(binding.btnProfileLogout);
+        } else {
+            viewModel.setUserInfo(getString(R.string.profile_guest_name), getString(R.string.profile_not_signed_in));
+            binding.btnProfileCreator.setVisibility(View.GONE);
+            setAuthButtonToLogin(binding.btnProfileLogout);
+        }
+    }
+
+    private void maybeFetchMe() {
+        String currentName = sessionManager.getFullName();
+        String currentEmail = sessionManager.getEmail();
+
+        boolean needsName = currentName == null || currentName.trim().isEmpty();
+        boolean needsEmail = currentEmail == null || currentEmail.trim().isEmpty();
+        if (!needsName && !needsEmail) return;
+
+        accountRepository.getMe(new AccountRepository.MeCallback() {
+            @Override
+            public void onSuccess(@NonNull UserProfileResponse me) {
+                if (me.getEmail() != null && !me.getEmail().trim().isEmpty()) {
+                    sessionManager.saveEmail(me.getEmail());
+                }
+                if (me.getFullName() != null && !me.getFullName().trim().isEmpty()) {
+                    sessionManager.saveFullName(me.getFullName());
+                }
+                String name = sessionManager.getFullName();
+                if (name == null || name.trim().isEmpty()) name = getString(R.string.profile_guest_name);
+                String email = sessionManager.getEmail();
+                if (email == null) email = "";
+                viewModel.setUserInfo(name, email);
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                // silent fail: keep current UI
+            }
+        });
+    }
+
+    private void setAuthButtonToLogout(@NonNull MaterialButton button) {
+        button.setText(R.string.profile_logout);
+        button.setStrokeColorResource(R.color.danger_color);
+        button.setOnClickListener(v -> {
+            sessionManager.clear();
+            androidx.navigation.NavController navController = Navigation.findNavController(v);
+            NavOptions navOptions = new NavOptions.Builder()
+                    .setPopUpTo(R.id.homeFragment, true)
+                    .build();
+            navController.navigate(R.id.loginFragment, null, navOptions);
+        });
+    }
+
+    private void setAuthButtonToLogin(@NonNull MaterialButton button) {
+        button.setText(R.string.login_button);
+        button.setStrokeColorResource(R.color.accent_primary);
+        button.setOnClickListener(v -> Navigation.findNavController(v).navigate(R.id.loginFragment));
+    }
+
     private void onMenuClicked(ProfileMenuItem item) {
+        if (item != null && item.getLabel() != null && item.getLabel().trim().equalsIgnoreCase("Account Details") && getView() != null) {
+            if (!sessionManager.hasToken()) {
+                Navigation.findNavController(getView()).navigate(R.id.loginFragment);
+                return;
+            }
+            Navigation.findNavController(getView()).navigate(R.id.accountDetailsFragment);
+            return;
+        }
         if (item.isNavigatesToWallet() && getView() != null) {
+            if (!sessionManager.hasToken()) {
+                Navigation.findNavController(getView()).navigate(R.id.loginFragment);
+                return;
+            }
             NavDirections action = ProfileFragmentDirections.actionProfileToWallet();
             Navigation.findNavController(getView()).navigate(action);
             return;

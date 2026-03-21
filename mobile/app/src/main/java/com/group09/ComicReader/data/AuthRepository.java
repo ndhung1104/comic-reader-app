@@ -50,6 +50,7 @@ public class AuthRepository {
                     return;
                 }
                 sessionManager.saveAuth(body);
+                sessionManager.saveEmail(email);
                 callback.onSuccess(body);
             }
 
@@ -74,6 +75,8 @@ public class AuthRepository {
                     return;
                 }
                 sessionManager.saveAuth(body);
+                sessionManager.saveEmail(email);
+                sessionManager.saveFullName(fullName);
                 callback.onSuccess(body);
             }
 

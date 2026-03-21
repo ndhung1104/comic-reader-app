@@ -50,6 +50,10 @@ public class ApiClient {
         return retrofit.create(CommentApi.class);
     }
 
+    public UserApi userApi() {
+        return retrofit.create(UserApi.class);
+    }
+
     public static String toAbsoluteUrl(String pathOrUrl) {
         if (pathOrUrl == null || pathOrUrl.trim().isEmpty()) {
             return "";
