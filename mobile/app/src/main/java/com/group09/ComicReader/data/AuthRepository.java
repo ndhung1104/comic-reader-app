@@ -8,6 +8,10 @@ import com.group09.ComicReader.model.AuthResponse;
 import com.group09.ComicReader.model.LoginRequest;
 import com.group09.ComicReader.model.RegisterRequest;
 
+import org.json.JSONObject;
+
+import java.util.Locale;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -37,7 +41,7 @@ public class AuthRepository {
             @Override
             public void onResponse(@NonNull Call<AuthResponse> call, @NonNull Response<AuthResponse> response) {
                 if (!response.isSuccessful()) {
-                    callback.onError("Login failed (" + response.code() + ")");
+                    callback.onError(extractErrorMessage(response, "Login failed (" + response.code() + ")"));
                     return;
                 }
                 AuthResponse body = response.body();
@@ -61,7 +65,7 @@ public class AuthRepository {
             @Override
             public void onResponse(@NonNull Call<AuthResponse> call, @NonNull Response<AuthResponse> response) {
                 if (!response.isSuccessful()) {
-                    callback.onError("Register failed (" + response.code() + ")");
+                    callback.onError(extractErrorMessage(response, "Register failed (" + response.code() + ")"));
                     return;
                 }
                 AuthResponse body = response.body();
@@ -78,5 +82,40 @@ public class AuthRepository {
                 callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
             }
         });
+    }
+
+    @NonNull
+    private static String extractErrorMessage(@NonNull Response<?> response, @NonNull String fallback) {
+        try {
+            if (response.errorBody() == null) return fallback;
+            String raw = response.errorBody().string();
+            if (raw == null || raw.trim().isEmpty()) return fallback;
+
+            JSONObject json = new JSONObject(raw);
+            if (json.has("error")) {
+                String message = json.optString("error", "");
+                return message == null || message.trim().isEmpty() ? fallback : humanizeAuthError(message);
+            }
+            if (json.has("message")) {
+                String message = json.optString("message", "");
+                return message == null || message.trim().isEmpty() ? fallback : humanizeAuthError(message);
+            }
+            return fallback;
+        } catch (Exception ignored) {
+            return fallback;
+        }
+    }
+
+    @NonNull
+    private static String humanizeAuthError(@NonNull String message) {
+        String trimmed = message.trim();
+        if (trimmed.isEmpty()) return message;
+
+        String lower = trimmed.toLowerCase(Locale.ROOT);
+        if (lower.equals("bad credentials") || lower.equals("bad credential") || lower.contains("bad credentials")) {
+            return "Invalid email or password";
+        }
+
+        return message;
     }
 }
