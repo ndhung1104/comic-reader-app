@@ -2,6 +2,7 @@ package com.group09.ComicReader.data.remote;
 
 import android.content.Context;
 
+import com.group09.ComicReader.BuildConfig;
 import com.group09.ComicReader.data.local.SessionManager;
 
 import okhttp3.OkHttpClient;
@@ -12,7 +13,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ApiClient {
 
     // Emulator -> host machine
-    public static final String DEFAULT_BASE_URL = "http://10.0.2.2:8080/";
+    public static final String DEFAULT_BASE_URL = BuildConfig.BASE_URL;
 
     private final Retrofit retrofit;
 

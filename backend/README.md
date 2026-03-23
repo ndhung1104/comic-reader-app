@@ -16,17 +16,23 @@
   - password: `user123`
 
 ## Run with Docker
+1. Copy env file:
+```bash
+cp .env.example .env
+```
+2. Start services:
 ```bash
 docker compose up --build
 ```
 
 ## Run local (without Docker)
-1. Start PostgreSQL and create DB `comic_reader`
-2. Configure env (optional):
-   - `DB_URL`
-   - `DB_USERNAME`
-   - `DB_PASSWORD`
-3. Run:
+1. Copy env file:
+```bash
+cp .env.example .env
+```
+2. Start PostgreSQL and create DB `comic_reader`
+3. Adjust `.env` if your local DB settings differ.
+4. Run:
 ```bash
 ./mvnw spring-boot:run
 ```
@@ -43,3 +49,8 @@ docker compose up --build
 - URL path: `/uploads/**`
 - Docker runtime folder: `/app/uploads`
 - Compose volume: `uploads_data`
+
+## Environment files
+- Backend reads `backend/.env` via Spring `spring.config.import`
+- Docker Compose also reads `backend/.env`
+- `DB_URL` in `.env` is intended for local runs; Docker overrides it to use the `postgres` service host
