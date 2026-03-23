@@ -42,6 +42,10 @@ public class ApiClient {
         return retrofit.create(ComicApi.class);
     }
 
+    public CategoryApi categoryApi() {
+        return retrofit.create(CategoryApi.class);
+    }
+
     public ChapterApi chapterApi() {
         return retrofit.create(ChapterApi.class);
     }

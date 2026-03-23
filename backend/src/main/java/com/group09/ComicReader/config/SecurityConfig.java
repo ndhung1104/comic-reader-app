@@ -42,7 +42,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/health", "/api/v1/auth/**", "/uploads/**",
                                 "/api/v1/admin/comics/sync")
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/comics/**", "/api/v1/chapters/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/comics/**", "/api/v1/chapters/**", "/api/v1/categories").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/**").authenticated()
                         .anyRequest().permitAll())

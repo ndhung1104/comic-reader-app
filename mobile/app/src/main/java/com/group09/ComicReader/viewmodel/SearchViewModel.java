@@ -18,7 +18,15 @@ public class SearchViewModel extends ViewModel {
     private String currentFilter = "All";
 
     public void loadInitial() {
-        filters.setValue(comicRepository.getFilters());
+        comicRepository.getFilters(new ComicRepository.CategoryListCallback() {
+            @Override
+            public void onSuccess(List<String> categories) {
+                filters.postValue(categories);
+            }
+            @Override
+            public void onError(String error) {
+            }
+        });
         fetchSearchResults();
     }
 

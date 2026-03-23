@@ -78,6 +78,7 @@ public class ComicDetailFragment extends BaseFragment {
 
         binding.btnComicDetailBack.setOnClickListener(v -> Navigation.findNavController(v).popBackStack());
         binding.btnComicDetailDownload.setOnClickListener(v -> showToast("Download is not implemented"));
+        binding.btnComicDetailShare.setOnClickListener(v -> shareComicDeepLink());
         binding.btnComicDetailRead.setOnClickListener(v -> openFirstAvailableChapter());
         binding.btnComicDetailComments.setOnClickListener(v -> scrollToCommentsFooter());
 
@@ -221,6 +222,20 @@ public class ComicDetailFragment extends BaseFragment {
             binding.tvComicDetailRelatedLabel.setVisibility(hasRelated ? View.VISIBLE : View.GONE);
             binding.rcvComicDetailRelated.setVisibility(hasRelated ? View.VISIBLE : View.GONE);
         });
+    }
+
+    private void shareComicDeepLink() {
+        if (currentComic == null || requireContext() == null) {
+            return;
+        }
+        String shareText = "Check out this comic: comicreader://comic/" + currentComic.getId();
+        Intent sendIntent = new Intent();
+        sendIntent.setAction(Intent.ACTION_SEND);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+        sendIntent.setType("text/plain");
+
+        Intent shareIntent = Intent.createChooser(sendIntent, "Share Comic via");
+        startActivity(shareIntent);
     }
 
     private void openReaderForChapter(Chapter chapter) {

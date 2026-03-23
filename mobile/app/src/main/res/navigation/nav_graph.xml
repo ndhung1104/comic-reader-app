@@ -108,6 +108,7 @@
         <argument
             android:name="comicId"
             app:argType="integer" />
+        <deepLink app:uri="comicreader://comic/{comicId}" />
     </fragment>
 
 </navigation>
