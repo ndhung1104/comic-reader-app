@@ -59,6 +59,10 @@ public class ApiClient {
         return retrofit.create(UserApi.class);
     }
 
+    public WalletApi walletApi() {
+        return retrofit.create(WalletApi.class);
+    }
+
     public static String toAbsoluteUrl(String pathOrUrl) {
         if (pathOrUrl == null || pathOrUrl.trim().isEmpty()) {
             return "";
