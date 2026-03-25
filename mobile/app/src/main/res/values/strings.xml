@@ -40,10 +40,15 @@
 
     <string name="library_title">Library</string>
     <string name="library_tab_recent">Recent</string>
-    <string name="library_tab_favorites">Favorites</string>
-    <string name="library_tab_downloads">Downloads</string>
+    <string name="library_tab_followed">Followed</string>
     <string name="library_empty_title">Your library is empty</string>
     <string name="library_empty_subtitle">Start reading comics to see them here</string>
+    <string name="library_empty_recent">No recent reads yet</string>
+    <string name="library_empty_followed">No followed comics yet</string>
+    <string name="library_login_required">Log in to view your library</string>
+    <string name="comic_follow">Follow</string>
+    <string name="comic_unfollow">Following</string>
+    <string name="comic_follow_login_required">Log in to follow comics</string>
 
     <string name="profile_title">Profile</string>
     <string name="account_details_title">Account Details</string>

@@ -13,11 +13,13 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
+import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.ChapterAdapter;
 import com.group09.ComicReader.adapter.CommentAdapter;
 import com.group09.ComicReader.adapter.RelatedComicAdapter;
 import com.group09.ComicReader.base.BaseFragment;
 import com.group09.ComicReader.data.ComicRepository;
+import com.group09.ComicReader.data.LibraryRepository;
 import com.group09.ComicReader.data.ReaderRepository;
 import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
@@ -53,8 +55,9 @@ public class ComicDetailFragment extends BaseFragment {
         ApiClient apiClient = new ApiClient(requireContext());
         ComicRepository comicRepository = ComicRepository.getInstance();
         ReaderRepository readerRepository = new ReaderRepository(apiClient);
+        LibraryRepository libraryRepository = new LibraryRepository(apiClient);
         ComicDetailViewModel.Factory factory =
-                new ComicDetailViewModel.Factory(comicRepository, readerRepository);
+                new ComicDetailViewModel.Factory(comicRepository, readerRepository, libraryRepository);
         viewModel = new ViewModelProvider(this, factory).get(ComicDetailViewModel.class);
         return binding.getRoot();
     }
@@ -81,12 +84,16 @@ public class ComicDetailFragment extends BaseFragment {
         binding.btnComicDetailShare.setOnClickListener(v -> shareComicDeepLink());
         binding.btnComicDetailRead.setOnClickListener(v -> openFirstAvailableChapter());
         binding.btnComicDetailComments.setOnClickListener(v -> scrollToCommentsFooter());
+        binding.btnComicDetailFollow.setOnClickListener(v -> toggleFollow());
 
         setupCommentsFooter();
         commentsViewModel.init(comicId, null);
 
         observeData();
         viewModel.loadData(comicId);
+        if (sessionManager.hasToken()) {
+            viewModel.loadFollowStatus(comicId);
+        }
     }
 
     @Override
@@ -222,6 +229,28 @@ public class ComicDetailFragment extends BaseFragment {
             binding.tvComicDetailRelatedLabel.setVisibility(hasRelated ? View.VISIBLE : View.GONE);
             binding.rcvComicDetailRelated.setVisibility(hasRelated ? View.VISIBLE : View.GONE);
         });
+        viewModel.getFollowed().observe(getViewLifecycleOwner(), isFollowed ->
+                binding.btnComicDetailFollow.setText(getString(Boolean.TRUE.equals(isFollowed)
+                        ? R.string.comic_unfollow
+                        : R.string.comic_follow)));
+        viewModel.getFollowLoading().observe(getViewLifecycleOwner(), isLoading ->
+                binding.btnComicDetailFollow.setEnabled(isLoading == null || !isLoading));
+        viewModel.getFollowSuccessMessage().observe(getViewLifecycleOwner(), message -> {
+            if (message != null && !message.trim().isEmpty()) {
+                showToast(message);
+            }
+        });
+    }
+
+    private void toggleFollow() {
+        if (sessionManager == null || !sessionManager.hasToken()) {
+            showToast(getString(R.string.comic_follow_login_required));
+            if (getView() != null) {
+                Navigation.findNavController(getView()).navigate(R.id.loginFragment);
+            }
+            return;
+        }
+        viewModel.toggleFollow(comicId);
     }
 
     private void shareComicDeepLink() {

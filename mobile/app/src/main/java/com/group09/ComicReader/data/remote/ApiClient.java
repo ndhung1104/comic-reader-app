@@ -59,6 +59,10 @@ public class ApiClient {
         return retrofit.create(UserApi.class);
     }
 
+    public LibraryApi libraryApi() {
+        return retrofit.create(LibraryApi.class);
+    }
+
     public WalletApi walletApi() {
         return retrofit.create(WalletApi.class);
     }

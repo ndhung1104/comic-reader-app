@@ -46,6 +46,7 @@ public class ReaderActivity extends AppCompatActivity {
     private ReaderViewModel viewModel;
     private ReaderCommentsFooterAdapter commentsFooterAdapter;
     private CommentsViewModel commentsViewModel;
+    private boolean historyRecorded;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -146,9 +147,17 @@ public class ReaderActivity extends AppCompatActivity {
             pageAdapter.submitList(pages);
             boolean hasPages = pages != null && !pages.isEmpty();
             binding.tvReaderEmpty.setVisibility(hasPages ? android.view.View.GONE : android.view.View.VISIBLE);
+            if (hasPages && sessionManager.hasToken() && !historyRecorded) {
+                historyRecorded = true;
+                viewModel.recordReadingHistory(comicId, chapterId, 1);
+            }
         });
         viewModel.getErrorMessage().observe(this, message -> {
             if (message != null && !message.trim().isEmpty()) {
+                if ("Session expired. Please log in again.".equals(message)) {
+                    sessionManager.clear();
+                    commentsFooterAdapter.setLoggedIn(false);
+                }
                 binding.tvReaderEmpty.setVisibility(android.view.View.VISIBLE);
                 binding.tvReaderEmpty.setText(message);
             }

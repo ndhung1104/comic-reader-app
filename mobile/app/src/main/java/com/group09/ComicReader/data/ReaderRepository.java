@@ -5,8 +5,10 @@ import androidx.annotation.NonNull;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.model.Chapter;
 import com.group09.ComicReader.model.ComicChapterResponse;
+import com.group09.ComicReader.model.ReadingHistoryRequest;
 import com.group09.ComicReader.model.ReaderPage;
 import com.group09.ComicReader.model.ReaderPageResponse;
+import com.group09.ComicReader.model.RecentReadResponse;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -26,6 +28,12 @@ public class ReaderRepository {
 
     public interface PagesCallback {
         void onSuccess(@NonNull List<ReaderPage> pages);
+
+        void onError(@NonNull String message);
+    }
+
+    public interface HistoryCallback {
+        void onSuccess();
 
         void onError(@NonNull String message);
     }
@@ -92,6 +100,30 @@ public class ReaderRepository {
 
             @Override
             public void onFailure(@NonNull Call<List<ReaderPageResponse>> call, @NonNull Throwable throwable) {
+                callback.onError(throwable.getMessage() == null ? "Network error" : throwable.getMessage());
+            }
+        });
+    }
+
+    public void recordReadingHistory(int comicId, int chapterId, int pageNumber, @NonNull HistoryCallback callback) {
+        ReadingHistoryRequest request = new ReadingHistoryRequest((long) comicId, (long) chapterId, pageNumber);
+        apiClient.libraryApi().recordReadingHistory(request).enqueue(new Callback<RecentReadResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<RecentReadResponse> call,
+                                   @NonNull Response<RecentReadResponse> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    if (response.code() == 401 || response.code() == 403) {
+                        callback.onError("Session expired. Please log in again.");
+                    } else {
+                        callback.onError("Failed to save reading history (" + response.code() + ")");
+                    }
+                    return;
+                }
+                callback.onSuccess();
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<RecentReadResponse> call, @NonNull Throwable throwable) {
                 callback.onError(throwable.getMessage() == null ? "Network error" : throwable.getMessage());
             }
         });

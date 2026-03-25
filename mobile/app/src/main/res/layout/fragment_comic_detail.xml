@@ -166,6 +166,20 @@
                 app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_synopsis_label" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_comic_detail_follow"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/button_height"
+                android:layout_marginEnd="@dimen/spacing_lg"
+                android:layout_marginStart="@dimen/spacing_lg"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:text="@string/comic_follow"
+                android:textSize="@dimen/text_sm"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_synopsis" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_comic_detail_read"
                 style="@style/Widget.Material3.Button"
                 android:layout_width="0dp"
@@ -178,7 +192,7 @@
                 app:backgroundTint="@color/accent_primary"
                 app:layout_constraintEnd_toStartOf="@id/btn_comic_detail_comments"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_synopsis" />
+                app:layout_constraintTop_toBottomOf="@id/btn_comic_detail_follow" />
 
             <ImageButton
                 android:id="@+id/btn_comic_detail_comments"

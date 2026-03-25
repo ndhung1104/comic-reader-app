@@ -33,6 +33,7 @@ public class ReaderViewModel extends ViewModel {
     private final MutableLiveData<List<ReaderPage>> pages = new MutableLiveData<>();
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> historySaved = new MutableLiveData<>(false);
 
     public ReaderViewModel(ReaderRepository readerRepository) {
         this.readerRepository = readerRepository;
@@ -67,5 +68,23 @@ public class ReaderViewModel extends ViewModel {
 
     public LiveData<String> getErrorMessage() {
         return errorMessage;
+    }
+
+    public void recordReadingHistory(int comicId, int chapterId, int pageNumber) {
+        readerRepository.recordReadingHistory(comicId, chapterId, pageNumber, new ReaderRepository.HistoryCallback() {
+            @Override
+            public void onSuccess() {
+                historySaved.postValue(true);
+            }
+
+            @Override
+            public void onError(String message) {
+                errorMessage.postValue(message);
+            }
+        });
+    }
+
+    public LiveData<Boolean> getHistorySaved() {
+        return historySaved;
     }
 }
