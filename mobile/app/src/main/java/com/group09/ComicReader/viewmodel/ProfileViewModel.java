@@ -16,8 +16,12 @@ public class ProfileViewModel extends ViewModel {
     private final MutableLiveData<String> email = new MutableLiveData<>();
     private final MutableLiveData<List<ProfileMenuItem>> menuItems = new MutableLiveData<>();
 
-    public void loadData() {
-        menuItems.setValue(profileRepository.getMenuItems());
+    public void loadData(boolean isAdmin) {
+        List<ProfileMenuItem> items = profileRepository.getMenuItems();
+        if (isAdmin) {
+            items.add(0, new ProfileMenuItem("Admin Dashboard", "ADMIN", com.group09.ComicReader.R.drawable.ic_nav_profile, false));
+        }
+        menuItems.setValue(items);
     }
 
     public void setUserInfo(String name, String emailAddress) {

@@ -86,6 +86,9 @@
         <action
             android:id="@+id/action_profile_to_wallet"
             app:destination="@id/walletFragment" />
+        <action
+            android:id="@+id/action_profile_to_admin_dashboard"
+            app:destination="@id/adminDashboardFragment" />
     </fragment>
 
     <fragment
@@ -110,5 +113,11 @@
             app:argType="integer" />
         <deepLink app:uri="comicreader://comic/{comicId}" />
     </fragment>
+
+    <fragment
+        android:id="@+id/adminDashboardFragment"
+        android:name="com.group09.ComicReader.ui.admin.AdminDashboardFragment"
+        android:label="admin_dashboard"
+        tools:layout="@layout/fragment_admin_dashboard" />
 
 </navigation>

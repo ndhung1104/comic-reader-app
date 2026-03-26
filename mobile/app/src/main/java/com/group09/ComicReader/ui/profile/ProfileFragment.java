@@ -59,7 +59,8 @@ public class ProfileFragment extends BaseFragment {
         binding.btnProfileCreator.setOnClickListener(v -> showToast("Creator flow is not implemented"));
 
         renderForAuthState();
-        viewModel.loadData();
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
+        viewModel.loadData(isAdmin);
     }
 
     @Override
@@ -148,6 +149,11 @@ public class ProfileFragment extends BaseFragment {
                 return;
             }
             Navigation.findNavController(getView()).navigate(R.id.accountDetailsFragment);
+            return;
+        }
+        if (item.getLabel() != null && item.getLabel().trim().equalsIgnoreCase("Admin Dashboard") && getView() != null) {
+            NavDirections action = ProfileFragmentDirections.actionProfileToAdminDashboard();
+            Navigation.findNavController(getView()).navigate(action);
             return;
         }
         if (item.isNavigatesToWallet() && getView() != null) {
