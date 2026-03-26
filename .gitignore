@@ -1,5 +1,6 @@
 *.iml
-.gradle
+.gradle*
+*.log
 .m2/
 .gradle-user
 /local.properties
@@ -54,3 +55,7 @@ build/
 .vscode/
 
 trackingDocs/
+backend/.env
+mobile/.env
+
+.env

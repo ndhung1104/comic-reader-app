@@ -7,15 +7,21 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.LinearLayoutManager;
+
+import android.widget.Toast;
 
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.ReaderPageAdapter;
+import com.group09.ComicReader.adapter.ReaderCommentsFooterAdapter;
 import com.group09.ComicReader.data.ComicRepository;
 import com.group09.ComicReader.data.ReaderRepository;
+import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.ActivityReaderBinding;
 import com.group09.ComicReader.model.Comic;
+import com.group09.ComicReader.viewmodel.CommentsViewModel;
 import com.group09.ComicReader.viewmodel.ReaderViewModel;
 
 public class ReaderActivity extends AppCompatActivity {
@@ -38,6 +44,9 @@ public class ReaderActivity extends AppCompatActivity {
     private int chapterNumber;
     private ReaderPageAdapter pageAdapter;
     private ReaderViewModel viewModel;
+    private ReaderCommentsFooterAdapter commentsFooterAdapter;
+    private CommentsViewModel commentsViewModel;
+    private boolean historyRecorded;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,8 +64,39 @@ public class ReaderActivity extends AppCompatActivity {
         viewModel = new ViewModelProvider(this, factory).get(ReaderViewModel.class);
 
         pageAdapter = new ReaderPageAdapter();
+        commentsFooterAdapter = new ReaderCommentsFooterAdapter(new ReaderCommentsFooterAdapter.Listener() {
+            @Override
+            public void onSeeMoreClicked() {
+                if (commentsViewModel != null) {
+                    commentsViewModel.loadMore();
+                }
+            }
+
+            @Override
+            public void onSendComment(@NonNull String text) {
+                if (commentsViewModel != null) {
+                    commentsViewModel.addComment(text);
+                }
+            }
+
+            @Override
+            public void onReplyToComment(@NonNull com.group09.ComicReader.model.CommentItem comment) {
+                if (commentsViewModel != null) {
+                    commentsViewModel.startReply(comment);
+                }
+            }
+
+            @Override
+            public void onCancelReply() {
+                if (commentsViewModel != null) {
+                    commentsViewModel.cancelReply();
+                }
+            }
+        });
+
+        ConcatAdapter concatAdapter = new ConcatAdapter(pageAdapter, commentsFooterAdapter);
         binding.rcvReaderPages.setLayoutManager(new LinearLayoutManager(this));
-        binding.rcvReaderPages.setAdapter(pageAdapter);
+        binding.rcvReaderPages.setAdapter(concatAdapter);
 
         binding.tvReaderTitle.setText(getString(R.string.app_name));
         ComicRepository.getInstance().getComicById(comicId, new ComicRepository.ComicCallback() {
@@ -75,6 +115,30 @@ public class ReaderActivity extends AppCompatActivity {
 
         binding.btnReaderBack.setOnClickListener(v -> finish());
 
+        commentsViewModel = new ViewModelProvider(this).get(CommentsViewModel.class);
+        commentsViewModel.init(comicId, chapterId);
+        commentsViewModel.getComments().observe(this, comments -> commentsFooterAdapter.setComments(comments));
+        commentsViewModel.getHasMore().observe(this, more -> commentsFooterAdapter.setHasMore(more != null && more));
+        commentsViewModel.getReplyingToLabel().observe(this, label -> commentsFooterAdapter.setReplyingToLabel(label));
+
+        SessionManager sessionManager = new SessionManager(this);
+        commentsFooterAdapter.setLoggedIn(sessionManager.hasToken());
+
+        commentsViewModel.getPostSuccess().observe(this, success -> {
+            if (success != null && success) {
+                Toast.makeText(this, R.string.comment_posted, Toast.LENGTH_SHORT).show();
+            }
+        });
+        commentsViewModel.getErrorMessage().observe(this, error -> {
+            if (error != null && !error.trim().isEmpty()) {
+                if ("Session expired. Please log in again.".equals(error)) {
+                    sessionManager.clear();
+                    commentsFooterAdapter.setLoggedIn(false);
+                }
+                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+
         viewModel.getLoading().observe(this, loading -> {
             boolean isLoading = loading != null && loading;
             binding.prgReaderLoading.setVisibility(isLoading ? android.view.View.VISIBLE : android.view.View.GONE);
@@ -83,9 +147,17 @@ public class ReaderActivity extends AppCompatActivity {
             pageAdapter.submitList(pages);
             boolean hasPages = pages != null && !pages.isEmpty();
             binding.tvReaderEmpty.setVisibility(hasPages ? android.view.View.GONE : android.view.View.VISIBLE);
+            if (hasPages && sessionManager.hasToken() && !historyRecorded) {
+                historyRecorded = true;
+                viewModel.recordReadingHistory(comicId, chapterId, 1);
+            }
         });
         viewModel.getErrorMessage().observe(this, message -> {
             if (message != null && !message.trim().isEmpty()) {
+                if ("Session expired. Please log in again.".equals(message)) {
+                    sessionManager.clear();
+                    commentsFooterAdapter.setLoggedIn(false);
+                }
                 binding.tvReaderEmpty.setVisibility(android.view.View.VISIBLE);
                 binding.tvReaderEmpty.setText(message);
             }

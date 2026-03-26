@@ -17,9 +17,12 @@ public class ProfileViewModel extends ViewModel {
     private final MutableLiveData<List<ProfileMenuItem>> menuItems = new MutableLiveData<>();
 
     public void loadData() {
-        username.setValue(profileRepository.getUsername());
-        email.setValue(profileRepository.getEmail());
         menuItems.setValue(profileRepository.getMenuItems());
+    }
+
+    public void setUserInfo(String name, String emailAddress) {
+        username.setValue(name);
+        email.setValue(emailAddress);
     }
 
     public LiveData<String> getUsername() { return username; }

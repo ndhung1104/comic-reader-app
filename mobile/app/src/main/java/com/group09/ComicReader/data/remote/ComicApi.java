@@ -15,6 +15,8 @@ public interface ComicApi {
 
     @GET("/api/v1/comics")
     Call<PageResponse<ComicResponse>> getComics(
+            @Query("keyword") String keyword,
+            @Query("categoryId") String categoryId,
             @Query("page") Integer page,
             @Query("size") Integer size,
             @Query("sort") String sort);

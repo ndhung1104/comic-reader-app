@@ -13,6 +13,8 @@ public class SessionManager {
     private static final String KEY_ACCESS_TOKEN = "access_token";
     private static final String KEY_TOKEN_TYPE = "token_type";
     private static final String KEY_ROLE = "role";
+    private static final String KEY_EMAIL = "email";
+    private static final String KEY_FULL_NAME = "full_name";
 
     private final SharedPreferences prefs;
 
@@ -29,6 +31,14 @@ public class SessionManager {
                 .apply();
     }
 
+    public void saveEmail(@Nullable String email) {
+        prefs.edit().putString(KEY_EMAIL, email).apply();
+    }
+
+    public void saveFullName(@Nullable String fullName) {
+        prefs.edit().putString(KEY_FULL_NAME, fullName).apply();
+    }
+
     @Nullable
     public String getAccessToken() {
         return prefs.getString(KEY_ACCESS_TOKEN, null);
@@ -42,6 +52,16 @@ public class SessionManager {
     @Nullable
     public String getRole() {
         return prefs.getString(KEY_ROLE, null);
+    }
+
+    @Nullable
+    public String getEmail() {
+        return prefs.getString(KEY_EMAIL, null);
+    }
+
+    @Nullable
+    public String getFullName() {
+        return prefs.getString(KEY_FULL_NAME, null);
     }
 
     public boolean hasToken() {

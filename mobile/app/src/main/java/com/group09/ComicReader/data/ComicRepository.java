@@ -8,6 +8,8 @@ import com.group09.ComicReader.model.Chapter;
 import com.group09.ComicReader.model.Comic;
 import com.group09.ComicReader.model.ComicResponse;
 import com.group09.ComicReader.model.CommentItem;
+import com.group09.ComicReader.model.CommentPageResponse;
+import com.group09.ComicReader.model.CreateCommentRequest;
 
 import java.util.Map;
 
@@ -19,6 +21,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+
+import org.json.JSONObject;
+
+import okhttp3.ResponseBody;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -36,6 +42,11 @@ public class ComicRepository {
         void onError(String error);
     }
 
+    public interface CategoryListCallback {
+        void onSuccess(List<String> categories);
+        void onError(String error);
+    }
+
     public interface CommentListCallback {
         void onSuccess(List<CommentItem> comments);
         void onError(String error);
@@ -43,6 +54,12 @@ public class ComicRepository {
 
     public interface CommentCallback {
         void onSuccess(CommentItem comment);
+        void onError(String error);
+    }
+
+    public interface PagedCommentCallback {
+        void onSuccess(List<CommentItem> comments, boolean hasMore);
+
         void onError(String error);
     }
 
@@ -78,7 +95,7 @@ public class ComicRepository {
             callback.onError("ApiClient not initialized");
             return;
         }
-        apiClient.comicApi().getComics(page, size, null).enqueue(new Callback<PageResponse<ComicResponse>>() {
+        apiClient.comicApi().getComics(null, null, page, size, null).enqueue(new Callback<PageResponse<ComicResponse>>() {
             @Override
             public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
                     @NonNull Response<PageResponse<ComicResponse>> response) {
@@ -249,32 +266,54 @@ public class ComicRepository {
         });
     }
 
-    public List<String> getFilters() {
-        return Arrays.asList("All", "Action", "Romance", "Fantasy", "Sci-Fi", "Mystery");
-    }
-
-    public void searchComics(String query, String filter, @NonNull ComicListCallback callback) {
-        getComics(0, 100, new ComicListCallback() {
+    public void getFilters(@NonNull CategoryListCallback callback) {
+        if (apiClient == null) {
+            callback.onError("ApiClient not initialized");
+            return;
+        }
+        apiClient.categoryApi().getCategories().enqueue(new Callback<List<String>>() {
             @Override
-            public void onSuccess(List<Comic> comics) {
-                String safeQuery = query == null ? "" : query.trim().toLowerCase(Locale.US);
-                String safeFilter = filter == null ? "All" : filter;
-                List<Comic> result = new ArrayList<>();
-                for (Comic comic : comics) {
-                    boolean matchesQuery = safeQuery.isEmpty()
-                            || comic.getTitle().toLowerCase(Locale.US).contains(safeQuery);
-                    boolean matchesFilter = "All".equals(safeFilter)
-                            || (comic.getGenres() != null && comic.getGenres().contains(safeFilter));
-                    if (matchesQuery && matchesFilter) {
-                        result.add(comic);
-                    }
+            public void onResponse(@NonNull Call<List<String>> call, @NonNull Response<List<String>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onSuccess(response.body());
+                } else {
+                    callback.onError("Error: " + response.code());
                 }
-                callback.onSuccess(result);
             }
 
             @Override
-            public void onError(String error) {
-                callback.onError(error);
+            public void onFailure(@NonNull Call<List<String>> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage());
+            }
+        });
+    }
+
+    public void searchComics(String query, String filter, @NonNull ComicListCallback callback) {
+        if (apiClient == null) {
+            callback.onError("ApiClient not initialized");
+            return;
+        }
+        String safeQuery = (query == null || query.trim().isEmpty()) ? null : query.trim();
+        String safeFilter = (filter == null || "All".equalsIgnoreCase(filter)) ? null : filter;
+
+        apiClient.comicApi().getComics(safeQuery, safeFilter, 0, 100, null).enqueue(new Callback<PageResponse<ComicResponse>>() {
+            @Override
+            public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
+                    @NonNull Response<PageResponse<ComicResponse>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<Comic> comics = new ArrayList<>();
+                    for (ComicResponse res : response.body().getContent()) {
+                        comics.add(res.toComic());
+                    }
+                    callback.onSuccess(comics);
+                } else {
+                    callback.onError("Error: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage());
             }
         });
     }
@@ -306,13 +345,48 @@ public class ComicRepository {
         });
     }
 
-    public void postComment(int comicId, String content, @NonNull CommentCallback callback) {
+    public void getCommentsForComicPaged(int comicId, Integer chapterId, int page, int size,
+            @NonNull PagedCommentCallback callback) {
         if (apiClient == null) {
             callback.onError("ApiClient not initialized");
             return;
         }
-        Map<String, String> body = new java.util.HashMap<>();
-        body.put("content", content);
+        Long chapterIdLong = chapterId == null || chapterId <= 0 ? null : chapterId.longValue();
+        apiClient.commentApi().getCommentsPaged(comicId, page, size, chapterIdLong)
+                .enqueue(new Callback<CommentPageResponse>() {
+                    @Override
+                    public void onResponse(@NonNull Call<CommentPageResponse> call,
+                            @NonNull Response<CommentPageResponse> response) {
+                        if (!response.isSuccessful() || response.body() == null) {
+                            callback.onError("Error: " + response.code());
+                            return;
+                        }
+                        List<CommentItem> content = response.body().getContent();
+                        callback.onSuccess(content == null ? new ArrayList<>() : content, !response.body().isLast());
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<CommentPageResponse> call, @NonNull Throwable t) {
+                        callback.onError(t.getMessage());
+                    }
+                });
+    }
+
+    public void postComment(int comicId, String content, @NonNull CommentCallback callback) {
+        postComment(comicId, null, content, callback);
+    }
+
+    public void postComment(int comicId, Integer chapterId, String content, @NonNull CommentCallback callback) {
+        postComment(comicId, chapterId, null, content, callback);
+    }
+
+    public void postComment(int comicId, Integer chapterId, Long parentCommentId, String content, @NonNull CommentCallback callback) {
+        if (apiClient == null) {
+            callback.onError("ApiClient not initialized");
+            return;
+        }
+        Long chapterIdLong = chapterId == null || chapterId <= 0 ? null : chapterId.longValue();
+        CreateCommentRequest body = new CreateCommentRequest(content, "NORMAL", chapterIdLong, parentCommentId);
         apiClient.commentApi().postComment(comicId, body).enqueue(new Callback<CommentItem>() {
             @Override
             public void onResponse(@NonNull Call<CommentItem> call,
@@ -320,7 +394,47 @@ public class ComicRepository {
                 if (response.isSuccessful() && response.body() != null) {
                     callback.onSuccess(response.body());
                 } else {
-                    callback.onError("Error: " + response.code());
+                    int code = response.code();
+                    if (code == 401 || code == 403) {
+                        String errorBodyText = null;
+                        try {
+                            ResponseBody errorBody = response.errorBody();
+                            if (errorBody != null) {
+                                errorBodyText = errorBody.string();
+                            }
+                        } catch (Exception ignored) {
+                        }
+
+                        if (errorBodyText != null && errorBodyText.toLowerCase(Locale.US).contains("banned")) {
+                            callback.onError("Account is banned");
+                        } else {
+                            callback.onError("Session expired. Please log in again.");
+                        }
+                        return;
+                    }
+
+                    String errorBodyText = null;
+                    try {
+                        ResponseBody errorBody = response.errorBody();
+                        if (errorBody != null) {
+                            errorBodyText = errorBody.string();
+                        }
+                    } catch (Exception ignored) {
+                    }
+
+                    if (errorBodyText != null && !errorBodyText.trim().isEmpty()) {
+                        try {
+                            JSONObject obj = new JSONObject(errorBodyText);
+                            String msg = obj.optString("error", null);
+                            if (msg != null && !msg.trim().isEmpty()) {
+                                callback.onError(msg);
+                                return;
+                            }
+                        } catch (Exception ignored) {
+                        }
+                    }
+
+                    callback.onError("Error: " + code);
                 }
             }
 

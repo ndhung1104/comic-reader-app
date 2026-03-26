@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.group09.ComicReader.databinding.ItemLibraryComicBinding;
-import com.group09.ComicReader.model.Comic;
+import com.group09.ComicReader.model.LibraryItem;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,17 +17,17 @@ import java.util.Locale;
 public class LibraryComicAdapter extends RecyclerView.Adapter<LibraryComicAdapter.ViewHolder> {
 
     public interface OnComicClickListener {
-        void onComicClick(Comic comic);
+        void onComicClick(LibraryItem item);
     }
 
-    private final List<Comic> items = new ArrayList<>();
+    private final List<LibraryItem> items = new ArrayList<>();
     private final OnComicClickListener listener;
 
     public LibraryComicAdapter(OnComicClickListener listener) {
         this.listener = listener;
     }
 
-    public void submitList(List<Comic> comics) {
+    public void submitList(List<LibraryItem> comics) {
         items.clear();
         if (comics != null) {
             items.addAll(comics);
@@ -44,18 +44,23 @@ public class LibraryComicAdapter extends RecyclerView.Adapter<LibraryComicAdapte
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        Comic comic = items.get(position);
-        int progress = comic.getProgress() == null ? 0 : comic.getProgress();
-        int percentage = Math.round((progress * 100f) / comic.getTotalChapters());
+        LibraryItem item = items.get(position);
+        int progress = item.getProgressChapter() == null ? 0 : item.getProgressChapter();
+        int total = item.getTotalChapters();
+        int percentage = total <= 0 ? 0 : Math.min(100, Math.round((progress * 100f) / total));
 
-        holder.binding.tvLibraryComicTitle.setText(comic.getTitle());
-        holder.binding.tvLibraryComicAuthor.setText(comic.getAuthor());
-        holder.binding.tvLibraryComicProgress.setText(String.format(Locale.US, "Chapter %d / %d (%d%%)", progress, comic.getTotalChapters(), percentage));
+        holder.binding.tvLibraryComicTitle.setText(item.getTitle());
+        holder.binding.tvLibraryComicAuthor.setText(item.getAuthor());
+        if (total > 0 && progress > 0) {
+            holder.binding.tvLibraryComicProgress.setText(String.format(Locale.US, "%s (%d/%d)", item.getProgressLabel(), progress, total));
+        } else {
+            holder.binding.tvLibraryComicProgress.setText(item.getProgressLabel());
+        }
         holder.binding.pbLibraryComicProgress.setProgressCompat(percentage, true);
         Glide.with(holder.binding.imgLibraryComicCover)
-                .load(comic.getCoverUrl())
+                .load(item.getCoverUrl())
                 .into(holder.binding.imgLibraryComicCover);
-        holder.binding.getRoot().setOnClickListener(v -> listener.onComicClick(comic));
+        holder.binding.getRoot().setOnClickListener(v -> listener.onComicClick(item));
     }
 
     @Override

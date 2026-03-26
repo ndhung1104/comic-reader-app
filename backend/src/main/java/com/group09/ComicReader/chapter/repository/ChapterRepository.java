@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface ChapterRepository extends JpaRepository<ChapterEntity, Long> {
     List<ChapterEntity> findByComicIdOrderByChapterNumberAsc(Long comicId);
-}
 
+    int countByComicId(Long comicId);
+}

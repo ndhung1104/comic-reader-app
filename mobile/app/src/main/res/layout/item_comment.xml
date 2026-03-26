@@ -6,86 +6,114 @@
     android:layout_height="wrap_content"
     android:layout_marginBottom="@dimen/spacing_md">
 
-    <com.google.android.material.imageview.ShapeableImageView
-        android:id="@+id/img_comment_avatar"
-        android:layout_width="@dimen/icon_xl"
-        android:layout_height="@dimen/icon_xl"
-        android:contentDescription="@string/content_avatar"
-        android:scaleType="centerCrop"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/ic_avatar_placeholder_24" />
-
-    <TextView
-        android:id="@+id/tv_comment_username"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/spacing_sm"
-        android:textColor="@color/text_primary"
-        android:textSize="@dimen/text_sm"
-        android:textStyle="bold"
-        app:layout_constraintStart_toEndOf="@id/img_comment_avatar"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/tv_comment_source"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/spacing_sm"
-        android:background="#E0E0E0"
-        android:paddingHorizontal="4dp"
-        android:text="Social"
-        android:textColor="@color/text_secondary"
-        android:textSize="10sp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@id/tv_comment_username"
-        app:layout_constraintStart_toEndOf="@id/tv_comment_username"
-        app:layout_constraintTop_toTopOf="@id/tv_comment_username" />
-
-    <TextView
-        android:id="@+id/tv_comment_timestamp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@color/text_secondary"
-        android:textSize="@dimen/text_xs"
-        app:layout_constraintBaseline_toBaselineOf="@id/tv_comment_username"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <TextView
-        android:id="@+id/tv_comment_locked"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="@dimen/spacing_sm"
-        android:text="🔒"
-        android:textSize="12sp"
-        android:visibility="gone"
-        app:layout_constraintBaseline_toBaselineOf="@id/tv_comment_username"
-        app:layout_constraintEnd_toStartOf="@id/tv_comment_timestamp" />
-
-    <TextView
-        android:id="@+id/tv_comment_text"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/cl_comment_card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/spacing_sm"
-        android:layout_marginTop="@dimen/spacing_xs"
-        android:textColor="@color/text_secondary"
-        android:textSize="@dimen/text_sm"
+        android:layout_marginStart="@dimen/spacing_xl"
+        android:layout_marginEnd="@dimen/spacing_xl"
+        android:background="@drawable/bg_card_surface"
+        android:padding="@dimen/spacing_sm"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/img_comment_avatar"
-        app:layout_constraintTop_toBottomOf="@id/tv_comment_username" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-    <TextView
-        android:id="@+id/tv_comment_likes"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/spacing_sm"
-        android:layout_marginTop="@dimen/spacing_xs"
-        android:drawableEnd="@drawable/ic_star_24"
-        android:drawablePadding="@dimen/spacing_xs"
-        android:textColor="@color/text_secondary"
-        android:textSize="@dimen/text_xs"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/img_comment_avatar"
-        app:layout_constraintTop_toBottomOf="@id/tv_comment_text" />
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/img_comment_avatar"
+            android:layout_width="@dimen/icon_lg"
+            android:layout_height="@dimen/icon_lg"
+            android:contentDescription="@string/content_avatar"
+            android:scaleType="centerCrop"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/ic_avatar_placeholder_24" />
+
+        <TextView
+            android:id="@+id/tv_comment_username"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_sm"
+            android:textStyle="bold"
+            app:layout_constraintStart_toEndOf="@id/img_comment_avatar"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_comment_source"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:background="@drawable/bg_button_secondary"
+            android:paddingHorizontal="@dimen/spacing_xs"
+            android:paddingVertical="@dimen/spacing_xs"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_xs"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/tv_comment_username"
+            app:layout_constraintStart_toEndOf="@id/tv_comment_username"
+            app:layout_constraintTop_toTopOf="@id/tv_comment_username" />
+
+        <TextView
+            android:id="@+id/tv_comment_timestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_xs"
+            app:layout_constraintBaseline_toBaselineOf="@id/tv_comment_username"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_comment_locked"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="@dimen/spacing_sm"
+            android:text="\ud83d\udd12"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_xs"
+            android:visibility="gone"
+            app:layout_constraintBaseline_toBaselineOf="@id/tv_comment_username"
+            app:layout_constraintEnd_toStartOf="@id/tv_comment_timestamp" />
+
+        <TextView
+            android:id="@+id/tv_comment_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_sm"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/img_comment_avatar"
+            app:layout_constraintTop_toBottomOf="@id/tv_comment_username" />
+
+        <TextView
+            android:id="@+id/tv_comment_likes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:drawableEnd="@drawable/ic_star_24"
+            android:drawablePadding="@dimen/spacing_xs"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_xs"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/img_comment_avatar"
+            app:layout_constraintTop_toBottomOf="@id/tv_comment_text" />
+
+        <TextView
+            android:id="@+id/tv_comment_reply"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:paddingVertical="@dimen/spacing_xs"
+            android:text="@string/comment_reply"
+            android:textColor="@color/accent_secondary"
+            android:textSize="@dimen/text_xs"
+            app:layout_constraintStart_toEndOf="@id/img_comment_avatar"
+            app:layout_constraintTop_toBottomOf="@id/tv_comment_text" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -13,18 +13,22 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
+import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.ChapterAdapter;
+import com.group09.ComicReader.adapter.CommentAdapter;
 import com.group09.ComicReader.adapter.RelatedComicAdapter;
 import com.group09.ComicReader.base.BaseFragment;
 import com.group09.ComicReader.data.ComicRepository;
+import com.group09.ComicReader.data.LibraryRepository;
 import com.group09.ComicReader.data.ReaderRepository;
+import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.FragmentComicDetailBinding;
 import com.group09.ComicReader.model.Chapter;
 import com.group09.ComicReader.model.Comic;
-import com.group09.ComicReader.ui.comment.CommentSheetBottomSheetFragment;
 import com.group09.ComicReader.ui.reader.ReaderActivity;
 import com.group09.ComicReader.viewmodel.ComicDetailViewModel;
+import com.group09.ComicReader.viewmodel.CommentsViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +40,9 @@ public class ComicDetailFragment extends BaseFragment {
     private ComicDetailViewModel viewModel;
     private ChapterAdapter chapterAdapter;
     private RelatedComicAdapter relatedComicAdapter;
+    private CommentAdapter commentsAdapter;
+    private CommentsViewModel commentsViewModel;
+    private SessionManager sessionManager;
     private int comicId;
     private Comic currentComic;
     private List<Chapter> currentChapters = new ArrayList<>();
@@ -48,8 +55,9 @@ public class ComicDetailFragment extends BaseFragment {
         ApiClient apiClient = new ApiClient(requireContext());
         ComicRepository comicRepository = ComicRepository.getInstance();
         ReaderRepository readerRepository = new ReaderRepository(apiClient);
+        LibraryRepository libraryRepository = new LibraryRepository(apiClient);
         ComicDetailViewModel.Factory factory =
-                new ComicDetailViewModel.Factory(comicRepository, readerRepository);
+                new ComicDetailViewModel.Factory(comicRepository, readerRepository, libraryRepository);
         viewModel = new ViewModelProvider(this, factory).get(ComicDetailViewModel.class);
         return binding.getRoot();
     }
@@ -58,6 +66,9 @@ public class ComicDetailFragment extends BaseFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         comicId = ComicDetailFragmentArgs.fromBundle(requireArguments()).getComicId();
+
+        sessionManager = new SessionManager(requireContext());
+        commentsViewModel = new ViewModelProvider(this).get(CommentsViewModel.class);
 
         chapterAdapter = new ChapterAdapter(this::openReaderForChapter);
         binding.rcvComicDetailChapters.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -70,11 +81,118 @@ public class ComicDetailFragment extends BaseFragment {
 
         binding.btnComicDetailBack.setOnClickListener(v -> Navigation.findNavController(v).popBackStack());
         binding.btnComicDetailDownload.setOnClickListener(v -> showToast("Download is not implemented"));
+        binding.btnComicDetailShare.setOnClickListener(v -> shareComicDeepLink());
         binding.btnComicDetailRead.setOnClickListener(v -> openFirstAvailableChapter());
-        binding.btnComicDetailComments.setOnClickListener(v -> openCommentsSheet());
+        binding.btnComicDetailComments.setOnClickListener(v -> scrollToCommentsFooter());
+        binding.btnComicDetailFollow.setOnClickListener(v -> toggleFollow());
+
+        setupCommentsFooter();
+        commentsViewModel.init(comicId, null);
 
         observeData();
         viewModel.loadData(comicId);
+        if (sessionManager.hasToken()) {
+            viewModel.loadFollowStatus(comicId);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateCommentsFooterLoginState();
+    }
+
+    private void setupCommentsFooter() {
+        commentsAdapter = new CommentAdapter(comment -> {
+            boolean isLoggedIn = sessionManager != null && sessionManager.hasToken();
+            if (!isLoggedIn) {
+                showToast(getString(com.group09.ComicReader.R.string.comment_login_required));
+                return;
+            }
+            commentsViewModel.startReply(comment);
+            binding.nsvComicDetailContent.post(() -> {
+                if (binding == null) return;
+                View footer = binding.incComicDetailCommentsFooter.getRoot();
+                binding.nsvComicDetailContent.smoothScrollTo(0, footer.getTop());
+                binding.incComicDetailCommentsFooter.edtReaderCommentsInput.requestFocus();
+            });
+        });
+        binding.incComicDetailCommentsFooter.rcvReaderComments.setAdapter(commentsAdapter);
+
+        binding.incComicDetailCommentsFooter.tvReaderCommentsSeeMore.setOnClickListener(v ->
+                commentsViewModel.loadMore());
+
+        binding.incComicDetailCommentsFooter.tilReaderCommentsInput.setEndIconOnClickListener(v ->
+                submitOutsideComment());
+
+        commentsViewModel.getComments().observe(getViewLifecycleOwner(), comments -> {
+            commentsAdapter.submitList(comments);
+
+            boolean hasComments = comments != null && !comments.isEmpty();
+            binding.incComicDetailCommentsFooter.rcvReaderComments.setVisibility(hasComments ? View.VISIBLE : View.GONE);
+            binding.incComicDetailCommentsFooter.tvReaderCommentsEmpty.setVisibility(hasComments ? View.GONE : View.VISIBLE);
+        });
+
+        commentsViewModel.getHasMore().observe(getViewLifecycleOwner(), more -> {
+            boolean show = more != null && more;
+            binding.incComicDetailCommentsFooter.tvReaderCommentsSeeMore.setVisibility(show ? View.VISIBLE : View.GONE);
+        });
+
+        commentsViewModel.getPostSuccess().observe(getViewLifecycleOwner(), success -> {
+            if (success != null && success) {
+                showToast(getString(com.group09.ComicReader.R.string.comment_posted));
+                binding.incComicDetailCommentsFooter.edtReaderCommentsInput.setText("");
+            }
+        });
+
+        commentsViewModel.getReplyingToLabel().observe(getViewLifecycleOwner(), label -> {
+            boolean isReplying = label != null && !label.trim().isEmpty();
+            binding.incComicDetailCommentsFooter.clReaderCommentsReplying.setVisibility(isReplying ? View.VISIBLE : View.GONE);
+            if (isReplying) {
+                binding.incComicDetailCommentsFooter.tvReaderCommentsReplyingTo.setText(label);
+            }
+        });
+
+        binding.incComicDetailCommentsFooter.tvReaderCommentsCancelReply.setOnClickListener(v ->
+                commentsViewModel.cancelReply());
+
+        commentsViewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
+            if (error != null && !error.trim().isEmpty()) {
+                if ("Session expired. Please log in again.".equals(error)) {
+                    sessionManager.clear();
+                    updateCommentsFooterLoginState();
+                }
+                showToast(error);
+            }
+        });
+
+        updateCommentsFooterLoginState();
+    }
+
+    private void updateCommentsFooterLoginState() {
+        boolean isLoggedIn = sessionManager != null && sessionManager.hasToken();
+
+        binding.incComicDetailCommentsFooter.edtReaderCommentsInput.setEnabled(isLoggedIn);
+        binding.incComicDetailCommentsFooter.tilReaderCommentsInput.setHint(isLoggedIn
+                ? getString(com.group09.ComicReader.R.string.comment_hint)
+                : getString(com.group09.ComicReader.R.string.comment_login_required));
+    }
+
+    private void submitOutsideComment() {
+        boolean isLoggedIn = sessionManager != null && sessionManager.hasToken();
+        if (!isLoggedIn) {
+            showToast(getString(com.group09.ComicReader.R.string.comment_login_required));
+            return;
+        }
+
+        String text = binding.incComicDetailCommentsFooter.edtReaderCommentsInput.getText() == null
+                ? "" : binding.incComicDetailCommentsFooter.edtReaderCommentsInput.getText().toString();
+        if (text.trim().isEmpty()) {
+            return;
+        }
+
+        // Outside comments => chapterId = null
+        commentsViewModel.addComment(text.trim());
     }
 
     private void observeData() {
@@ -111,6 +229,42 @@ public class ComicDetailFragment extends BaseFragment {
             binding.tvComicDetailRelatedLabel.setVisibility(hasRelated ? View.VISIBLE : View.GONE);
             binding.rcvComicDetailRelated.setVisibility(hasRelated ? View.VISIBLE : View.GONE);
         });
+        viewModel.getFollowed().observe(getViewLifecycleOwner(), isFollowed ->
+                binding.btnComicDetailFollow.setText(getString(Boolean.TRUE.equals(isFollowed)
+                        ? R.string.comic_unfollow
+                        : R.string.comic_follow)));
+        viewModel.getFollowLoading().observe(getViewLifecycleOwner(), isLoading ->
+                binding.btnComicDetailFollow.setEnabled(isLoading == null || !isLoading));
+        viewModel.getFollowSuccessMessage().observe(getViewLifecycleOwner(), message -> {
+            if (message != null && !message.trim().isEmpty()) {
+                showToast(message);
+            }
+        });
+    }
+
+    private void toggleFollow() {
+        if (sessionManager == null || !sessionManager.hasToken()) {
+            showToast(getString(R.string.comic_follow_login_required));
+            if (getView() != null) {
+                Navigation.findNavController(getView()).navigate(R.id.loginFragment);
+            }
+            return;
+        }
+        viewModel.toggleFollow(comicId);
+    }
+
+    private void shareComicDeepLink() {
+        if (currentComic == null || requireContext() == null) {
+            return;
+        }
+        String shareText = "Check out this comic: comicreader://comic/" + currentComic.getId();
+        Intent sendIntent = new Intent();
+        sendIntent.setAction(Intent.ACTION_SEND);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+        sendIntent.setType("text/plain");
+
+        Intent shareIntent = Intent.createChooser(sendIntent, "Share Comic via");
+        startActivity(shareIntent);
     }
 
     private void openReaderForChapter(Chapter chapter) {
@@ -151,9 +305,17 @@ public class ComicDetailFragment extends BaseFragment {
                 com.group09.ComicReader.R.id.comicDetailFragment, args.toBundle());
     }
 
-    private void openCommentsSheet() {
-        CommentSheetBottomSheetFragment bottomSheet = CommentSheetBottomSheetFragment.newInstance(comicId);
-        bottomSheet.show(getChildFragmentManager(), "comment_sheet");
+    private void scrollToCommentsFooter() {
+        if (binding == null) {
+            return;
+        }
+        binding.nsvComicDetailContent.post(() -> {
+            if (binding == null) {
+                return;
+            }
+            View footer = binding.incComicDetailCommentsFooter.getRoot();
+            binding.nsvComicDetailContent.smoothScrollTo(0, footer.getTop());
+        });
     }
 
     @Override

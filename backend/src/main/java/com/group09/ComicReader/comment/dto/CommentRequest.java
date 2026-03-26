@@ -13,6 +13,10 @@ public class CommentRequest {
     @Pattern(regexp = "^(NORMAL|SOCIAL_SHARE)$", message = "Invalid source type")
     private String sourceType;
 
+    private Long chapterId;
+
+    private Long parentCommentId;
+
     public String getContent() {
         return content;
     }
@@ -27,5 +31,21 @@ public class CommentRequest {
 
     public void setSourceType(String sourceType) {
         this.sourceType = sourceType;
+    }
+
+    public Long getChapterId() {
+        return chapterId;
+    }
+
+    public void setChapterId(Long chapterId) {
+        this.chapterId = chapterId;
+    }
+
+    public Long getParentCommentId() {
+        return parentCommentId;
+    }
+
+    public void setParentCommentId(Long parentCommentId) {
+        this.parentCommentId = parentCommentId;
     }
 }

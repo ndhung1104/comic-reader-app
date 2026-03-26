@@ -14,6 +14,14 @@ public class CommentResponse {
     private String sourceType;
     private LocalDateTime createdAt;
 
+    private Long parentCommentId;
+    private Long rootCommentId;
+    private Integer depth;
+
+    private Long chapterId;
+    private Integer chapterNumber;
+    private String chapterTitle;
+
     public Long getId() {
         return id;
     }
@@ -84,5 +92,53 @@ public class CommentResponse {
 
     public void setSourceType(String sourceType) {
         this.sourceType = sourceType;
+    }
+
+    public Long getChapterId() {
+        return chapterId;
+    }
+
+    public void setChapterId(Long chapterId) {
+        this.chapterId = chapterId;
+    }
+
+    public Integer getChapterNumber() {
+        return chapterNumber;
+    }
+
+    public void setChapterNumber(Integer chapterNumber) {
+        this.chapterNumber = chapterNumber;
+    }
+
+    public String getChapterTitle() {
+        return chapterTitle;
+    }
+
+    public void setChapterTitle(String chapterTitle) {
+        this.chapterTitle = chapterTitle;
+    }
+
+    public Long getParentCommentId() {
+        return parentCommentId;
+    }
+
+    public void setParentCommentId(Long parentCommentId) {
+        this.parentCommentId = parentCommentId;
+    }
+
+    public Long getRootCommentId() {
+        return rootCommentId;
+    }
+
+    public void setRootCommentId(Long rootCommentId) {
+        this.rootCommentId = rootCommentId;
+    }
+
+    public Integer getDepth() {
+        return depth;
+    }
+
+    public void setDepth(Integer depth) {
+        this.depth = depth;
     }
 }

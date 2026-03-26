@@ -15,7 +15,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.group09.ComicReader.adapter.WalletPackageAdapter;
 import com.group09.ComicReader.adapter.WalletTransactionAdapter;
 import com.group09.ComicReader.base.BaseFragment;
+import com.group09.ComicReader.data.WalletRepository;
+import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.FragmentWalletBinding;
+import com.group09.ComicReader.model.WalletPackage;
 import com.group09.ComicReader.viewmodel.WalletViewModel;
 
 public class WalletFragment extends BaseFragment {
@@ -30,7 +33,10 @@ public class WalletFragment extends BaseFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         binding = FragmentWalletBinding.inflate(inflater, container, false);
-        viewModel = new ViewModelProvider(this).get(WalletViewModel.class);
+        ApiClient apiClient = new ApiClient(requireContext());
+        WalletRepository walletRepository = new WalletRepository(apiClient);
+        viewModel = new ViewModelProvider(this, new WalletViewModel.Factory(walletRepository))
+                .get(WalletViewModel.class);
         return binding.getRoot();
     }
 
@@ -38,7 +44,7 @@ public class WalletFragment extends BaseFragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        packageAdapter = new WalletPackageAdapter(walletPackage -> showToast("Package selected: " + walletPackage.getCoins()));
+        packageAdapter = new WalletPackageAdapter(this::handleTopUp);
         transactionAdapter = new WalletTransactionAdapter();
 
         binding.rcvWalletPackages.setLayoutManager(new GridLayoutManager(requireContext(), 2));
@@ -52,8 +58,32 @@ public class WalletFragment extends BaseFragment {
         viewModel.getBalance().observe(getViewLifecycleOwner(), balance -> binding.tvWalletBalanceValue.setText(String.valueOf(balance)));
         viewModel.getPackages().observe(getViewLifecycleOwner(), packageAdapter::submitList);
         viewModel.getTransactions().observe(getViewLifecycleOwner(), transactionAdapter::submitList);
+        viewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
+            if (message != null && !message.trim().isEmpty()) {
+                showToast(message);
+            }
+        });
+        viewModel.getSuccessMessage().observe(getViewLifecycleOwner(), message -> {
+            if (message != null && !message.trim().isEmpty()) {
+                showToast(message);
+            }
+        });
+        viewModel.getLoading().observe(getViewLifecycleOwner(), this::updateLoadingState);
+        viewModel.getToppingUp().observe(getViewLifecycleOwner(), this::updateLoadingState);
 
         viewModel.loadData();
+    }
+
+    private void handleTopUp(@NonNull WalletPackage walletPackage) {
+        viewModel.topUp(walletPackage);
+    }
+
+    private void updateLoadingState(@Nullable Boolean ignored) {
+        Boolean isLoading = viewModel.getLoading().getValue();
+        Boolean isToppingUp = viewModel.getToppingUp().getValue();
+        boolean disabled = Boolean.TRUE.equals(isLoading) || Boolean.TRUE.equals(isToppingUp);
+        binding.btnWalletBack.setEnabled(!disabled);
+        binding.rcvWalletPackages.setEnabled(!disabled);
     }
 
     @Override

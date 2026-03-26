@@ -110,6 +110,79 @@ class CommentControllerTest {
         }
 
         @Test
+        void authenticatedUserCanReplyToCommentAndThreadOrderIsParentThenChild() throws Exception {
+                // Create root comment
+                String rootPayload = """
+                                {
+                                  "content": "Root comment"
+                                }
+                                """;
+
+                String rootResult = mockMvc.perform(post("/api/v1/comics/1/comments")
+                                .header("Authorization", "Bearer " + userToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(rootPayload))
+                                .andExpect(status().isCreated())
+                                .andReturn()
+                                .getResponse()
+                                .getContentAsString();
+
+                JsonNode rootJson = objectMapper.readTree(rootResult);
+                long rootId = rootJson.get("id").asLong();
+
+                // Create reply
+                String replyPayload = """
+                                {
+                                  "content": "Child reply",
+                                  "parentCommentId": %d
+                                }
+                                """.formatted(rootId);
+
+                String replyResult = mockMvc.perform(post("/api/v1/comics/1/comments")
+                                .header("Authorization", "Bearer " + userToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(replyPayload))
+                                .andExpect(status().isCreated())
+                                .andReturn()
+                                .getResponse()
+                                .getContentAsString();
+
+                JsonNode replyJson = objectMapper.readTree(replyResult);
+                assertThat(replyJson.get("parentCommentId").asLong()).isEqualTo(rootId);
+                assertThat(replyJson.get("depth").asInt()).isEqualTo(1);
+                assertThat(replyJson.get("rootCommentId").asLong()).isEqualTo(rootId);
+
+                // Thread listing: parent must appear before child
+                String pagedResult = mockMvc.perform(get("/api/v1/comics/1/comments/paged")
+                                .param("page", "0")
+                                .param("size", "20"))
+                                .andExpect(status().isOk())
+                                .andReturn()
+                                .getResponse()
+                                .getContentAsString();
+
+                JsonNode content = objectMapper.readTree(pagedResult).get("content");
+                assertThat(content.isArray()).isTrue();
+
+                int rootIndex = -1;
+                int childIndex = -1;
+                for (int i = 0; i < content.size(); i++) {
+                        JsonNode c = content.get(i);
+                        if (c.get("id").asLong() == rootId) {
+                                rootIndex = i;
+                        }
+                        if (c.hasNonNull("parentCommentId") && c.get("parentCommentId").asLong() == rootId
+                                        && "Child reply".equals(c.get("content").asText())) {
+                                childIndex = i;
+                        }
+                }
+
+                assertThat(rootIndex).isGreaterThanOrEqualTo(0);
+                assertThat(childIndex).isGreaterThanOrEqualTo(0);
+                assertThat(childIndex).isGreaterThan(rootIndex);
+        }
+
+        @Test
         void adminShouldHideAndUnhideComment() throws Exception {
                 // Create a comment as user
                 String commentPayload = """

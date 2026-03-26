@@ -8,6 +8,7 @@ import com.group09.ComicReader.auth.entity.UserEntity;
 import com.group09.ComicReader.auth.repository.RoleRepository;
 import com.group09.ComicReader.auth.repository.UserRepository;
 import com.group09.ComicReader.common.exception.BadRequestException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -44,7 +45,8 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String email = request.getEmail() == null ? "" : request.getEmail().trim();
+        if (userRepository.existsByEmail(email)) {
             throw new BadRequestException("Email already exists");
         }
 
@@ -52,12 +54,16 @@ public class AuthService {
                 .orElseThrow(() -> new BadRequestException("Role USER not found"));
 
         UserEntity user = new UserEntity();
-        user.setEmail(request.getEmail());
+        user.setEmail(email);
         user.setFullName(request.getFullName());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRoles(Set.of(userRole));
 
-        userRepository.save(user);
+        try {
+            userRepository.save(user);
+        } catch (DataIntegrityViolationException ex) {
+            throw new BadRequestException("Email already exists");
+        }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtService.generateToken(userDetails);
@@ -67,13 +73,17 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail() == null ? "" : request.getEmail().trim(),
+                            request.getPassword()
+                    )
             );
         } catch (DisabledException e) {
             throw new BadRequestException("Account is banned");
         }
 
-        UserEntity user = userRepository.findByEmail(request.getEmail())
+        String email = request.getEmail() == null ? "" : request.getEmail().trim();
+        UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException("Invalid credentials"));
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());

@@ -2,6 +2,7 @@ package com.group09.ComicReader.data.remote;
 
 import android.content.Context;
 
+import com.group09.ComicReader.BuildConfig;
 import com.group09.ComicReader.data.local.SessionManager;
 
 import okhttp3.OkHttpClient;
@@ -12,7 +13,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ApiClient {
 
     // Emulator -> host machine
-    public static final String DEFAULT_BASE_URL = "http://10.0.2.2:8080/";
+    public static final String DEFAULT_BASE_URL = BuildConfig.BASE_URL;
 
     private final Retrofit retrofit;
 
@@ -42,12 +43,28 @@ public class ApiClient {
         return retrofit.create(ComicApi.class);
     }
 
+    public CategoryApi categoryApi() {
+        return retrofit.create(CategoryApi.class);
+    }
+
     public ChapterApi chapterApi() {
         return retrofit.create(ChapterApi.class);
     }
 
     public CommentApi commentApi() {
         return retrofit.create(CommentApi.class);
+    }
+
+    public UserApi userApi() {
+        return retrofit.create(UserApi.class);
+    }
+
+    public LibraryApi libraryApi() {
+        return retrofit.create(LibraryApi.class);
+    }
+
+    public WalletApi walletApi() {
+        return retrofit.create(WalletApi.class);
     }
 
     public static String toAbsoluteUrl(String pathOrUrl) {

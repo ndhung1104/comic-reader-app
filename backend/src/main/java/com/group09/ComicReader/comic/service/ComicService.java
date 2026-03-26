@@ -51,8 +51,10 @@ public class ComicService {
         this.userRepository = userRepository;
     }
 
-    public Page<ComicResponse> getComics(Pageable pageable) {
-        return comicRepository.findAll(pageable).map(this::toComicResponse);
+    public Page<ComicResponse> getComics(String keyword, String category, Pageable pageable) {
+        String kw = (keyword == null) ? "" : keyword;
+        String cat = (category == null) ? "" : category;
+        return comicRepository.searchComics(kw, cat, pageable).map(this::toComicResponse);
     }
 
     public ComicResponse getComic(Long comicId) {

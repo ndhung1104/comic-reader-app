@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import org.springframework.web.bind.annotation.RequestParam;
+
 @RestController
 @RequestMapping("/api/v1/comics")
 public class ComicController {
@@ -25,8 +27,17 @@ public class ComicController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ComicResponse>> getComics(@PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(comicService.getComics(pageable));
+    public ResponseEntity<Page<ComicResponse>> getComics(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String categoryId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        
+        // If categoryId is "All", treat it as null so it doesn't filter
+        if ("All".equalsIgnoreCase(categoryId)) {
+            categoryId = null;
+        }
+
+        return ResponseEntity.ok(comicService.getComics(keyword, categoryId, pageable));
     }
 
     @GetMapping("/{comicId}")
