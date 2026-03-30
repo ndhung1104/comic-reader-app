@@ -26,6 +26,9 @@ public class ApiClient {
         OkHttpClient okHttpClient = new OkHttpClient.Builder()
                 .addInterceptor(new AuthInterceptor(sessionManager))
                 .addInterceptor(logging)
+                .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
                 .build();
 
         retrofit = new Retrofit.Builder()
@@ -69,6 +72,10 @@ public class ApiClient {
 
     public AdminApi adminApi() {
         return retrofit.create(AdminApi.class);
+    }
+
+    public TranslateApi translateApi() {
+        return retrofit.create(TranslateApi.class);
     }
 
     public static String toAbsoluteUrl(String pathOrUrl) {

@@ -29,3 +29,6 @@ app:
       expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   storage:
     upload-dir: ${UPLOAD_DIR:./uploads}
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}

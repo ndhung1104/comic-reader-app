@@ -14,9 +14,12 @@ public class Comic {
     private final Integer progress;
     private final boolean trending;
     private final boolean isNew;
+    private final int viewCount;
+    private final int followerCount;
 
     public Comic(int id, String title, String author, String coverUrl, double rating, List<String> genres,
-                 String synopsis, int totalChapters, Integer progress, boolean trending, boolean isNew) {
+                 String synopsis, int totalChapters, Integer progress, boolean trending, boolean isNew,
+                 int viewCount, int followerCount) {
         this.id = id;
         this.title = title;
         this.author = author;
@@ -28,6 +31,14 @@ public class Comic {
         this.progress = progress;
         this.trending = trending;
         this.isNew = isNew;
+        this.viewCount = viewCount;
+        this.followerCount = followerCount;
+    }
+
+    /** Backward-compatible constructor (viewCount=0, followerCount=0) */
+    public Comic(int id, String title, String author, String coverUrl, double rating, List<String> genres,
+                 String synopsis, int totalChapters, Integer progress, boolean trending, boolean isNew) {
+        this(id, title, author, coverUrl, rating, genres, synopsis, totalChapters, progress, trending, isNew, 0, 0);
     }
 
     public int getId() { return id; }
@@ -41,4 +52,6 @@ public class Comic {
     public Integer getProgress() { return progress; }
     public boolean isTrending() { return trending; }
     public boolean isNew() { return isNew; }
+    public int getViewCount() { return viewCount; }
+    public int getFollowerCount() { return followerCount; }
 }
