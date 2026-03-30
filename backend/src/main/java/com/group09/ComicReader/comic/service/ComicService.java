@@ -7,6 +7,8 @@ import com.group09.ComicReader.chapter.repository.ChapterRepository;
 import com.group09.ComicReader.comic.dto.ComicRequest;
 import com.group09.ComicReader.comic.dto.ComicResponse;
 import com.group09.ComicReader.comic.entity.ComicEntity;
+import com.group09.ComicReader.comic.entity.ComicRatingEntity;
+import com.group09.ComicReader.comic.repository.ComicRatingRepository;
 import com.group09.ComicReader.comic.repository.ComicRepository;
 import com.group09.ComicReader.common.exception.NotFoundException;
 import com.group09.ComicReader.auth.entity.UserEntity;
@@ -14,6 +16,7 @@ import com.group09.ComicReader.auth.repository.UserRepository;
 import com.group09.ComicReader.wallet.repository.ChapterPurchaseRepository;
 import com.group09.ComicReader.wallet.repository.VipSubscriptionRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,17 +41,20 @@ public class ComicService {
     private final ChapterPurchaseRepository purchaseRepository;
     private final VipSubscriptionRepository vipRepository;
     private final UserRepository userRepository;
+    private final ComicRatingRepository comicRatingRepository;
 
     public ComicService(ComicRepository comicRepository,
                         ChapterRepository chapterRepository,
                         ChapterPurchaseRepository purchaseRepository,
                         VipSubscriptionRepository vipRepository,
-                        UserRepository userRepository) {
+                        UserRepository userRepository,
+                        ComicRatingRepository comicRatingRepository) {
         this.comicRepository = comicRepository;
         this.chapterRepository = chapterRepository;
         this.purchaseRepository = purchaseRepository;
         this.vipRepository = vipRepository;
         this.userRepository = userRepository;
+        this.comicRatingRepository = comicRatingRepository;
     }
 
     public Page<ComicResponse> getComics(String keyword, String category, Pageable pageable) {
@@ -61,6 +67,75 @@ public class ComicService {
         ComicEntity comic = getComicEntity(comicId);
         return toComicResponse(comic);
     }
+
+    /* ========== Trending / Ranking ========== */
+
+    public Page<ComicResponse> getTrendingComics(Pageable pageable) {
+        return comicRepository.findTrending(pageable).map(this::toComicResponse);
+    }
+
+    public Page<ComicResponse> getTopRatedComics(Pageable pageable) {
+        return comicRepository.findTopRated(pageable).map(this::toComicResponse);
+    }
+
+    /* ========== Related Comics ========== */
+
+    public List<ComicResponse> getRelatedComics(Long comicId, int size) {
+        ComicEntity comic = getComicEntity(comicId);
+        String genresStr = comic.getGenres();
+        if (genresStr == null || genresStr.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<String> genres = Arrays.stream(genresStr.split(","))
+                .map(String::trim)
+                .filter(g -> !g.isEmpty())
+                .toList();
+        if (genres.isEmpty()) {
+            return new ArrayList<>();
+        }
+        Pageable pageable = PageRequest.of(0, size);
+        Page<ComicEntity> page;
+        if (genres.size() >= 3) {
+            page = comicRepository.findRelatedByThreeGenres(comicId, genres.get(0), genres.get(1), genres.get(2), pageable);
+        } else if (genres.size() == 2) {
+            page = comicRepository.findRelatedByTwoGenres(comicId, genres.get(0), genres.get(1), pageable);
+        } else {
+            page = comicRepository.findRelatedByOneGenre(comicId, genres.get(0), pageable);
+        }
+        return page.getContent().stream().map(this::toComicResponse).toList();
+    }
+
+    /* ========== Rating ========== */
+
+    @Transactional
+    public void rateComic(Long comicId, int score) {
+        ComicEntity comic = getComicEntity(comicId);
+        UserEntity user = getCurrentUser();
+
+        Optional<ComicRatingEntity> existing = comicRatingRepository.findByUserIdAndComicId(user.getId(), comicId);
+        if (existing.isPresent()) {
+            existing.get().setScore(score);
+            comicRatingRepository.save(existing.get());
+        } else {
+            ComicRatingEntity rating = new ComicRatingEntity();
+            rating.setUserId(user.getId());
+            rating.setComicId(comicId);
+            rating.setScore(score);
+            comicRatingRepository.save(rating);
+        }
+
+        Double avg = comicRatingRepository.findAverageScoreByComicId(comicId);
+        comicRepository.updateAverageRating(comicId, avg != null ? avg : 0);
+    }
+
+    /* ========== View Count ========== */
+
+    @Transactional
+    public void incrementViewCount(Long comicId) {
+        comicRepository.incrementViewCount(comicId);
+    }
+
+    /* ========== Chapters ========== */
 
     public List<ChapterResponse> getChapters(Long comicId) {
         List<ChapterEntity> chapters = chapterRepository.findByComicIdOrderByChapterNumberAsc(comicId);
@@ -99,6 +174,8 @@ public class ComicService {
                 .toList();
     }
 
+    /* ========== Admin CRUD ========== */
+
     @Transactional
     public ComicResponse createComic(ComicRequest request) {
         ComicEntity comic = new ComicEntity();
@@ -136,6 +213,8 @@ public class ComicService {
         return toChapterResponse(saved);
     }
 
+    /* ========== Helpers ========== */
+
     public ComicEntity getComicEntity(Long comicId) {
         return comicRepository.findById(comicId)
                 .orElseThrow(() -> new NotFoundException("Comic not found: " + comicId));
@@ -166,6 +245,9 @@ public class ComicService {
         response.setSynopsis(entity.getSynopsis());
         response.setCoverUrl(entity.getCoverUrl());
         response.setStatus(entity.getStatus());
+        response.setViewCount(entity.getViewCount());
+        response.setAverageRating(entity.getAverageRating());
+        response.setFollowerCount(entity.getFollowerCount());
         response.setUpdatedAt(entity.getUpdatedAt());
         return response;
     }
@@ -179,6 +261,11 @@ public class ComicService {
         response.setPremium(entity.isPremium());
         response.setPrice(entity.getPrice());
         return response;
+    }
+
+    private UserEntity getCurrentUser() {
+        Optional<UserEntity> userOptional = getCurrentUserOptional();
+        return userOptional.orElseThrow(() -> new RuntimeException("User not authenticated"));
     }
 
     private Optional<UserEntity> getCurrentUserOptional() {

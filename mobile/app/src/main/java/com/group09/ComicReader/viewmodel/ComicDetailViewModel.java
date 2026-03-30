@@ -51,6 +51,16 @@ public class ComicDetailViewModel extends ViewModel {
     private final MutableLiveData<Boolean> followLoading = new MutableLiveData<>(false);
     private final MutableLiveData<String> followSuccessMessage = new MutableLiveData<>();
 
+    /* Translation state */
+    private final MutableLiveData<String> translatedTitle = new MutableLiveData<>();
+    private final MutableLiveData<String> translatedSynopsis = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> translating = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> showingTranslation = new MutableLiveData<>(false);
+
+    /* Rating state */
+    private final MutableLiveData<Boolean> rateLoading = new MutableLiveData<>(false);
+    private final MutableLiveData<String> rateMessage = new MutableLiveData<>();
+
     public ComicDetailViewModel(ComicRepository comicRepository, ReaderRepository readerRepository,
                                 LibraryRepository libraryRepository) {
         this.comicRepository = comicRepository;
@@ -96,7 +106,72 @@ public class ComicDetailViewModel extends ViewModel {
                 chapters.postValue(comicRepository.getChaptersForComic(comicId));
             }
         });
+
+        /* Increment view count */
+        comicRepository.incrementViewCount(comicId);
     }
+
+    /* ========== Translation ========== */
+
+    public void translateComic(int comicId, String targetLang) {
+        if (Boolean.TRUE.equals(showingTranslation.getValue())) {
+            showingTranslation.setValue(false);
+            return;
+        }
+        if (translatedTitle.getValue() != null) {
+            showingTranslation.setValue(true);
+            return;
+        }
+        translating.setValue(true);
+        comicRepository.translateComic(comicId, targetLang, new ComicRepository.TranslateCallback() {
+            @Override
+            public void onSuccess(String title, String synopsis) {
+                translatedTitle.postValue(title);
+                translatedSynopsis.postValue(synopsis);
+                translating.postValue(false);
+                showingTranslation.postValue(true);
+            }
+
+            @Override
+            public void onError(String error) {
+                translating.postValue(false);
+                errorMessage.postValue(error);
+            }
+        });
+    }
+
+    /* ========== Rating ========== */
+
+    public void rateComic(int comicId, int score) {
+        rateLoading.setValue(true);
+        comicRepository.rateComic(comicId, score, new ComicRepository.SimpleCallback() {
+            @Override
+            public void onSuccess() {
+                rateLoading.postValue(false);
+                rateMessage.postValue("SUCCESS");
+                // Reload comic to get updated averageRating
+                comicRepository.getComicById(comicId, new ComicRepository.ComicCallback() {
+                    @Override
+                    public void onSuccess(Comic refreshed) {
+                        comic.postValue(refreshed);
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        // ignore refresh error, rating was still submitted
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                rateLoading.postValue(false);
+                rateMessage.postValue("ERROR:" + error);
+            }
+        });
+    }
+
+    /* ========== Follow ========== */
 
     public void loadFollowStatus(int comicId) {
         libraryRepository.getFollowStatus(comicId, new LibraryRepository.FollowStatusCallback() {
@@ -137,35 +212,20 @@ public class ComicDetailViewModel extends ViewModel {
         }
     }
 
-    public LiveData<Comic> getComic() {
-        return comic;
-    }
+    /* ========== Getters ========== */
 
-    public LiveData<List<Chapter>> getChapters() {
-        return chapters;
-    }
-
-    public LiveData<Boolean> getChapterLoading() {
-        return chapterLoading;
-    }
-
-    public LiveData<String> getErrorMessage() {
-        return errorMessage;
-    }
-
-    public LiveData<List<Comic>> getRelatedComics() {
-        return relatedComics;
-    }
-
-    public LiveData<Boolean> getFollowed() {
-        return followed;
-    }
-
-    public LiveData<Boolean> getFollowLoading() {
-        return followLoading;
-    }
-
-    public LiveData<String> getFollowSuccessMessage() {
-        return followSuccessMessage;
-    }
+    public LiveData<Comic> getComic() { return comic; }
+    public LiveData<List<Chapter>> getChapters() { return chapters; }
+    public LiveData<Boolean> getChapterLoading() { return chapterLoading; }
+    public LiveData<String> getErrorMessage() { return errorMessage; }
+    public LiveData<List<Comic>> getRelatedComics() { return relatedComics; }
+    public LiveData<Boolean> getFollowed() { return followed; }
+    public LiveData<Boolean> getFollowLoading() { return followLoading; }
+    public LiveData<String> getFollowSuccessMessage() { return followSuccessMessage; }
+    public LiveData<String> getTranslatedTitle() { return translatedTitle; }
+    public LiveData<String> getTranslatedSynopsis() { return translatedSynopsis; }
+    public LiveData<Boolean> getTranslating() { return translating; }
+    public LiveData<Boolean> getShowingTranslation() { return showingTranslation; }
+    public LiveData<Boolean> getRateLoading() { return rateLoading; }
+    public LiveData<String> getRateMessage() { return rateMessage; }
 }

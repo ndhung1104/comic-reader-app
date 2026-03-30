@@ -49,8 +49,11 @@ public class RankingAdapter extends RecyclerView.Adapter<RankingAdapter.ViewHold
         holder.binding.tvRankingNumber.setText("#" + (position + 1));
         holder.binding.tvRankingTitle.setText(comic.getTitle());
         holder.binding.tvRankingAuthor.setText(comic.getAuthor());
-        holder.binding.tvRankingRating.setText(String.format(Locale.US, "%.1f", comic.getRating()));
-        holder.binding.tvRankingGenres.setText(String.join(", ", comic.getGenres()));
+        holder.binding.tvRankingRating.setText(String.format(Locale.US, "★ %.1f", comic.getRating()));
+        String genreText = comic.getGenres() != null ? String.join(", ", comic.getGenres()) : "";
+        int views = comic.getViewCount();
+        String viewText = views >= 1000 ? String.format(Locale.US, "%.1fK views", views / 1000.0) : views + " views";
+        holder.binding.tvRankingGenres.setText(genreText + "  •  " + viewText);
         Glide.with(holder.binding.imgRankingCover)
                 .load(comic.getCoverUrl())
                 .into(holder.binding.imgRankingCover);

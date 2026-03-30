@@ -1,10 +1,13 @@
 package com.group09.ComicReader.ui.comic;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.RatingBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -85,6 +88,8 @@ public class ComicDetailFragment extends BaseFragment {
         binding.btnComicDetailRead.setOnClickListener(v -> openFirstAvailableChapter());
         binding.btnComicDetailComments.setOnClickListener(v -> scrollToCommentsFooter());
         binding.btnComicDetailFollow.setOnClickListener(v -> toggleFollow());
+        binding.btnComicDetailTranslate.setOnClickListener(v -> viewModel.translateComic(comicId, "vi"));
+        binding.btnComicDetailRate.setOnClickListener(v -> showRatingDialog());
 
         setupCommentsFooter();
         commentsViewModel.init(comicId, null);
@@ -205,6 +210,7 @@ public class ComicDetailFragment extends BaseFragment {
             binding.tvComicDetailTitle.setText(comic.getTitle());
             binding.tvComicDetailAuthor.setText(comic.getAuthor());
             binding.tvComicDetailRating.setText(String.format(Locale.US, "%.1f", comic.getRating()));
+            binding.tvComicDetailViewCount.setText(formatViewCount(comic.getViewCount()));
             binding.tvComicDetailGenres.setText(comic.getGenres().isEmpty() ? "" : String.join(", ", comic.getGenres()));
             binding.tvComicDetailSynopsis.setText(comic.getSynopsis());
             Glide.with(binding.imgComicDetailCover)
@@ -240,9 +246,92 @@ public class ComicDetailFragment extends BaseFragment {
                 showToast(message);
             }
         });
+
+        /* Translation observers */
+        viewModel.getTranslating().observe(getViewLifecycleOwner(), isTranslating -> {
+            boolean loading = Boolean.TRUE.equals(isTranslating);
+            binding.prgComicDetailTranslate.setVisibility(loading ? View.VISIBLE : View.GONE);
+            binding.btnComicDetailTranslate.setVisibility(loading ? View.GONE : View.VISIBLE);
+        });
+        viewModel.getShowingTranslation().observe(getViewLifecycleOwner(), showTranslation -> {
+            if (Boolean.TRUE.equals(showTranslation)) {
+                String tTitle = viewModel.getTranslatedTitle().getValue();
+                String tSynopsis = viewModel.getTranslatedSynopsis().getValue();
+                if (tTitle != null) binding.tvComicDetailTitle.setText(tTitle);
+                if (tSynopsis != null) binding.tvComicDetailSynopsis.setText(tSynopsis);
+                binding.tvComicDetailSynopsisLabel.setText(R.string.translate_show_original);
+            } else if (currentComic != null) {
+                binding.tvComicDetailTitle.setText(currentComic.getTitle());
+                binding.tvComicDetailSynopsis.setText(currentComic.getSynopsis());
+                binding.tvComicDetailSynopsisLabel.setText(R.string.comic_synopsis);
+            }
+        });
+
+        /* Rating observers */
+        viewModel.getRateMessage().observe(getViewLifecycleOwner(), message -> {
+            if (message == null) return;
+            if (message.equals("SUCCESS")) {
+                showToast(getString(R.string.comic_rate_success));
+            } else if (message.startsWith("ERROR:")) {
+                showToast(message.substring(6));
+            }
+        });
+        viewModel.getRateLoading().observe(getViewLifecycleOwner(), isLoading ->
+                binding.btnComicDetailRate.setEnabled(isLoading == null || !isLoading));
+    }
+
+    private void showRatingDialog() {
+        if (sessionManager == null || !sessionManager.hasToken()) {
+            showToast(getString(R.string.comic_rate_login_required));
+            return;
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle(getString(R.string.comic_rate_title));
+
+        // Create layout programmatically: label + RatingBar
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(requireContext());
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        layout.setPadding(pad, pad, pad, 0);
+
+        final TextView tvScore = new TextView(requireContext());
+        tvScore.setTextSize(14);
+        tvScore.setText(getString(R.string.comic_your_rating, 5));
+
+        final RatingBar ratingBar = new RatingBar(requireContext());
+        ratingBar.setNumStars(5);
+        ratingBar.setStepSize(1f);
+        ratingBar.setRating(2.5f); // default = 5/10
+        ratingBar.setOnRatingBarChangeListener((rb, rating, fromUser) -> {
+            int score = Math.max(1, Math.round(rating * 2));
+            tvScore.setText(getString(R.string.comic_your_rating, score));
+        });
+
+        layout.addView(ratingBar);
+        layout.addView(tvScore);
+        builder.setView(layout);
+
+        builder.setPositiveButton(getString(R.string.comic_rate_submit), (dialog, which) -> {
+            int score = Math.max(1, Math.round(ratingBar.getRating() * 2));
+            viewModel.rateComic(comicId, score);
+        });
+        builder.setNegativeButton(android.R.string.cancel, null);
+        builder.show();
+    }
+
+    private String formatViewCount(int viewCount) {
+        if (viewCount >= 1_000_000) {
+            return String.format(Locale.US, "%.1fM", viewCount / 1_000_000.0);
+        } else if (viewCount >= 1_000) {
+            return String.format(Locale.US, "%.1fK", viewCount / 1_000.0);
+        } else {
+            return String.valueOf(viewCount);
+        }
     }
 
     private void toggleFollow() {
+
         if (sessionManager == null || !sessionManager.hasToken()) {
             showToast(getString(R.string.comic_follow_login_required));
             if (getView() != null) {
