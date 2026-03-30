@@ -13,9 +13,14 @@ import androidx.navigation.Navigation;
 import com.group09.ComicReader.base.BaseFragment;
 import com.group09.ComicReader.data.AuthRepository;
 import com.group09.ComicReader.data.local.SessionManager;
+import com.group09.ComicReader.data.local.AppSettingsStore;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.FragmentRegisterBinding;
 import com.group09.ComicReader.viewmodel.RegisterViewModel;
+
+import com.group09.ComicReader.ui.common.LanguagePickerDialog;
+import androidx.core.os.LocaleListCompat;
+import androidx.appcompat.app.AppCompatDelegate;
 
 public class RegisterFragment extends BaseFragment {
 
@@ -39,6 +44,16 @@ public class RegisterFragment extends BaseFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        // Show language picker if not selected yet
+        AppSettingsStore appSettingsStore = new AppSettingsStore(requireContext());
+        if (!appSettingsStore.isLanguageSelected()) {
+            LanguagePickerDialog.show(requireContext(), code -> {
+                appSettingsStore.setLanguageCode(code);
+                appSettingsStore.setLanguageSelected(true);
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(code));
+            });
+        }
 
         binding.btnRegisterSubmit.setOnClickListener(v -> {
             hideKeyboard();

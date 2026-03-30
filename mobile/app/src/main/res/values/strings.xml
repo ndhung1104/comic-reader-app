@@ -66,6 +66,15 @@
     <string name="profile_creator">Become a Creator</string>
     <string name="profile_logout">Logout</string>
     <string name="profile_version">Version 1.0.0</string>
+    <string name="profile_menu_language">Language</string>
+    <string name="profile_menu_language_en">English</string>
+    <string name="profile_menu_language_vi">Tiếng Việt</string>
+    <string name="profile_menu_account_details">Account Details</string>
+    <string name="profile_menu_wallet">Wallet and Coins</string>
+    <string name="profile_menu_clear_cache">Clear Cache</string>
+    <string name="profile_menu_dark_mode">Dark Mode</string>
+    <string name="profile_menu_app_settings">App Settings</string>
+    <string name="profile_menu_admin_dashboard">Admin Dashboard</string>
 
     <string name="wallet_title">Wallet and Coins</string>
     <string name="wallet_current_balance">Current Balance</string>
@@ -105,4 +114,6 @@
     <string name="content_open_comments">Open comments</string>
     <string name="content_close_comments">Close comments</string>
     <string name="content_filter">Filter</string>
+
+    <string name="choose_language">Chọn ngôn ngữ</string>
 </resources>

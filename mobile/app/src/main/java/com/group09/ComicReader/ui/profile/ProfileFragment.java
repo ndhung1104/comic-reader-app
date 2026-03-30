@@ -24,6 +24,11 @@ import com.group09.ComicReader.model.ProfileMenuItem;
 import com.group09.ComicReader.model.UserProfileResponse;
 import com.group09.ComicReader.viewmodel.ProfileViewModel;
 
+import com.group09.ComicReader.data.local.AppSettingsStore;
+import com.group09.ComicReader.ui.common.LanguagePickerDialog;
+import androidx.core.os.LocaleListCompat;
+import androidx.appcompat.app.AppCompatDelegate;
+
 import com.google.android.material.button.MaterialButton;
 
 public class ProfileFragment extends BaseFragment {
@@ -60,7 +65,7 @@ public class ProfileFragment extends BaseFragment {
 
         renderForAuthState();
         boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
-        viewModel.loadData(isAdmin);
+        viewModel.loadData(isAdmin, requireContext());
     }
 
     @Override
@@ -143,7 +148,8 @@ public class ProfileFragment extends BaseFragment {
     }
 
     private void onMenuClicked(ProfileMenuItem item) {
-        if (item != null && item.getLabel() != null && item.getLabel().trim().equalsIgnoreCase("Account Details") && getView() != null) {
+        if (item == null) return;
+        if ("ACCOUNT_DETAILS".equals(item.getType()) && getView() != null) {
             if (!sessionManager.hasToken()) {
                 Navigation.findNavController(getView()).navigate(R.id.loginFragment);
                 return;
@@ -151,7 +157,7 @@ public class ProfileFragment extends BaseFragment {
             Navigation.findNavController(getView()).navigate(R.id.accountDetailsFragment);
             return;
         }
-        if (item.getLabel() != null && item.getLabel().trim().equalsIgnoreCase("Admin Dashboard") && getView() != null) {
+        if ("ADMIN_DASHBOARD".equals(item.getType()) && getView() != null) {
             NavDirections action = ProfileFragmentDirections.actionProfileToAdminDashboard();
             Navigation.findNavController(getView()).navigate(action);
             return;
@@ -163,6 +169,19 @@ public class ProfileFragment extends BaseFragment {
             }
             NavDirections action = ProfileFragmentDirections.actionProfileToWallet();
             Navigation.findNavController(getView()).navigate(action);
+            return;
+        }
+        if ("LANGUAGE".equals(item.getType())) {
+            AppSettingsStore settings = new AppSettingsStore(requireContext());
+            String currentLang = settings.getLanguageCode();
+            LanguagePickerDialog.show(requireContext(), code -> {
+                settings.setLanguageCode(code);
+                settings.setLanguageSelected(true);
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(code));
+                // reload menu to update badge
+                boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
+                viewModel.loadData(isAdmin, requireContext());
+            }, currentLang);
             return;
         }
         showToast(item.getLabel());
