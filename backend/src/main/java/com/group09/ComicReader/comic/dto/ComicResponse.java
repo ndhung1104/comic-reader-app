@@ -13,6 +13,9 @@ public class ComicResponse {
     private String synopsis;
     private String coverUrl;
     private String status;
+    private int viewCount;
+    private double averageRating;
+    private int followerCount;
     private LocalDateTime updatedAt;
 
     public Long getId() {
@@ -77,6 +80,30 @@ public class ComicResponse {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public int getViewCount() {
+        return viewCount;
+    }
+
+    public void setViewCount(int viewCount) {
+        this.viewCount = viewCount;
+    }
+
+    public double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(double averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public int getFollowerCount() {
+        return followerCount;
+    }
+
+    public void setFollowerCount(int followerCount) {
+        this.followerCount = followerCount;
     }
 
     public LocalDateTime getUpdatedAt() {

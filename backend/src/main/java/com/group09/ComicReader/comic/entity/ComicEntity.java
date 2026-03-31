@@ -41,6 +41,15 @@ public class ComicEntity {
     @Column(nullable = false)
     private String status;
 
+    @Column(name = "view_count", nullable = false)
+    private int viewCount = 0;
+
+    @Column(name = "average_rating", nullable = false)
+    private double averageRating = 0;
+
+    @Column(name = "follower_count", nullable = false)
+    private int followerCount = 0;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

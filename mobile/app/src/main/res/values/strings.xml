@@ -114,6 +114,17 @@
     <string name="content_open_comments">Open comments</string>
     <string name="content_close_comments">Close comments</string>
     <string name="content_filter">Filter</string>
+    <string name="choose_language">Choose language</string>
+    <string name="translate_button">Translate</string>
+    <string name="translate_loading">Translating…</string>
+    <string name="translate_error">Translation failed</string>
+    <string name="translate_show_original">Show Original</string>
 
-    <string name="choose_language">Chọn ngôn ngữ</string>
+    <string name="comic_view_count">%1$s views</string>
+    <string name="comic_rate">Rate</string>
+    <string name="comic_rate_title">Rate this comic</string>
+    <string name="comic_rate_submit">Submit</string>
+    <string name="comic_rate_success">Rating submitted!</string>
+    <string name="comic_rate_login_required">Log in to rate comics</string>
+    <string name="comic_your_rating">Your rating: %1$d/10</string>
 </resources>
