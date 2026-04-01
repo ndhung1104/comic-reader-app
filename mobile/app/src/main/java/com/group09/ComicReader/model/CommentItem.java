@@ -25,6 +25,9 @@ public class CommentItem {
     @SerializedName("username")
     private String username;
 
+    @SerializedName("avatarUrl")
+    private String avatarUrl;
+
     @SerializedName("content")
     private String content;
 
@@ -72,6 +75,7 @@ public class CommentItem {
     public long getComicId() { return comicId; }
     public long getUserId() { return userId; }
     public String getUsername() { return username; }
+    public String getAvatarUrl() { return avatarUrl; }
     public String getContent() { return content; }
     public boolean isHidden() { return hidden; }
     public boolean isLocked() { return locked; }

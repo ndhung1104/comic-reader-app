@@ -8,6 +8,7 @@ public class CommentResponse {
     private Long comicId;
     private Long userId;
     private String username;
+    private String avatarUrl;
     private String content;
     private boolean hidden;
     private boolean locked;
@@ -52,6 +53,14 @@ public class CommentResponse {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
     public String getContent() {

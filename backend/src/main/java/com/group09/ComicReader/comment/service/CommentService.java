@@ -229,6 +229,7 @@ public class CommentService {
         response.setComicId(entity.getComic().getId());
         response.setUserId(entity.getUser().getId());
         response.setUsername(entity.getUser().getFullName());
+        response.setAvatarUrl(entity.getUser().getAvatarUrl());
         response.setContent(entity.getContent());
         response.setHidden(entity.isHidden());
         response.setLocked(entity.isLocked());

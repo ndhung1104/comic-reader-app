@@ -6,7 +6,9 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.group09.ComicReader.R;
+import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.ItemCommentBinding;
 import com.group09.ComicReader.model.CommentItem;
 
@@ -65,6 +67,19 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         holder.binding.tvCommentTimestamp.setText(comment.getTimeAgo());
         holder.binding.tvCommentText.setText(comment.getContent());
         holder.binding.tvCommentLikes.setVisibility(android.view.View.GONE);
+
+        String avatarUrl = comment.getAvatarUrl();
+        if (avatarUrl == null || avatarUrl.trim().isEmpty()) {
+            Glide.with(holder.binding.imgCommentAvatar).clear(holder.binding.imgCommentAvatar);
+            holder.binding.imgCommentAvatar.setImageResource(R.drawable.ic_avatar_placeholder_24);
+        } else {
+            Glide.with(holder.binding.imgCommentAvatar)
+                    .load(ApiClient.toAbsoluteUrl(avatarUrl))
+                    .placeholder(R.drawable.ic_avatar_placeholder_24)
+                    .error(R.drawable.ic_avatar_placeholder_24)
+                    .circleCrop()
+                    .into(holder.binding.imgCommentAvatar);
+        }
 
         if (comment.isLocked()) {
             holder.binding.tvCommentLocked.setVisibility(android.view.View.VISIBLE);
