@@ -3,13 +3,15 @@ package com.group09.ComicReader.auth.dto;
 public class UserProfileResponse {
     private String email;
     private String fullName;
+    private String avatarUrl;
 
     public UserProfileResponse() {
     }
 
-    public UserProfileResponse(String email, String fullName) {
+    public UserProfileResponse(String email, String fullName, String avatarUrl) {
         this.email = email;
         this.fullName = fullName;
+        this.avatarUrl = avatarUrl;
     }
 
     public String getEmail() {
@@ -26,5 +28,13 @@ public class UserProfileResponse {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 }

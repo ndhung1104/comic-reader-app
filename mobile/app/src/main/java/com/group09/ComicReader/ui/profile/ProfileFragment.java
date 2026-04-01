@@ -1,10 +1,13 @@
 package com.group09.ComicReader.ui.profile;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.ViewModelProvider;
@@ -13,6 +16,7 @@ import androidx.navigation.NavOptions;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.bumptech.glide.Glide;
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.ProfileMenuAdapter;
 import com.group09.ComicReader.base.BaseFragment;
@@ -38,6 +42,7 @@ public class ProfileFragment extends BaseFragment {
     private ProfileMenuAdapter adapter;
     private SessionManager sessionManager;
     private AccountRepository accountRepository;
+    private ActivityResultLauncher<String> pickAvatarLauncher;
 
     @Nullable
     @Override
@@ -47,6 +52,14 @@ public class ProfileFragment extends BaseFragment {
         viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
         sessionManager = new SessionManager(requireContext());
         accountRepository = new AccountRepository(new ApiClient(requireContext()));
+
+        pickAvatarLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+            if (uri == null) return;
+            if (!sessionManager.hasToken()) {
+                return;
+            }
+            uploadAvatar(uri);
+        });
         return binding.getRoot();
     }
 
@@ -62,6 +75,14 @@ public class ProfileFragment extends BaseFragment {
         viewModel.getMenuItems().observe(getViewLifecycleOwner(), adapter::submitList);
 
         binding.btnProfileCreator.setOnClickListener(v -> showToast("Creator flow is not implemented"));
+
+        binding.imgProfileAvatar.setOnClickListener(v -> {
+            if (!sessionManager.hasToken()) {
+                Navigation.findNavController(v).navigate(R.id.loginFragment);
+                return;
+            }
+            pickAvatarLauncher.launch("image/*");
+        });
 
         renderForAuthState();
         boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
@@ -86,6 +107,8 @@ public class ProfileFragment extends BaseFragment {
             }
             viewModel.setUserInfo(name, email);
 
+            renderAvatarFromSession();
+
             maybeFetchMe();
 
             binding.btnProfileCreator.setVisibility(View.VISIBLE);
@@ -93,6 +116,7 @@ public class ProfileFragment extends BaseFragment {
         } else {
             viewModel.setUserInfo(getString(R.string.profile_guest_name), getString(R.string.profile_not_signed_in));
             binding.btnProfileCreator.setVisibility(View.GONE);
+            clearAvatar();
             setAuthButtonToLogin(binding.btnProfileLogout);
         }
     }
@@ -100,25 +124,33 @@ public class ProfileFragment extends BaseFragment {
     private void maybeFetchMe() {
         String currentName = sessionManager.getFullName();
         String currentEmail = sessionManager.getEmail();
+        String currentAvatar = sessionManager.getAvatarUrl();
 
         boolean needsName = currentName == null || currentName.trim().isEmpty();
         boolean needsEmail = currentEmail == null || currentEmail.trim().isEmpty();
-        if (!needsName && !needsEmail) return;
+        boolean needsAvatar = currentAvatar == null || currentAvatar.trim().isEmpty();
+        if (!needsName && !needsEmail && !needsAvatar) return;
 
         accountRepository.getMe(new AccountRepository.MeCallback() {
             @Override
             public void onSuccess(@NonNull UserProfileResponse me) {
+                if (binding == null) return;
                 if (me.getEmail() != null && !me.getEmail().trim().isEmpty()) {
                     sessionManager.saveEmail(me.getEmail());
                 }
                 if (me.getFullName() != null && !me.getFullName().trim().isEmpty()) {
                     sessionManager.saveFullName(me.getFullName());
                 }
+                if (me.getAvatarUrl() != null && !me.getAvatarUrl().trim().isEmpty()) {
+                    sessionManager.saveAvatarUrl(me.getAvatarUrl());
+                }
                 String name = sessionManager.getFullName();
                 if (name == null || name.trim().isEmpty()) name = getString(R.string.profile_guest_name);
                 String email = sessionManager.getEmail();
                 if (email == null) email = "";
                 viewModel.setUserInfo(name, email);
+
+                renderAvatarFromSession();
             }
 
             @Override
@@ -126,6 +158,57 @@ public class ProfileFragment extends BaseFragment {
                 // silent fail: keep current UI
             }
         });
+    }
+
+    private void uploadAvatar(@NonNull Uri uri) {
+        if (binding == null) return;
+
+        Glide.with(binding.imgProfileAvatar)
+                .load(uri)
+                .placeholder(R.drawable.ic_avatar_placeholder_24)
+                .error(R.drawable.ic_avatar_placeholder_24)
+                .circleCrop()
+                .into(binding.imgProfileAvatar);
+
+        accountRepository.updateAvatar(requireContext(), uri, new AccountRepository.MeCallback() {
+            @Override
+            public void onSuccess(@NonNull UserProfileResponse me) {
+                if (binding == null) return;
+                if (me.getAvatarUrl() != null && !me.getAvatarUrl().trim().isEmpty()) {
+                    sessionManager.saveAvatarUrl(me.getAvatarUrl());
+                }
+                renderAvatarFromSession();
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                if (binding == null) return;
+                showToast(message);
+                renderAvatarFromSession();
+            }
+        });
+    }
+
+    private void renderAvatarFromSession() {
+        if (binding == null) return;
+        String avatarUrl = sessionManager.getAvatarUrl();
+        if (avatarUrl == null || avatarUrl.trim().isEmpty()) {
+            clearAvatar();
+            return;
+        }
+
+        Glide.with(binding.imgProfileAvatar)
+                .load(ApiClient.toAbsoluteUrl(avatarUrl))
+                .placeholder(R.drawable.ic_avatar_placeholder_24)
+                .error(R.drawable.ic_avatar_placeholder_24)
+                .circleCrop()
+                .into(binding.imgProfileAvatar);
+    }
+
+    private void clearAvatar() {
+        if (binding == null) return;
+        Glide.with(binding.imgProfileAvatar).clear(binding.imgProfileAvatar);
+        binding.imgProfileAvatar.setImageResource(R.drawable.ic_avatar_placeholder_24);
     }
 
     private void setAuthButtonToLogout(@NonNull MaterialButton button) {

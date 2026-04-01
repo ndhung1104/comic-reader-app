@@ -5,9 +5,11 @@ import com.group09.ComicReader.auth.dto.UpdateProfileRequest;
 import com.group09.ComicReader.auth.dto.UserProfileResponse;
 import com.group09.ComicReader.auth.entity.UserEntity;
 import com.group09.ComicReader.auth.repository.UserRepository;
+import com.group09.ComicReader.common.storage.FileStorageService;
 import com.group09.ComicReader.common.exception.BadRequestException;
 import com.group09.ComicReader.common.exception.NotFoundException;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,7 +18,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -26,16 +30,18 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FileStorageService fileStorageService;
 
-    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder, FileStorageService fileStorageService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.fileStorageService = fileStorageService;
     }
 
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getMe() {
         UserEntity user = getCurrentUser();
-        return ResponseEntity.ok(new UserProfileResponse(user.getEmail(), user.getFullName()));
+        return ResponseEntity.ok(new UserProfileResponse(user.getEmail(), user.getFullName(), user.getAvatarUrl()));
     }
 
     @PutMapping("/me")
@@ -50,7 +56,18 @@ public class UserController {
         user.setFullName(fullName);
         userRepository.save(user);
 
-        return ResponseEntity.ok(new UserProfileResponse(user.getEmail(), user.getFullName()));
+        return ResponseEntity.ok(new UserProfileResponse(user.getEmail(), user.getFullName(), user.getAvatarUrl()));
+    }
+
+    @PutMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserProfileResponse> updateAvatar(@RequestParam("avatar") MultipartFile avatar) {
+        UserEntity user = getCurrentUser();
+
+        String avatarUrl = fileStorageService.storeUserAvatar(user.getId(), avatar);
+        user.setAvatarUrl(avatarUrl);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(new UserProfileResponse(user.getEmail(), user.getFullName(), user.getAvatarUrl()));
     }
 
     @PutMapping("/me/password")

@@ -1,5 +1,10 @@
 package com.group09.ComicReader.data;
 
+import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.OpenableColumns;
+
 import androidx.annotation.NonNull;
 
 import com.group09.ComicReader.data.remote.ApiClient;
@@ -9,8 +14,15 @@ import com.group09.ComicReader.model.UserProfileResponse;
 
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.Map;
+import java.util.UUID;
 
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -98,6 +110,96 @@ public class AccountRepository {
                         callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
                     }
                 });
+    }
+
+    public void updateAvatar(@NonNull Context context, @NonNull Uri imageUri, @NonNull MeCallback callback) {
+        MultipartBody.Part avatarPart;
+        try {
+            avatarPart = createImagePartFromUri(context, imageUri, "avatar");
+        } catch (Exception exception) {
+            callback.onError("Failed to read selected image");
+            return;
+        }
+
+        apiClient.userApi().updateAvatar(avatarPart).enqueue(new Callback<UserProfileResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<UserProfileResponse> call, @NonNull Response<UserProfileResponse> response) {
+                if (!response.isSuccessful()) {
+                    callback.onError(extractErrorMessage(response, "Failed to update avatar (" + response.code() + ")"));
+                    return;
+                }
+                UserProfileResponse body = response.body();
+                if (body == null) {
+                    callback.onError("Failed to update avatar");
+                    return;
+                }
+                callback.onSuccess(body);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<UserProfileResponse> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+            }
+        });
+    }
+
+    @NonNull
+    private static MultipartBody.Part createImagePartFromUri(
+            @NonNull Context context,
+            @NonNull Uri uri,
+            @NonNull String partName
+    ) throws Exception {
+        String mimeType = context.getContentResolver().getType(uri);
+        if (mimeType == null || mimeType.trim().isEmpty()) {
+            mimeType = "image/*";
+        }
+
+        String displayName = resolveDisplayName(context, uri);
+        String safeName = (displayName == null || displayName.trim().isEmpty())
+                ? ("avatar-" + UUID.randomUUID())
+                : displayName;
+
+        File outDir = new File(context.getCacheDir(), "uploads");
+        //noinspection ResultOfMethodCallIgnored
+        outDir.mkdirs();
+
+        File outFile = new File(outDir, safeName);
+
+        try (InputStream in = context.getContentResolver().openInputStream(uri)) {
+            if (in == null) {
+                throw new IllegalStateException("Cannot open input stream");
+            }
+            try (FileOutputStream out = new FileOutputStream(outFile)) {
+                byte[] buffer = new byte[8 * 1024];
+                int read;
+                while ((read = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, read);
+                }
+                out.flush();
+            }
+        }
+
+        MediaType mediaType = MediaType.get(mimeType);
+        RequestBody requestBody = RequestBody.create(outFile, mediaType);
+        return MultipartBody.Part.createFormData(partName, outFile.getName(), requestBody);
+    }
+
+    private static String resolveDisplayName(@NonNull Context context, @NonNull Uri uri) {
+        Cursor cursor = null;
+        try {
+            cursor = context.getContentResolver().query(uri, null, null, null, null);
+            if (cursor == null) return null;
+            int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+            if (nameIndex < 0) return null;
+            if (!cursor.moveToFirst()) return null;
+            return cursor.getString(nameIndex);
+        } catch (Exception ignored) {
+            return null;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
     }
 
     @NonNull

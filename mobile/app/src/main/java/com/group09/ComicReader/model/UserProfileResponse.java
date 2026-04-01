@@ -3,6 +3,7 @@ package com.group09.ComicReader.model;
 public class UserProfileResponse {
     private String email;
     private String fullName;
+    private String avatarUrl;
 
     public UserProfileResponse() {
     }
@@ -21,5 +22,13 @@ public class UserProfileResponse {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 }

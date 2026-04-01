@@ -37,6 +37,9 @@ public class UserEntity {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
     @Column(nullable = false)
     private boolean enabled = true;
 

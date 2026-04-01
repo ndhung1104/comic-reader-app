@@ -15,6 +15,7 @@ public class SessionManager {
     private static final String KEY_ROLE = "role";
     private static final String KEY_EMAIL = "email";
     private static final String KEY_FULL_NAME = "full_name";
+    private static final String KEY_AVATAR_URL = "avatar_url";
 
     private final SharedPreferences prefs;
 
@@ -37,6 +38,10 @@ public class SessionManager {
 
     public void saveFullName(@Nullable String fullName) {
         prefs.edit().putString(KEY_FULL_NAME, fullName).apply();
+    }
+
+    public void saveAvatarUrl(@Nullable String avatarUrl) {
+        prefs.edit().putString(KEY_AVATAR_URL, avatarUrl).apply();
     }
 
     @Nullable
@@ -62,6 +67,11 @@ public class SessionManager {
     @Nullable
     public String getFullName() {
         return prefs.getString(KEY_FULL_NAME, null);
+    }
+
+    @Nullable
+    public String getAvatarUrl() {
+        return prefs.getString(KEY_AVATAR_URL, null);
     }
 
     public boolean hasToken() {
