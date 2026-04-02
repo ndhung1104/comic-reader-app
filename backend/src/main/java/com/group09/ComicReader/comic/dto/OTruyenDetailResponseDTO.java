@@ -40,6 +40,10 @@ public class OTruyenDetailResponseDTO {
             return domainCdn;
         }
 
+        public String getAppDomainCdnImage() {
+            return domainCdn;
+        }
+
         public void setDomainCdn(String domainCdn) {
             this.domainCdn = domainCdn;
         }
@@ -53,12 +57,25 @@ public class OTruyenDetailResponseDTO {
         }
     }
 
+    public static class Category {
+        private String name;
+        private String slug;
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getSlug() { return slug; }
+        public void setSlug(String slug) { this.slug = slug; }
+    }
+
     public static class Item {
         private String _id;
         private String name;
         private String slug;
         private String content; // Synopsis
+        private String thumb_url;
+        private String status;
         private List<String> author; // The missing array
+        private List<Category> category;
         private List<ChapterItem> chapters; // Added chapters array
 
         public String get_id() {
@@ -93,6 +110,12 @@ public class OTruyenDetailResponseDTO {
             this.content = content;
         }
 
+        public String getThumb_url() { return thumb_url; }
+        public void setThumb_url(String thumb_url) { this.thumb_url = thumb_url; }
+
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+
         public List<String> getAuthor() {
             return author;
         }
@@ -100,6 +123,9 @@ public class OTruyenDetailResponseDTO {
         public void setAuthor(List<String> author) {
             this.author = author;
         }
+
+        public List<Category> getCategory() { return category; }
+        public void setCategory(List<Category> category) { this.category = category; }
 
         public List<ChapterItem> getChapters() {
             return chapters;

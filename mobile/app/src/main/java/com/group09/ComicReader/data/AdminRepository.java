@@ -118,6 +118,186 @@ public class AdminRepository {
         }
     }
 
+    // ── Revenue Dashboard ────────────────────────────────
+
+    public interface RevenueSummaryCallback {
+        void onSuccess(long totalTopUp, long totalPurchase, long totalVip, long totalRevenue, long txCount);
+        void onError(@NonNull String message);
+    }
+
+    public interface DailyRevenueCallback {
+        void onSuccess(@NonNull java.util.List<java.util.Map<String, Object>> dailyList);
+        void onError(@NonNull String message);
+    }
+
+    public void getRevenueSummary(@NonNull String from, @NonNull String to, @NonNull RevenueSummaryCallback callback) {
+        apiClient.adminApi().getRevenueSummary(from, to).enqueue(new Callback<java.util.Map<String, Object>>() {
+            @Override
+            public void onResponse(@NonNull Call<java.util.Map<String, Object>> call, @NonNull Response<java.util.Map<String, Object>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Failed to load summary (" + response.code() + ")"));
+                    return;
+                }
+                java.util.Map<String, Object> body = response.body();
+                try {
+                    long totalTopUp = body.containsKey("totalTopUp") ? ((Number) body.get("totalTopUp")).longValue() : 0L;
+                    long totalPurchase = body.containsKey("totalPurchase") ? ((Number) body.get("totalPurchase")).longValue() : 0L;
+                    long totalVip = body.containsKey("totalVip") ? ((Number) body.get("totalVip")).longValue() : 0L;
+                    long totalRevenue = body.containsKey("totalRevenue") ? ((Number) body.get("totalRevenue")).longValue() : 0L;
+                    long txCount = body.containsKey("transactionCount") ? ((Number) body.get("transactionCount")).longValue() : 0L;
+                    callback.onSuccess(totalTopUp, totalPurchase, totalVip, totalRevenue, txCount);
+                } catch (Exception e) {
+                    callback.onError("Failed to parse revenue summary");
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<java.util.Map<String, Object>> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+            }
+        });
+    }
+
+    public void getDailyRevenue(@NonNull String from, @NonNull String to, @NonNull DailyRevenueCallback callback) {
+        apiClient.adminApi().getDailyRevenue(from, to).enqueue(new Callback<java.util.List<java.util.Map<String, Object>>>() {
+            @Override
+            public void onResponse(@NonNull Call<java.util.List<java.util.Map<String, Object>>> call, @NonNull Response<java.util.List<java.util.Map<String, Object>>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Failed to load daily revenue (" + response.code() + ")"));
+                    return;
+                }
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<java.util.List<java.util.Map<String, Object>>> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+            }
+        });
+    }
+
+    // ── Package Management ───────────────────────────────
+
+    public interface PackageListCallback {
+        void onSuccess(@NonNull java.util.List<java.util.Map<String, Object>> packages);
+        void onError(@NonNull String message);
+    }
+
+    public interface PackageActionCallback {
+        void onSuccess(@NonNull java.util.Map<String, Object> pkg);
+        void onError(@NonNull String message);
+    }
+
+    public void getAllPackages(@NonNull PackageListCallback callback) {
+        apiClient.adminApi().getAllPackages().enqueue(new Callback<java.util.List<java.util.Map<String, Object>>>() {
+            @Override
+            public void onResponse(@NonNull Call<java.util.List<java.util.Map<String, Object>>> call, @NonNull Response<java.util.List<java.util.Map<String, Object>>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Failed to load packages (" + response.code() + ")"));
+                    return;
+                }
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<java.util.List<java.util.Map<String, Object>>> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+            }
+        });
+    }
+
+    public void createPackage(String name, int coins, String priceLabel, String bonusLabel, int sortOrder, @NonNull PackageActionCallback callback) {
+        java.util.Map<String, Object> body = new java.util.HashMap<>();
+        body.put("name", name);
+        body.put("coins", coins);
+        body.put("priceLabel", priceLabel);
+        if (bonusLabel != null && !bonusLabel.isEmpty()) {
+            body.put("bonusLabel", bonusLabel);
+        }
+        body.put("sortOrder", sortOrder);
+
+        apiClient.adminApi().createPackage(body).enqueue(new Callback<java.util.Map<String, Object>>() {
+            @Override
+            public void onResponse(@NonNull Call<java.util.Map<String, Object>> call, @NonNull Response<java.util.Map<String, Object>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Failed to create package (" + response.code() + ")"));
+                    return;
+                }
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<java.util.Map<String, Object>> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+            }
+        });
+    }
+
+    public void disablePackage(long id, @NonNull PackageActionCallback callback) {
+        apiClient.adminApi().disablePackage(id).enqueue(new Callback<java.util.Map<String, Object>>() {
+            @Override
+            public void onResponse(@NonNull Call<java.util.Map<String, Object>> call, @NonNull Response<java.util.Map<String, Object>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Failed to disable package (" + response.code() + ")"));
+                    return;
+                }
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<java.util.Map<String, Object>> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+            }
+        });
+    }
+
+    public void enablePackage(long id, @NonNull PackageActionCallback callback) {
+        apiClient.adminApi().enablePackage(id).enqueue(new Callback<java.util.Map<String, Object>>() {
+            @Override
+            public void onResponse(@NonNull Call<java.util.Map<String, Object>> call, @NonNull Response<java.util.Map<String, Object>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Failed to enable package (" + response.code() + ")"));
+                    return;
+                }
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<java.util.Map<String, Object>> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+            }
+        });
+    }
+
+    // ── Import Comic ────────────────────────────────────────
+
+    public interface ImportComicCallback {
+        void onSuccess(@NonNull com.group09.ComicReader.model.ComicResponse response);
+        void onError(@NonNull String message);
+    }
+
+    public void importComic(@NonNull String sourceUrl, @NonNull String sourceType, @NonNull ImportComicCallback callback) {
+        java.util.Map<String, String> body = new java.util.HashMap<>();
+        body.put("sourceUrl", sourceUrl);
+        body.put("sourceType", sourceType);
+
+        apiClient.adminApi().importComic(body).enqueue(new Callback<com.group09.ComicReader.model.ComicResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<com.group09.ComicReader.model.ComicResponse> call, @NonNull Response<com.group09.ComicReader.model.ComicResponse> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Import failed (" + response.code() + ")"));
+                    return;
+                }
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<com.group09.ComicReader.model.ComicResponse> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+            }
+        });
+    }
+
     @NonNull
     private static String extractErrorMessage(@NonNull Response<?> response, @NonNull String fallback) {
         try {
