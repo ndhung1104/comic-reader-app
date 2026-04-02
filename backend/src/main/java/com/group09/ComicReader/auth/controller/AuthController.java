@@ -1,6 +1,7 @@
 package com.group09.ComicReader.auth.controller;
 
 import com.group09.ComicReader.auth.dto.AuthResponse;
+import com.group09.ComicReader.auth.dto.GoogleLoginRequest;
 import com.group09.ComicReader.auth.dto.LoginRequest;
 import com.group09.ComicReader.auth.dto.RegisterRequest;
 import com.group09.ComicReader.auth.service.AuthService;
@@ -29,6 +30,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(authService.loginWithGoogle(request));
     }
 }
 

@@ -1,6 +1,7 @@
 package com.group09.ComicReader.data.remote;
 
 import com.group09.ComicReader.model.AuthResponse;
+import com.group09.ComicReader.model.GoogleLoginRequest;
 import com.group09.ComicReader.model.LoginRequest;
 import com.group09.ComicReader.model.RegisterRequest;
 
@@ -15,4 +16,7 @@ public interface AuthApi {
 
     @POST("/api/v1/auth/register")
     Call<AuthResponse> register(@Body RegisterRequest request);
+
+    @POST("/api/v1/auth/google")
+    Call<AuthResponse> loginWithGoogle(@Body GoogleLoginRequest request);
 }

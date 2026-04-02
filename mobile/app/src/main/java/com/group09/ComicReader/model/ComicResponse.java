@@ -1,5 +1,6 @@
 package com.group09.ComicReader.model;
 
+import java.util.Collections;
 import java.util.List;
 
 public class ComicResponse {
@@ -63,7 +64,9 @@ public class ComicResponse {
         boolean isTrending = viewCount > 0 || "TRENDING".equalsIgnoreCase(status);
         boolean isNew = "NEW".equalsIgnoreCase(status);
 
-        return new Comic(comicId, safeTitle, safeAuthor, safeCover, rating, genres, safeSynopsis,
+        List<String> safeGenres = genres != null ? genres : Collections.emptyList();
+
+        return new Comic(comicId, safeTitle, safeAuthor, safeCover, rating, safeGenres, safeSynopsis,
                 0, null, isTrending, isNew, viewCount, followerCount);
     }
 }

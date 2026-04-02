@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.model.AuthResponse;
+import com.group09.ComicReader.model.GoogleLoginRequest;
 import com.group09.ComicReader.model.LoginRequest;
 import com.group09.ComicReader.model.RegisterRequest;
 
@@ -87,6 +88,37 @@ public class AuthRepository {
         });
     }
 
+    public void loginWithGoogle(@NonNull String idToken,
+                               @NonNull String email,
+                               @NonNull String fullName,
+                               @NonNull AuthCallback callback) {
+        apiClient.authApi().loginWithGoogle(new GoogleLoginRequest(idToken)).enqueue(new Callback<AuthResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<AuthResponse> call, @NonNull Response<AuthResponse> response) {
+                if (!response.isSuccessful()) {
+                    callback.onError(extractErrorMessage(response, "Google login failed (" + response.code() + ")"));
+                    return;
+                }
+                AuthResponse body = response.body();
+                if (body == null || body.getAccessToken() == null || body.getAccessToken().trim().isEmpty()) {
+                    callback.onError("Google login failed (empty token)");
+                    return;
+                }
+                sessionManager.saveAuth(body);
+                sessionManager.saveEmail(email);
+                if (!fullName.trim().isEmpty()) {
+                    sessionManager.saveFullName(fullName);
+                }
+                callback.onSuccess(body);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<AuthResponse> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+            }
+        });
+    }
+
     @NonNull
     private static String extractErrorMessage(@NonNull Response<?> response, @NonNull String fallback) {
         try {
@@ -97,6 +129,16 @@ public class AuthRepository {
             JSONObject json = new JSONObject(raw);
             if (json.has("error")) {
                 String message = json.optString("error", "");
+                if (message != null && message.trim().equalsIgnoreCase("Validation error") && json.has("fields")) {
+                    JSONObject fields = json.optJSONObject("fields");
+                    if (fields != null && fields.names() != null && fields.names().length() > 0) {
+                        String firstKey = fields.names().optString(0, "");
+                        String firstMessage = fields.optString(firstKey, "");
+                        if (firstMessage != null && !firstMessage.trim().isEmpty()) {
+                            return firstMessage;
+                        }
+                    }
+                }
                 return message == null || message.trim().isEmpty() ? fallback : humanizeAuthError(message);
             }
             if (json.has("message")) {

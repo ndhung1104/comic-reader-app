@@ -1,15 +1,32 @@
 package com.group09.ComicReader.ui.login;
 
+import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.group09.ComicReader.BuildConfig;
 import com.group09.ComicReader.base.BaseFragment;
 import com.group09.ComicReader.data.AuthRepository;
 import com.group09.ComicReader.data.local.SessionManager;
@@ -17,10 +34,84 @@ import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.FragmentLoginBinding;
 import com.group09.ComicReader.viewmodel.LoginViewModel;
 
+import java.security.MessageDigest;
+import java.util.Locale;
+
 public class LoginFragment extends BaseFragment {
+
+    private static final String TAG = "LoginFragment";
 
     private FragmentLoginBinding binding;
     private LoginViewModel viewModel;
+
+    private GoogleSignInClient googleSignInClient;
+    private ActivityResultLauncher<Intent> googleSignInLauncher;
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (viewModel == null || !viewModel.hasToken()) return;
+        androidx.navigation.NavController navController = NavHostFragment.findNavController(this);
+        if (navController.getCurrentDestination() != null
+                && navController.getCurrentDestination().getId() == com.group09.ComicReader.R.id.loginFragment) {
+            navController.navigate(LoginFragmentDirections.actionLoginToHome());
+        }
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        logDebugSigningSha1();
+
+        googleSignInLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    Log.d(TAG, "Google sign-in resultCode=" + result.getResultCode()
+                            + ", hasData=" + (result.getData() != null));
+                    Intent data = result.getData();
+                    if (data == null) {
+                        showToast("Google login cancelled");
+                        return;
+                    }
+                    try {
+                        GoogleSignInAccount account = GoogleSignIn.getSignedInAccountFromIntent(data)
+                                .getResult(ApiException.class);
+                        if (account == null) {
+                            Log.w(TAG, "GoogleSignInAccount is null");
+                            showToast("Google login failed");
+                            return;
+                        }
+
+                        String idToken = account.getIdToken();
+                        if (idToken == null || idToken.trim().isEmpty()) {
+                            Log.w(TAG, "Google idToken is empty; email=" + account.getEmail());
+                            showToast("Google login failed (missing idToken)");
+                            return;
+                        }
+
+                        String email = account.getEmail() == null ? "" : account.getEmail();
+                        String fullName = account.getDisplayName() == null ? "" : account.getDisplayName();
+                        viewModel.loginWithGoogle(idToken, email, fullName);
+                    } catch (ApiException e) {
+                        int statusCode = e.getStatusCode();
+                        Log.w(TAG, "Google sign-in ApiException statusCode=" + statusCode
+                                + " (" + GoogleSignInStatusCodes.getStatusCodeString(statusCode) + ")", e);
+                        if (statusCode == GoogleSignInStatusCodes.SIGN_IN_CANCELLED) {
+                            showToast("Google login cancelled");
+                        } else if (statusCode == GoogleSignInStatusCodes.DEVELOPER_ERROR) {
+                            // Common root cause: OAuth clients not configured correctly (package name/SHA-1)
+                            // or using the wrong client id for requestIdToken().
+                            showToast("Google login failed (developer error). Check OAuth config: package name + SHA-1, and ensure MOBILE_GOOGLE_WEB_CLIENT_ID is the Web client ID.");
+                            logDebugSigningSha1();
+                        } else {
+                            showToast("Google login failed (" + statusCode + ": "
+                                    + GoogleSignInStatusCodes.getStatusCodeString(statusCode) + ")");
+                        }
+                    }
+                }
+        );
+    }
 
     @Nullable
     @Override
@@ -31,7 +122,58 @@ public class LoginFragment extends BaseFragment {
         SessionManager sessionManager = new SessionManager(requireContext());
         AuthRepository authRepository = new AuthRepository(apiClient, sessionManager);
         viewModel = new ViewModelProvider(this, new LoginViewModel.Factory(authRepository)).get(LoginViewModel.class);
+
+        String webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID == null ? "" : BuildConfig.GOOGLE_WEB_CLIENT_ID.trim();
+        if (BuildConfig.DEBUG) {
+            String redactedClientId = webClientId.isEmpty() ? "" : (webClientId.length() <= 12
+                ? webClientId
+                : webClientId.substring(0, 6) + "..." + webClientId.substring(webClientId.length() - 6));
+            Log.d(TAG, "Configured webClientId=" + redactedClientId);
+        }
+        if (!webClientId.isEmpty() && !webClientId.contains("<") && !webClientId.contains(">")) {
+            GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    .requestEmail()
+                    .requestIdToken(webClientId)
+                    .build();
+            googleSignInClient = GoogleSignIn.getClient(requireContext(), gso);
+        } else {
+            googleSignInClient = null;
+        }
         return binding.getRoot();
+    }
+
+    private void logDebugSigningSha1() {
+        if (!BuildConfig.DEBUG) return;
+        try {
+            PackageManager pm = requireContext().getPackageManager();
+            PackageInfo packageInfo = pm.getPackageInfo(
+                    requireContext().getPackageName(),
+                    PackageManager.GET_SIGNING_CERTIFICATES
+            );
+
+            if (packageInfo.signingInfo == null) return;
+
+            Signature[] signatures = packageInfo.signingInfo.getApkContentsSigners();
+            if (signatures == null || signatures.length == 0) return;
+
+            for (Signature signature : signatures) {
+                MessageDigest md = MessageDigest.getInstance("SHA1");
+                byte[] digest = md.digest(signature.toByteArray());
+                Log.d(TAG, "App signing SHA-1: " + toHexWithColons(digest)
+                        + " (package=" + requireContext().getPackageName() + ")");
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to compute app signing SHA-1", e);
+        }
+    }
+
+    private String toHexWithColons(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < bytes.length; i++) {
+            if (i > 0) sb.append(':');
+            sb.append(String.format(Locale.US, "%02X", bytes[i]));
+        }
+        return sb.toString();
     }
 
     @Override
@@ -39,7 +181,11 @@ public class LoginFragment extends BaseFragment {
         super.onViewCreated(view, savedInstanceState);
 
         if (viewModel.hasToken()) {
-            Navigation.findNavController(view).navigate(LoginFragmentDirections.actionLoginToHome());
+            androidx.navigation.NavController navController = NavHostFragment.findNavController(this);
+            if (navController.getCurrentDestination() != null
+                    && navController.getCurrentDestination().getId() == com.group09.ComicReader.R.id.loginFragment) {
+                navController.navigate(LoginFragmentDirections.actionLoginToHome());
+            }
             return;
         }
 
@@ -51,7 +197,27 @@ public class LoginFragment extends BaseFragment {
         };
 
         binding.btnLoginSubmit.setOnClickListener(loginAction);
-        binding.btnLoginGoogle.setOnClickListener(v -> showToast("Google login is not implemented"));
+        binding.btnLoginGoogle.setOnClickListener(v -> {
+            hideKeyboard();
+            if (googleSignInClient == null) {
+                showToast("Google login is not configured");
+                return;
+            }
+
+            int playServicesStatus = GoogleApiAvailability.getInstance()
+                    .isGooglePlayServicesAvailable(requireContext());
+            if (playServicesStatus != ConnectionResult.SUCCESS) {
+                showToast("Google Play services is not available: "
+                    + GoogleApiAvailability.getInstance().getErrorString(playServicesStatus));
+                return;
+            }
+
+            v.setEnabled(false);
+            googleSignInClient.signOut().addOnCompleteListener(requireActivity(), task -> {
+                v.setEnabled(true);
+                googleSignInLauncher.launch(googleSignInClient.getSignInIntent());
+            });
+        });
         binding.tvLoginForgot.setOnClickListener(v -> showToast("Forgot password is not implemented"));
 
         binding.tvLoginSignUp.setOnClickListener(v -> Navigation.findNavController(v)
@@ -71,7 +237,8 @@ public class LoginFragment extends BaseFragment {
 
         viewModel.getLoginSuccess().observe(getViewLifecycleOwner(), success -> {
             if (success != null && success) {
-                Navigation.findNavController(view).navigate(LoginFragmentDirections.actionLoginToHome());
+                NavHostFragment.findNavController(this)
+                        .navigate(LoginFragmentDirections.actionLoginToHome());
             }
         });
     }

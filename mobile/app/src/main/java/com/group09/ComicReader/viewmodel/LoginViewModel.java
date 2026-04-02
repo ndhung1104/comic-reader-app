@@ -84,4 +84,33 @@ public class LoginViewModel extends ViewModel {
             }
         });
     }
+
+    public void loginWithGoogle(String idToken, String email, String fullName) {
+        String safeIdToken = idToken == null ? "" : idToken.trim();
+        if (safeIdToken.isEmpty()) {
+            errorMessage.setValue("Google login failed (missing token)");
+            return;
+        }
+
+        loading.setValue(true);
+        errorMessage.setValue(null);
+        loginSuccess.setValue(false);
+
+        String safeEmail = email == null ? "" : email.trim();
+        String safeName = fullName == null ? "" : fullName.trim();
+
+        authRepository.loginWithGoogle(safeIdToken, safeEmail, safeName, new AuthRepository.AuthCallback() {
+            @Override
+            public void onSuccess(@NonNull com.group09.ComicReader.model.AuthResponse authResponse) {
+                loading.postValue(false);
+                loginSuccess.postValue(true);
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                loading.postValue(false);
+                errorMessage.postValue(message);
+            }
+        });
+    }
 }

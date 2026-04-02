@@ -34,6 +34,12 @@ android {
             "BASE_URL",
             envProperties.getProperty("MOBILE_BASE_URL", "http://10.0.2.2:8080/").asBuildConfigString()
         )
+
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            envProperties.getProperty("MOBILE_GOOGLE_WEB_CLIENT_ID", "").asBuildConfigString()
+        )
     }
 
     buildTypes {
@@ -71,6 +77,7 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
+    implementation(libs.play.services.auth)
     annotationProcessor(libs.glide.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)

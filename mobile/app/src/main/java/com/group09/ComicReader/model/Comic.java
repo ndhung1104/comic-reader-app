@@ -1,5 +1,6 @@
 package com.group09.ComicReader.model;
 
+import java.util.Collections;
 import java.util.List;
 
 public class Comic {
@@ -25,7 +26,7 @@ public class Comic {
         this.author = author;
         this.coverUrl = coverUrl;
         this.rating = rating;
-        this.genres = genres;
+        this.genres = genres != null ? genres : Collections.emptyList();
         this.synopsis = synopsis;
         this.totalChapters = totalChapters;
         this.progress = progress;
