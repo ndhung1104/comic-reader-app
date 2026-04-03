@@ -36,12 +36,6 @@ public class WalletRepository {
         void onError(@NonNull String message);
     }
 
-    private static final List<WalletPackage> DEFAULT_PACKAGES = Arrays.asList(
-            new WalletPackage(500, "$4.99", ""),
-            new WalletPackage(1000, "$9.99", "+100 Bonus"),
-            new WalletPackage(2500, "$19.99", "+500 Bonus"),
-            new WalletPackage(5000, "$39.99", "+1000 Bonus")
-    );
 
     private final ApiClient apiClient;
 
@@ -60,7 +54,7 @@ public class WalletRepository {
 
                 WalletResponse wallet = response.body();
                 int balance = wallet.getCoinBalance() == null ? 0 : wallet.getCoinBalance();
-                loadTransactions(balance, callback);
+                loadPackages(balance, callback);
             }
 
             @Override
@@ -96,7 +90,25 @@ public class WalletRepository {
         });
     }
 
-    private void loadTransactions(int balance, @NonNull WalletDataCallback callback) {
+    private void loadPackages(int balance, @NonNull WalletDataCallback callback) {
+        apiClient.walletApi().getPackages().enqueue(new Callback<List<WalletPackage>>() {
+            @Override
+            public void onResponse(@NonNull Call<List<WalletPackage>> call, @NonNull Response<List<WalletPackage>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Failed to load packages"));
+                    return;
+                }
+                loadTransactions(balance, response.body(), callback);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<List<WalletPackage>> call, @NonNull Throwable t) {
+                callback.onError(getNetworkMessage(t));
+            }
+        });
+    }
+
+    private void loadTransactions(int balance, List<WalletPackage> packages, @NonNull WalletDataCallback callback) {
         apiClient.walletApi().getTransactions(0, 20).enqueue(new Callback<PageResponse<TransactionResponse>>() {
             @Override
             public void onResponse(@NonNull Call<PageResponse<TransactionResponse>> call,
@@ -113,7 +125,7 @@ public class WalletRepository {
                         transactions.add(toWalletTransaction(item));
                     }
                 }
-                callback.onSuccess(balance, new ArrayList<>(DEFAULT_PACKAGES), transactions);
+                callback.onSuccess(balance, packages, transactions);
             }
 
             @Override

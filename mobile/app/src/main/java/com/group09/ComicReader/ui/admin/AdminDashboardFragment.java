@@ -41,6 +41,10 @@ public class AdminDashboardFragment extends BaseFragment {
         binding.btnAdminLockComment.setOnClickListener(v -> handleCommentAction(ActionType.LOCK));
         binding.btnAdminUnlockComment.setOnClickListener(v -> handleCommentAction(ActionType.UNLOCK));
         binding.btnAdminDeleteComment.setOnClickListener(v -> handleCommentAction(ActionType.DELETE));
+
+        binding.btnAdminRevenue.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(com.group09.ComicReader.R.id.action_admin_to_revenue));
+        binding.btnAdminPackages.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(com.group09.ComicReader.R.id.action_admin_to_packages));
+        binding.btnAdminImport.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(com.group09.ComicReader.R.id.action_admin_to_import));
     }
 
     private void handleUserAction(boolean isBan) {

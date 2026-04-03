@@ -21,4 +21,7 @@ public interface WalletApi {
 
     @POST("/api/v1/wallet/topup")
     Call<WalletResponse> topUp(@Body TopUpRequest request);
+
+    @GET("/api/v1/packages")
+    Call<java.util.List<com.group09.ComicReader.model.WalletPackage>> getPackages();
 }

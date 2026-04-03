@@ -127,4 +127,40 @@
     <string name="comic_rate_success">Rating submitted!</string>
     <string name="comic_rate_login_required">Log in to rate comics</string>
     <string name="comic_your_rating">Your rating: %1$d/10</string>
+
+    <string name="admin_revenue_title">Revenue Dashboard</string>
+    <string name="admin_revenue_total">Total Revenue</string>
+    <string name="admin_revenue_topup">Top-Up</string>
+    <string name="admin_revenue_purchase">Purchases</string>
+    <string name="admin_revenue_vip">VIP</string>
+    <string name="admin_revenue_transactions">Transactions</string>
+    <string name="admin_revenue_daily">Daily Breakdown</string>
+    <string name="admin_revenue_period_today">Today</string>
+    <string name="admin_revenue_period_7d">7 Days</string>
+    <string name="admin_revenue_period_30d">30 Days</string>
+    <string name="admin_revenue_no_data">No revenue data for this period</string>
+
+    <string name="admin_packages_title">Manage Packages</string>
+    <string name="admin_packages_create">Create Package</string>
+    <string name="admin_packages_name">Package Name</string>
+    <string name="admin_packages_coins">Coins</string>
+    <string name="admin_packages_price">Price Label</string>
+    <string name="admin_packages_bonus">Bonus Label</string>
+    <string name="admin_packages_sort">Sort Order</string>
+    <string name="admin_packages_save">Save</string>
+    <string name="admin_packages_cancel">Cancel</string>
+    <string name="admin_packages_disable">Disable</string>
+    <string name="admin_packages_enable">Enable</string>
+    <string name="admin_packages_disabled">Disabled</string>
+
+    <string name="admin_import_title">Import Comic</string>
+    <string name="admin_import_url_hint">OTruyen URL or slug</string>
+    <string name="admin_import_button">Import</string>
+    <string name="admin_import_importing">Importing…</string>
+    <string name="admin_import_success">Comic imported successfully!</string>
+
+    <string name="admin_nav_revenue">Revenue Dashboard</string>
+    <string name="admin_nav_packages">Manage Packages</string>
+    <string name="admin_nav_import">Import Comic</string>
 </resources>
+
