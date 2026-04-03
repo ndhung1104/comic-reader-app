@@ -10,3 +10,6 @@ spring:
 app:
   storage:
     upload-dir: /app/uploads
+
+translation-worker:
+  base-url: ${TRANSLATION_WORKER_BASE_URL:http://comic-translate-worker:8090}

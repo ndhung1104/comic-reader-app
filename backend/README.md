@@ -25,6 +25,17 @@ cp .env.example .env
 docker compose up --build
 ```
 
+### Low-RAM profile (8GB all-in-one)
+Use the dedicated compose file:
+```bash
+docker compose -f docker-compose.low-ram.yml up --build
+```
+
+Optional local LLM sidecar (`ollama`) can be enabled with profile:
+```bash
+docker compose -f docker-compose.low-ram.yml --profile local-llm up --build
+```
+
 ## Run local (without Docker)
 1. Copy env file:
 ```bash
@@ -44,6 +55,9 @@ cp .env.example .env
 - Comics: `GET /api/v1/comics` (Bearer token)
 - Admin create comic: `POST /api/v1/admin/comics` (ADMIN token)
 - Admin upload pages: `POST /api/v1/admin/chapters/{chapterId}/pages/upload` (multipart `files[]`)
+- Translation jobs submit: `POST /api/v1/translation-jobs`
+- Translation jobs status: `GET /api/v1/translation-jobs/{jobId}`
+- Translation jobs artifacts: `GET /api/v1/translation-jobs/{jobId}/artifacts`
 
 ## Upload storage
 - URL path: `/uploads/**`
@@ -54,3 +68,4 @@ cp .env.example .env
 - Backend reads `backend/.env` via Spring `spring.config.import`
 - Docker Compose also reads `backend/.env`
 - `DB_URL` in `.env` is intended for local runs; Docker overrides it to use the `postgres` service host
+- `TRANSLATION_WORKER_BASE_URL` should point to the worker service (`http://comic-translate-worker:8090` in Docker)

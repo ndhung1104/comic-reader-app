@@ -35,3 +35,15 @@ app:
 
 gemini:
   api-key: ${GEMINI_API_KEY:}
+
+translate:
+  provider: ${TRANSLATE_PROVIDER:gemini}
+  fallback-provider: ${TRANSLATE_FALLBACK_PROVIDER:none}
+  local:
+    base-url: ${LOCAL_LLM_BASE_URL:http://host.docker.internal:11434}
+    model: ${LOCAL_LLM_MODEL:qwen2.5:1.5b}
+    timeout-ms: ${LOCAL_LLM_TIMEOUT_MS:30000}
+
+translation-worker:
+  base-url: ${TRANSLATION_WORKER_BASE_URL:http://localhost:8090}
+  timeout-ms: ${TRANSLATION_WORKER_TIMEOUT_MS:15000}

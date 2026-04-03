@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: comicreader-postgres-lowram
+    env_file:
+      - .env
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=128MB"
+      - "-c"
+      - "work_mem=4MB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "max_connections=20"
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 512m
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  comic-translate-worker:
+    build:
+      context: ./worker/comic-translate-worker
+      dockerfile: Dockerfile
+    container_name: comicreader-translate-worker
+    ports:
+      - "8090:8090"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 512m
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: comicreader-backend-lowram
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      comic-translate-worker:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:postgresql://postgres:5432/comic_reader
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx768m"
+      TRANSLATION_WORKER_BASE_URL: http://comic-translate-worker:8090
+    ports:
+      - "8080:8080"
+    mem_limit: 1g
+    volumes:
+      - uploads_data:/app/uploads
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: comicreader-ollama-lowram
+    profiles: ["local-llm"]
+    ports:
+      - "11434:11434"
+    environment:
+      OLLAMA_NUM_PARALLEL: "1"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_KEEP_ALIVE: "5m"
+    mem_limit: 2g
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  pg_data:
+  uploads_data:
+  ollama_data:

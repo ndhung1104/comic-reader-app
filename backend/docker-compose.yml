@@ -24,13 +24,24 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      comic-translate-worker:
+        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: docker
       DB_URL: jdbc:postgresql://postgres:5432/comic_reader
+      TRANSLATION_WORKER_BASE_URL: http://comic-translate-worker:8090
     ports:
       - "8080:8080"
     volumes:
       - uploads_data:/app/uploads
+
+  comic-translate-worker:
+    build:
+      context: ./worker/comic-translate-worker
+      dockerfile: Dockerfile
+    container_name: comicreader-translate-worker
+    ports:
+      - "8090:8090"
 
 volumes:
   pg_data:
