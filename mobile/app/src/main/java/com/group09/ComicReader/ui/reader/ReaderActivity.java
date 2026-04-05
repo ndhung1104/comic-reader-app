@@ -25,6 +25,7 @@ import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.ActivityReaderBinding;
 import com.group09.ComicReader.model.Comic;
+import com.group09.ComicReader.model.ComicChapterResponse;
 import com.group09.ComicReader.model.ReaderPage;
 import com.group09.ComicReader.viewmodel.CommentsViewModel;
 import com.group09.ComicReader.viewmodel.ReaderViewModel;
@@ -49,12 +50,26 @@ public class ReaderActivity extends AppCompatActivity {
         return intent;
     }
 
+    public static Intent createDeepLinkIntent(@NonNull Context context, int comicId, int chapterId, int chapterNumber) {
+        Intent intent = new Intent(context, ReaderActivity.class);
+        if (comicId > 0) {
+            intent.putExtra(EXTRA_COMIC_ID, comicId);
+        }
+        intent.putExtra(EXTRA_CHAPTER_ID, chapterId);
+        if (chapterNumber > 0) {
+            intent.putExtra(EXTRA_CHAPTER, chapterNumber);
+        }
+        return intent;
+    }
+
     private ActivityReaderBinding binding;
     private int comicId;
     private int chapterId;
     private int chapterNumber;
+    private String comicTitle;
     private ReaderPageAdapter pageAdapter;
     private ReaderViewModel viewModel;
+    private ReaderRepository readerRepository;
     private ReaderCommentsFooterAdapter commentsFooterAdapter;
     private CommentsViewModel commentsViewModel;
     private boolean historyRecorded;
@@ -90,14 +105,13 @@ public class ReaderActivity extends AppCompatActivity {
         binding = ActivityReaderBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        comicId = getIntent().getIntExtra(EXTRA_COMIC_ID, 1);
-        chapterId = getIntent().getIntExtra(EXTRA_CHAPTER_ID, 1);
-        chapterNumber = getIntent().getIntExtra(EXTRA_CHAPTER, 1);
+        comicId = getIntent().getIntExtra(EXTRA_COMIC_ID, 0);
+        chapterId = getIntent().getIntExtra(EXTRA_CHAPTER_ID, 0);
+        chapterNumber = getIntent().getIntExtra(EXTRA_CHAPTER, 0);
         readerProgressStore = new ReaderProgressStore(this);
-        restoredProgress = readerProgressStore.getProgressForChapter(comicId, chapterId);
 
         ApiClient apiClient = new ApiClient(this);
-        ReaderRepository readerRepository = new ReaderRepository(apiClient);
+        readerRepository = new ReaderRepository(apiClient);
         ReaderViewModel.Factory factory = new ReaderViewModel.Factory(readerRepository);
         viewModel = new ViewModelProvider(this, factory).get(ReaderViewModel.class);
 
@@ -146,19 +160,13 @@ public class ReaderActivity extends AppCompatActivity {
         });
 
         binding.tvReaderTitle.setText(getString(R.string.app_name));
-        ComicRepository.getInstance().getComicById(comicId, new ComicRepository.ComicCallback() {
-            @Override
-            public void onSuccess(Comic fetchedComic) {
-                if (fetchedComic != null && binding != null) {
-                    binding.tvReaderTitle.setText(fetchedComic.getTitle());
-                }
-            }
+        if (chapterNumber > 0) {
+            binding.tvReaderChapter.setText(getString(R.string.reader_chapter, chapterNumber));
+        } else {
+            binding.tvReaderChapter.setText("");
+        }
 
-            @Override
-            public void onError(String error) {
-            }
-        });
-        binding.tvReaderChapter.setText(getString(R.string.reader_chapter, chapterNumber));
+        binding.btnReaderShare.setOnClickListener(v -> shareCurrentChapter());
 
         binding.btnReaderBack.setOnClickListener(v -> {
             resetZoomToBaseState();
@@ -167,7 +175,6 @@ public class ReaderActivity extends AppCompatActivity {
         });
 
         commentsViewModel = new ViewModelProvider(this).get(CommentsViewModel.class);
-        commentsViewModel.init(comicId, chapterId);
         commentsViewModel.getComments().observe(this, comments -> commentsFooterAdapter.setComments(comments));
         commentsViewModel.getHasMore().observe(this, more -> commentsFooterAdapter.setHasMore(more != null && more));
         commentsViewModel.getReplyingToLabel().observe(this, label -> commentsFooterAdapter.setReplyingToLabel(label));
@@ -202,7 +209,7 @@ public class ReaderActivity extends AppCompatActivity {
             });
             boolean hasPages = !safePages.isEmpty();
             binding.tvReaderEmpty.setVisibility(hasPages ? android.view.View.GONE : android.view.View.VISIBLE);
-            if (hasPages && sessionManager.hasToken() && !historyRecorded) {
+            if (hasPages && comicId > 0 && sessionManager.hasToken() && !historyRecorded) {
                 historyRecorded = true;
                 viewModel.recordReadingHistory(comicId, chapterId, 1);
             }
@@ -223,7 +230,74 @@ public class ReaderActivity extends AppCompatActivity {
             binding.tvReaderEmpty.setVisibility(android.view.View.VISIBLE);
             return;
         }
+
+        resolveChapterMetaIfNeeded();
+        initHeaderIfPossible();
+        initCommentsIfPossible();
         viewModel.loadChapterPages(chapterId);
+    }
+
+    private void resolveChapterMetaIfNeeded() {
+        if (readerRepository == null || chapterId <= 0) {
+            return;
+        }
+        if (comicId > 0 && chapterNumber > 0) {
+            return;
+        }
+
+        readerRepository.getChapterById(chapterId, new ReaderRepository.ChapterCallback() {
+            @Override
+            public void onSuccess(@NonNull ComicChapterResponse chapter) {
+                if (chapter.getComicId() != null && comicId <= 0) {
+                    comicId = chapter.getComicId().intValue();
+                }
+                if (chapter.getChapterNumber() != null && chapterNumber <= 0) {
+                    chapterNumber = chapter.getChapterNumber();
+                }
+                if (binding != null && chapterNumber > 0) {
+                    binding.tvReaderChapter.setText(getString(R.string.reader_chapter, chapterNumber));
+                }
+                initHeaderIfPossible();
+                initCommentsIfPossible();
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                // Ignore: pages can still load without meta.
+            }
+        });
+    }
+
+    private void initHeaderIfPossible() {
+        if (comicId <= 0) {
+            return;
+        }
+        restoredProgress = readerProgressStore.getProgressForChapter(comicId, chapterId);
+        restoreReadingPositionIfNeeded();
+
+        ComicRepository.getInstance().getComicById(comicId, new ComicRepository.ComicCallback() {
+            @Override
+            public void onSuccess(Comic fetchedComic) {
+                if (fetchedComic == null) {
+                    return;
+                }
+                comicTitle = fetchedComic.getTitle();
+                if (binding != null && comicTitle != null && !comicTitle.trim().isEmpty()) {
+                    binding.tvReaderTitle.setText(comicTitle);
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+            }
+        });
+    }
+
+    private void initCommentsIfPossible() {
+        if (commentsViewModel == null || comicId <= 0) {
+            return;
+        }
+        commentsViewModel.init(comicId, chapterId);
     }
 
     @Override
@@ -268,6 +342,9 @@ public class ReaderActivity extends AppCompatActivity {
     }
 
     private void saveCurrentReadingProgress() {
+        if (comicId <= 0 || chapterId <= 0 || chapterNumber <= 0) {
+            return;
+        }
         if (layoutManager == null) {
             return;
         }
@@ -278,6 +355,20 @@ public class ReaderActivity extends AppCompatActivity {
         View firstVisibleView = layoutManager.findViewByPosition(position);
         int offset = firstVisibleView == null ? 0 : firstVisibleView.getTop();
         readerProgressStore.saveProgress(comicId, chapterId, chapterNumber, position, offset);
+    }
+
+    private void shareCurrentChapter() {
+        if (chapterId <= 0) {
+            return;
+        }
+        String url = ApiClient.toAbsolutePublicUrl("/share/chapter/" + chapterId);
+
+        String shareText = url;
+
+        Intent sendIntent = new Intent(Intent.ACTION_SEND);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+        sendIntent.setType("text/plain");
+        startActivity(Intent.createChooser(sendIntent, getString(R.string.share_chooser_title)));
     }
 
     private void resetZoomToBaseState() {

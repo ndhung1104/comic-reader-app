@@ -114,6 +114,12 @@
     <string name="content_open_comments">Open comments</string>
     <string name="content_close_comments">Close comments</string>
     <string name="content_filter">Filter</string>
+    <string name="content_share">Share</string>
+
+    <string name="share_chooser_title">Share via</string>
+    <string name="share_comic_caption">Read %1$s on ComicReader: %2$s</string>
+    <string name="share_chapter_caption">Read %1$s - Chapter %2$d on ComicReader: %3$s</string>
+    <string name="share_chapter_caption_fallback">Read on ComicReader: %1$s</string>
     <string name="choose_language">Choose language</string>
     <string name="translate_button">Translate</string>
     <string name="translate_loading">Translating…</string>

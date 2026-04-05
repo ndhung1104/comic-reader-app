@@ -29,10 +29,18 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val baseUrl = envProperties.getProperty("MOBILE_BASE_URL", "http://10.0.2.2:8080/")
         buildConfigField(
             "String",
             "BASE_URL",
-            envProperties.getProperty("MOBILE_BASE_URL", "http://10.0.2.2:8080/").asBuildConfigString()
+            baseUrl.asBuildConfigString()
+        )
+
+        buildConfigField(
+            "String",
+            "PUBLIC_BASE_URL",
+            envProperties.getProperty("MOBILE_PUBLIC_BASE_URL", baseUrl).asBuildConfigString()
         )
 
         buildConfigField(

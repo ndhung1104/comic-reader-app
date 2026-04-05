@@ -20,6 +20,12 @@ import retrofit2.Response;
 
 public class ReaderRepository {
 
+    public interface ChapterCallback {
+        void onSuccess(@NonNull ComicChapterResponse chapter);
+
+        void onError(@NonNull String message);
+    }
+
     public interface ChaptersCallback {
         void onSuccess(@NonNull List<Chapter> chapters);
 
@@ -42,6 +48,25 @@ public class ReaderRepository {
 
     public ReaderRepository(@NonNull ApiClient apiClient) {
         this.apiClient = apiClient;
+    }
+
+    public void getChapterById(long chapterId, @NonNull ChapterCallback callback) {
+        apiClient.chapterApi().getChapter(chapterId).enqueue(new Callback<ComicChapterResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<ComicChapterResponse> call,
+                                   @NonNull Response<ComicChapterResponse> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError("Failed to load chapter (" + response.code() + ")");
+                    return;
+                }
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ComicChapterResponse> call, @NonNull Throwable throwable) {
+                callback.onError(throwable.getMessage() == null ? "Network error" : throwable.getMessage());
+            }
+        });
     }
 
     public void getComicChapters(int comicId, @NonNull ChaptersCallback callback) {

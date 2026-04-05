@@ -115,6 +115,28 @@ public class ChapterService {
                 .toList();
     }
 
+    public ChapterResponse getChapter(Long chapterId) {
+        ChapterEntity chapter = getChapterEntity(chapterId);
+        ChapterResponse response = toChapterResponse(chapter);
+
+        if (!chapter.isPremium()) {
+            response.setUnlocked(true);
+            return response;
+        }
+
+        Optional<UserEntity> userOptional = getCurrentUserOptional();
+        if (userOptional.isEmpty()) {
+            response.setUnlocked(false);
+            return response;
+        }
+
+        UserEntity user = userOptional.get();
+        boolean isVip = vipRepository.findActiveByUserId(user.getId(), LocalDateTime.now()).isPresent();
+        boolean purchased = purchaseRepository.existsByUserIdAndChapterId(user.getId(), chapter.getId());
+        response.setUnlocked(isVip || purchased);
+        return response;
+    }
+
     @Transactional
     public ChapterResponse updateChapter(Long chapterId, ChapterRequest request) {
         ChapterEntity chapter = getChapterEntity(chapterId);

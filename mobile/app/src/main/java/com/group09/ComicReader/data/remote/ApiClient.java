@@ -13,7 +13,8 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class ApiClient {
 
     // Emulator -> host machine
-    public static final String DEFAULT_BASE_URL = BuildConfig.BASE_URL;
+    public static final String DEFAULT_BASE_URL = normalizeBaseUrl(BuildConfig.BASE_URL);
+    public static final String PUBLIC_BASE_URL = normalizeBaseUrl(BuildConfig.PUBLIC_BASE_URL);
 
     private final Retrofit retrofit;
 
@@ -87,5 +88,27 @@ public class ApiClient {
         }
         String relative = pathOrUrl.startsWith("/") ? pathOrUrl.substring(1) : pathOrUrl;
         return DEFAULT_BASE_URL + relative;
+    }
+
+    public static String toAbsolutePublicUrl(String pathOrUrl) {
+        if (pathOrUrl == null || pathOrUrl.trim().isEmpty()) {
+            return "";
+        }
+        if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+            return pathOrUrl;
+        }
+        String relative = pathOrUrl.startsWith("/") ? pathOrUrl.substring(1) : pathOrUrl;
+        return PUBLIC_BASE_URL + relative;
+    }
+
+    private static String normalizeBaseUrl(String baseUrl) {
+        if (baseUrl == null) {
+            return "";
+        }
+        String trimmed = baseUrl.trim();
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+        return trimmed.endsWith("/") ? trimmed : trimmed + "/";
     }
 }

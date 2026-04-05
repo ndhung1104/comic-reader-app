@@ -349,13 +349,15 @@ public class ComicDetailFragment extends BaseFragment {
         if (currentComic == null || requireContext() == null) {
             return;
         }
-        String shareText = "Check out this comic: comicreader://comic/" + currentComic.getId();
-        Intent sendIntent = new Intent();
-        sendIntent.setAction(Intent.ACTION_SEND);
+        String url = com.group09.ComicReader.data.remote.ApiClient.toAbsolutePublicUrl(
+                "/share/comic/" + currentComic.getId());
+        String shareText = url;
+
+        Intent sendIntent = new Intent(Intent.ACTION_SEND);
         sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
         sendIntent.setType("text/plain");
 
-        Intent shareIntent = Intent.createChooser(sendIntent, "Share Comic via");
+        Intent shareIntent = Intent.createChooser(sendIntent, getString(R.string.share_chooser_title));
         startActivity(shareIntent);
     }
 

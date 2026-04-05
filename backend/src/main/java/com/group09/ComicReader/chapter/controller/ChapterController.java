@@ -1,6 +1,7 @@
 package com.group09.ComicReader.chapter.controller;
 
 import com.group09.ComicReader.chapter.dto.ChapterPageResponse;
+import com.group09.ComicReader.chapter.dto.ChapterResponse;
 import com.group09.ComicReader.chapter.service.ChapterService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +19,11 @@ public class ChapterController {
 
     public ChapterController(ChapterService chapterService) {
         this.chapterService = chapterService;
+    }
+
+    @GetMapping("/{chapterId}")
+    public ResponseEntity<ChapterResponse> getChapter(@PathVariable Long chapterId) {
+        return ResponseEntity.ok(chapterService.getChapter(chapterId));
     }
 
     @GetMapping("/{chapterId}/pages")
