@@ -220,9 +220,11 @@ public class TranslationJobService {
         request.setTargetLang(job.getTargetLang());
 
         List<WorkerPageInput> workerPages = new ArrayList<>();
-        for (ChapterPageEntity page : pages) {
+        for (int index = 0; index < pages.size(); index++) {
+            ChapterPageEntity page = pages.get(index);
             WorkerPageInput workerPageInput = new WorkerPageInput();
-            workerPageInput.setPageNumber(page.getPageNumber());
+            // Normalize page number to 1-based sequence for worker compatibility.
+            workerPageInput.setPageNumber(index + 1);
             workerPageInput.setImageUrl(page.getImageUrl());
             workerPages.add(workerPageInput);
         }

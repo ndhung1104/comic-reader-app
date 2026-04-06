@@ -30,14 +30,33 @@ services:
       context: ./worker/comic-translate-worker
       dockerfile: Dockerfile
     container_name: comicreader-translate-worker
+    environment:
+      OCR_MODEL_DIR: /var/lib/comic-translate/models
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      OCR_ORT_INTRA_OP_THREADS: "1"
+      OCR_ORT_INTER_OP_THREADS: "1"
+      PPOCR_REC_BATCH_SIZE: "2"
+      OCR_MAX_IMAGE_SIDE: "1600"
+      OCR_CROSS_ENGINE_FALLBACK: "false"
+      WORKER_MAX_CONCURRENT_JOBS: "1"
+      WORKER_IMAGE_FETCH_CONNECT_TIMEOUT_SECONDS: "10"
+      WORKER_IMAGE_FETCH_READ_TIMEOUT_SECONDS: "45"
+      WORKER_IMAGE_FETCH_MAX_RETRIES: "5"
+      WORKER_IMAGE_FETCH_BACKOFF_SECONDS: "1.5"
     ports:
       - "8090:8090"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
-      retries: 5
-    mem_limit: 512m
+      retries: 20
+      start_period: 10m
+    mem_limit: 2g
+    restart: unless-stopped
+    volumes:
+      - worker_models:/var/lib/comic-translate/models
 
   backend:
     build:
@@ -80,3 +99,4 @@ volumes:
   pg_data:
   uploads_data:
   ollama_data:
+  worker_models:
