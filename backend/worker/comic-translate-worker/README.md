@@ -1,4 +1,4 @@
-# comic-translate-worker (stub)
+# comic-translate-worker (headless OCR)
 
 This worker provides the v1 API contract for backend integration:
 
@@ -6,17 +6,27 @@ This worker provides the v1 API contract for backend integration:
 - `GET /jobs/{id}`
 - `GET /jobs/{id}/artifacts`
 
-Current behavior is an in-memory stub that returns `SUCCEEDED` immediately and emits OCR text per page.
+Current behavior uses a real OCR flow adapted from `ogkalu2/comic-translate`:
+- RT-DETR v2 ONNX for text/bubble detection
+- OCR engine routing:
+  - `ja` -> Manga OCR ONNX
+  - non-`ja` -> PPOCRv5 ONNX (language-specific rec model)
+- Per-page OCR output with the existing backend contract
 
-## Why a stub in v1
+The worker still keeps in-memory job state in v1, but OCR is no longer stub text.
+On first boot it downloads OCR models, so `/health` can stay `503` for a few minutes until warmup completes.
 
-The backend contract and OCR persistence flow can be integrated and validated now while the full `ogkalu2/comic-translate` pipeline is being adapted to headless server mode.
+## Environment variables
 
-## Next step to use ogkalu2/comic-translate
-
-1. Replace in-memory processing in `app/main.py` with pipeline invocation.
-2. Keep response schema unchanged so backend does not need any contract update.
-3. Preserve `idempotencyKey` handling in submit path.
+- `OCR_MODEL_DIR` (default: `/var/lib/comic-translate/models`)
+- `OCR_DEVICE` (default: `cpu`)
+- `WORKER_IMAGE_FETCH_TIMEOUT_SECONDS` (default: `30`)
+- `WORKER_MAX_PAGES_PER_JOB` (default: `200`)
+- `OCR_MODEL_CONNECT_TIMEOUT_SECONDS` (default: `20`)
+- `OCR_MODEL_DOWNLOAD_TIMEOUT_SECONDS` (default: `120`)
+- `OCR_MODEL_DOWNLOAD_MAX_RETRIES` (default: `6`)
+- `OCR_MODEL_DOWNLOAD_BACKOFF_SECONDS` (default: `2`)
+- `HF_ENDPOINT` (optional mirror for HuggingFace downloads)
 
 ## Run locally
 

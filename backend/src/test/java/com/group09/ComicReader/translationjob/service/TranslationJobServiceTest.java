@@ -7,6 +7,7 @@ import com.group09.ComicReader.comic.entity.ComicEntity;
 import com.group09.ComicReader.translationjob.client.TranslationWorkerClient;
 import com.group09.ComicReader.translationjob.client.dto.WorkerJobStatusResponse;
 import com.group09.ComicReader.translationjob.client.dto.WorkerOcrPageText;
+import com.group09.ComicReader.translationjob.client.dto.WorkerSubmitJobRequest;
 import com.group09.ComicReader.translationjob.client.dto.WorkerSubmitJobResponse;
 import com.group09.ComicReader.translationjob.dto.CreateTranslationJobRequest;
 import com.group09.ComicReader.translationjob.entity.ChapterPageOcrTextEntity;
@@ -102,6 +103,44 @@ class TranslationJobServiceTest {
         assertThat(response.getId()).isEqualTo(101L);
         assertThat(response.getExternalJobId()).isEqualTo("worker-1");
         assertThat(response.getStatus()).isEqualTo(TranslationJobStatus.RUNNING);
+    }
+
+    @Test
+    void createJobShouldNormalizeWorkerPageNumbersToOneBasedSequence() {
+        when(chapterService.getChapterEntity(5L)).thenReturn(chapter);
+
+        ChapterPageEntity page0 = new ChapterPageEntity();
+        page0.setId(10L);
+        page0.setPageNumber(0);
+        page0.setImageUrl("/uploads/ch1_p0.jpg");
+
+        ChapterPageEntity page7 = new ChapterPageEntity();
+        page7.setId(11L);
+        page7.setPageNumber(7);
+        page7.setImageUrl("/uploads/ch1_p7.jpg");
+
+        when(chapterPageRepository.findByChapterIdOrderByPageNumberAsc(5L)).thenReturn(List.of(page0, page7));
+
+        WorkerSubmitJobResponse workerResponse = new WorkerSubmitJobResponse();
+        workerResponse.setJobId("worker-normalized");
+        workerResponse.setStatus("RUNNING");
+
+        ArgumentCaptor<WorkerSubmitJobRequest> requestCaptor = ArgumentCaptor.forClass(WorkerSubmitJobRequest.class);
+        when(translationWorkerClient.submitJob(requestCaptor.capture())).thenReturn(workerResponse);
+
+        CreateTranslationJobRequest request = new CreateTranslationJobRequest();
+        request.setChapterId(5L);
+        request.setSourceLang("vi");
+        request.setTargetLang("en");
+
+        translationJobService.createJob(request);
+
+        WorkerSubmitJobRequest captured = requestCaptor.getValue();
+        assertThat(captured.getPages()).hasSize(2);
+        assertThat(captured.getPages().get(0).getPageNumber()).isEqualTo(1);
+        assertThat(captured.getPages().get(1).getPageNumber()).isEqualTo(2);
+        assertThat(captured.getPages().get(0).getImageUrl()).isEqualTo("/uploads/ch1_p0.jpg");
+        assertThat(captured.getPages().get(1).getImageUrl()).isEqualTo("/uploads/ch1_p7.jpg");
     }
 
     @Test
