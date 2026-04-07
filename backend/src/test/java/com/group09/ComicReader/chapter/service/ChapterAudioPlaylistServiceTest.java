@@ -19,6 +19,7 @@ import com.group09.ComicReader.translationjob.service.TranslationJobService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -63,6 +64,11 @@ class ChapterAudioPlaylistServiceTest {
         TtsWorkerProperties properties = new TtsWorkerProperties();
         properties.setDefaultLang("auto");
         properties.setDefaultVoice("af_heart");
+        properties.setVoiceVi("vi_VN-vais1000-medium");
+        properties.setVoiceEn("en_US-lessac-medium");
+        properties.setVoiceJa("ja_JP-kokoro-medium");
+        properties.setVoiceKo("ko_KR-kss-medium");
+        properties.setFallbackVoice("en_US-lessac-medium");
         properties.setDefaultSpeed(1.0);
 
         chapterAudioPlaylistService = new ChapterAudioPlaylistService(
@@ -171,6 +177,61 @@ class ChapterAudioPlaylistServiceTest {
         assertThat(response.getAudioPages()).hasSize(2);
         assertThat(response.getAudioPages().get(0).getAudioUrl()).contains("page-1.wav");
         assertThat(response.getAudioPages().get(1).getAudioUrl()).contains("page-2.wav");
+    }
+
+    @Test
+    void createOrGetPlaylistShouldMapVoiceFromLanguageWhenVoiceMissing() {
+        long chapterId = 35L;
+        List<ChapterPageEntity> chapterPages = buildChapterPages(chapterId, 1);
+        when(chapterService.getPages(chapterId)).thenReturn(List.of(new ChapterPageResponse()));
+        when(chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapterId)).thenReturn(chapterPages);
+
+        ChapterAudioPlaylistRequest request = new ChapterAudioPlaylistRequest();
+        request.setSourceLang("ja");
+
+        when(chapterPageTtsAudioRepository.findByChapterIdAndLangAndVoiceAndSpeedOrderByPageNumberAsc(
+                chapterId, "ja", "ja_JP-kokoro-medium", 1.0
+        )).thenReturn(List.of());
+
+        when(chapterPageOcrTextRepository.findByChapterIdAndSourceLangOrderByPageNumberAsc(chapterId, "ja"))
+                .thenReturn(List.of());
+
+        ChapterPageOcrTextEntity ocr1 = new ChapterPageOcrTextEntity();
+        ocr1.setPageNumber(1);
+        ocr1.setSourceLang("ja");
+        ocr1.setOcrText("konnichiwa");
+        when(translationJobService.ensureChapterOcrText(chapterId, "ja"))
+                .thenReturn(List.of(ocr1));
+
+        TtsWorkerAudioPage generated1 = new TtsWorkerAudioPage();
+        generated1.setPageNumber(1);
+        generated1.setAudioBase64(Base64.getEncoder().encodeToString("audio-ja".getBytes()));
+        generated1.setDurationMs(310);
+
+        TtsWorkerSynthesizeBatchResponse workerResponse = new TtsWorkerSynthesizeBatchResponse();
+        workerResponse.setStatus("SUCCEEDED");
+        workerResponse.setAudioPages(List.of(generated1));
+        when(ttsWorkerClient.synthesizeBatch(any())).thenReturn(workerResponse);
+
+        when(fileStorageService.storeChapterPageAudio(
+                eq(chapterId), eq(1), eq("ja"), eq("ja_JP-kokoro-medium"), eq(1.0), any()))
+                .thenReturn("/uploads/chapter-35/tts/ja/ja_jp-kokoro-medium-1_0/page-1.wav");
+
+        when(chapterPageTtsAudioRepository.save(any(ChapterPageTtsAudioEntity.class))).thenAnswer(invocation -> {
+            ChapterPageTtsAudioEntity entity = invocation.getArgument(0);
+            entity.setId(1L);
+            return entity;
+        });
+
+        var response = chapterAudioPlaylistService.createOrGetPlaylist(chapterId, request);
+
+        ArgumentCaptor<com.group09.ComicReader.translationjob.client.dto.TtsWorkerSynthesizeBatchRequest> captor =
+                ArgumentCaptor.forClass(com.group09.ComicReader.translationjob.client.dto.TtsWorkerSynthesizeBatchRequest.class);
+        verify(ttsWorkerClient).synthesizeBatch(captor.capture());
+
+        assertThat(captor.getValue().getVoice()).isEqualTo("ja_JP-kokoro-medium");
+        assertThat(response.getVoice()).isEqualTo("ja_JP-kokoro-medium");
+        assertThat(response.getStatus()).isEqualTo("READY");
     }
 
     private List<ChapterPageEntity> buildChapterPages(long chapterId, int count) {

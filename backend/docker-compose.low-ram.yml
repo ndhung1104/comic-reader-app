@@ -70,6 +70,11 @@ services:
       PIPER_MODEL_DIR: /var/lib/piper/models
       PIPER_ENABLE_MODEL: "true"
       PIPER_DEFAULT_VOICE: vi_VN-vais1000-medium
+      PIPER_VOICE_VI: vi_VN-vais1000-medium
+      PIPER_VOICE_EN: en_US-lessac-medium
+      PIPER_VOICE_JA: en_US-lessac-medium
+      PIPER_VOICE_KO: en_US-lessac-medium
+      PIPER_FALLBACK_VOICE: en_US-lessac-medium
     ports:
       - "8091:8091"
     healthcheck:
