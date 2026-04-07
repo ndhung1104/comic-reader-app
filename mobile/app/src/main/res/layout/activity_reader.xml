@@ -48,6 +48,19 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_reader_audio"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="@dimen/icon_lg"
+            android:text="@string/reader_audio_request"
+            android:textAllCaps="false"
+            android:textSize="@dimen/text_xs"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <TextView
             android:id="@+id/tv_reader_title"
             android:layout_width="0dp"
@@ -58,7 +71,7 @@
             android:textColor="@color/text_primary"
             android:textSize="@dimen/text_md"
             app:layout_constraintBottom_toTopOf="@id/tv_reader_chapter"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btn_reader_audio"
             app:layout_constraintStart_toEndOf="@id/btn_reader_back"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -70,7 +83,7 @@
             android:textColor="@color/text_secondary"
             android:textSize="@dimen/text_sm"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btn_reader_audio"
             app:layout_constraintStart_toEndOf="@id/btn_reader_back"
             app:layout_constraintTop_toBottomOf="@id/tv_reader_title" />
 

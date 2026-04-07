@@ -1,11 +1,13 @@
 package com.group09.ComicReader.viewmodel;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.group09.ComicReader.data.ReaderRepository;
+import com.group09.ComicReader.model.ReaderAudioPage;
 import com.group09.ComicReader.model.ReaderPage;
 
 import java.util.List;
@@ -34,6 +36,9 @@ public class ReaderViewModel extends ViewModel {
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<Boolean> historySaved = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> audioLoading = new MutableLiveData<>(false);
+    private final MutableLiveData<String> audioErrorMessage = new MutableLiveData<>();
+    private final MutableLiveData<List<ReaderAudioPage>> audioPages = new MutableLiveData<>();
 
     public ReaderViewModel(ReaderRepository readerRepository) {
         this.readerRepository = readerRepository;
@@ -86,5 +91,36 @@ public class ReaderViewModel extends ViewModel {
 
     public LiveData<Boolean> getHistorySaved() {
         return historySaved;
+    }
+
+    public void createOrGetChapterAudioPlaylist(long chapterId) {
+        audioLoading.setValue(true);
+        audioErrorMessage.setValue(null);
+
+        readerRepository.createOrGetChapterAudioPlaylist(chapterId, new ReaderRepository.AudioPlaylistCallback() {
+            @Override
+            public void onSuccess(@NonNull List<ReaderAudioPage> pages) {
+                audioLoading.postValue(false);
+                audioPages.postValue(pages);
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                audioLoading.postValue(false);
+                audioErrorMessage.postValue(message);
+            }
+        });
+    }
+
+    public LiveData<Boolean> getAudioLoading() {
+        return audioLoading;
+    }
+
+    public LiveData<String> getAudioErrorMessage() {
+        return audioErrorMessage;
+    }
+
+    public LiveData<List<ReaderAudioPage>> getAudioPages() {
+        return audioPages;
     }
 }

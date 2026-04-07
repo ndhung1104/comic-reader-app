@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -101,12 +102,59 @@ public class FileStorageService {
         return "/uploads/avatars/user-" + userId + "/" + filename;
     }
 
+    public String storeChapterPageAudio(Long chapterId,
+            Integer pageNumber,
+            String lang,
+            String voice,
+            Double speed,
+            byte[] audioBytes) {
+        if (audioBytes == null || audioBytes.length == 0) {
+            throw new BadRequestException("Audio payload is empty");
+        }
+
+        String sanitizedLang = sanitizePathPart(lang, "auto");
+        String sanitizedVoice = sanitizePathPart(voice, "default");
+        String sanitizedSpeed = speed == null ? "1_0" : String.valueOf(speed).replace('.', '_');
+        String filename = "page-" + pageNumber + "-" + UUID.randomUUID() + ".wav";
+
+        Path chapterDir = uploadRoot.resolve("chapter-" + chapterId)
+                .resolve("tts")
+                .resolve(sanitizedLang)
+                .resolve(sanitizedVoice + "-" + sanitizedSpeed)
+                .normalize();
+        Path targetFile = chapterDir.resolve(filename).normalize();
+
+        if (!targetFile.startsWith(chapterDir)) {
+            throw new BadRequestException("Invalid audio file path");
+        }
+
+        try {
+            Files.createDirectories(chapterDir);
+            Files.write(targetFile, audioBytes);
+        } catch (FileAlreadyExistsException ignored) {
+            // Filename already includes UUID; this path is extremely unlikely.
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to store audio file", exception);
+        }
+
+        return "/uploads/chapter-" + chapterId + "/tts/" + sanitizedLang + "/" + sanitizedVoice + "-" + sanitizedSpeed
+                + "/" + filename;
+    }
+
     private String extractExtension(String filename) {
         int lastDot = filename.lastIndexOf('.');
         if (lastDot < 0) {
             return ".jpg";
         }
         return filename.substring(lastDot);
+    }
+
+    private String sanitizePathPart(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        return value.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9._-]", "_");
     }
 }
 

@@ -36,6 +36,8 @@ import java.util.function.Supplier;
 public class TranslationJobService {
 
     private static final int MAX_RETRY_ATTEMPTS = 2;
+    private static final int OCR_POLL_INTERVAL_MS = 3000;
+    private static final int OCR_MAX_POLL_ATTEMPTS = 80;
 
     private final TranslationJobRepository translationJobRepository;
     private final ChapterPageRepository chapterPageRepository;
@@ -129,6 +131,66 @@ public class TranslationJobService {
         response.setArtifacts(artifactsResponse.getArtifacts());
         response.setOcrPages(toOcrPageResponses(artifactsResponse.getOcrPages()));
         return response;
+    }
+
+    @Transactional
+    public List<ChapterPageOcrTextEntity> ensureChapterOcrText(Long chapterId, String sourceLang) {
+        ChapterEntity chapter = chapterService.getChapterEntity(chapterId);
+        List<ChapterPageEntity> pages = chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapterId);
+        if (pages.isEmpty()) {
+            throw new BadRequestException("Chapter has no pages to process");
+        }
+
+        String normalizedSource = normalizeLanguage(sourceLang, "auto");
+        List<ChapterPageOcrTextEntity> existing = chapterPageOcrTextRepository
+                .findByChapterIdAndSourceLangOrderByPageNumberAsc(chapterId, normalizedSource);
+        if (existing.size() >= pages.size()) {
+            return existing;
+        }
+
+        CreateTranslationJobRequest request = new CreateTranslationJobRequest();
+        request.setChapterId(chapter.getId());
+        request.setSourceLang(normalizedSource);
+        request.setTargetLang("vi");
+
+        TranslationJobResponse created = createJob(request);
+        if (created.getStatus() == TranslationJobStatus.FAILED || created.getStatus() == TranslationJobStatus.CANCELLED) {
+            throw new BadRequestException("OCR job failed to start: " + created.getErrorMessage());
+        }
+
+        TranslationJobResponse latest = created;
+        for (int attempt = 1; attempt <= OCR_MAX_POLL_ATTEMPTS; attempt++) {
+            latest = getJob(created.getId());
+            if (isTerminal(latest.getStatus())) {
+                break;
+            }
+            sleepQuietly(OCR_POLL_INTERVAL_MS);
+        }
+
+        if (!isTerminal(latest.getStatus())) {
+            throw new BadRequestException("OCR job timed out before completion");
+        }
+
+        if (latest.getStatus() != TranslationJobStatus.SUCCEEDED) {
+            throw new BadRequestException("OCR job failed: " + latest.getErrorMessage());
+        }
+
+        getArtifacts(created.getId());
+
+        List<ChapterPageOcrTextEntity> refreshed = chapterPageOcrTextRepository
+                .findByChapterIdAndSourceLangOrderByPageNumberAsc(chapterId, normalizedSource);
+        if (refreshed.size() < pages.size()) {
+            throw new BadRequestException("OCR completed but OCR text is missing for some pages");
+        }
+        return refreshed;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChapterPageOcrTextEntity> getChapterOcrText(Long chapterId, String sourceLang) {
+        return chapterPageOcrTextRepository.findByChapterIdAndSourceLangOrderByPageNumberAsc(
+                chapterId,
+                normalizeLanguage(sourceLang, "auto")
+        );
     }
 
     private void refreshJobFromWorker(TranslationJobEntity job) {
@@ -320,5 +382,14 @@ public class TranslationJobService {
         }
 
         throw lastException == null ? new BadRequestException("Unknown worker error") : lastException;
+    }
+
+    private void sleepQuietly(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new BadRequestException("OCR polling interrupted");
+        }
     }
 }
