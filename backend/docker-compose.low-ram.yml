@@ -22,6 +22,7 @@ services:
       timeout: 5s
       retries: 5
     mem_limit: 512m
+    restart: unless-stopped
     volumes:
       - pg_data:/var/lib/postgresql/data
 
@@ -58,6 +59,26 @@ services:
     volumes:
       - worker_models:/var/lib/comic-translate/models
 
+  kokoro-tts-worker:
+    build:
+      context: ./worker/kokoro-tts-worker
+      dockerfile: Dockerfile
+    container_name: comicreader-kokoro-tts-worker
+    environment:
+      KOKORO_STRICT_STARTUP: "false"
+      KOKORO_SAMPLE_RATE: "24000"
+      KOKORO_ENABLE_MODEL: "true"
+    ports:
+      - "8091:8091"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8091/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 2m
+    mem_limit: 2g
+    restart: unless-stopped
+
   backend:
     build:
       context: .
@@ -70,14 +91,18 @@ services:
         condition: service_healthy
       comic-translate-worker:
         condition: service_healthy
+      kokoro-tts-worker:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker
       DB_URL: jdbc:postgresql://postgres:5432/comic_reader
       JAVA_TOOL_OPTIONS: "-Xms256m -Xmx768m"
       TRANSLATION_WORKER_BASE_URL: http://comic-translate-worker:8090
+      TTS_WORKER_BASE_URL: http://kokoro-tts-worker:8091
     ports:
       - "8080:8080"
     mem_limit: 1g
+    restart: unless-stopped
     volumes:
       - uploads_data:/app/uploads
 

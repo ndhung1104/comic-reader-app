@@ -4,8 +4,12 @@ import androidx.annotation.NonNull;
 
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.model.Chapter;
+import com.group09.ComicReader.model.ChapterAudioPageResponse;
+import com.group09.ComicReader.model.ChapterAudioPlaylistRequest;
+import com.group09.ComicReader.model.ChapterAudioPlaylistResponse;
 import com.group09.ComicReader.model.ComicChapterResponse;
 import com.group09.ComicReader.model.ReadingHistoryRequest;
+import com.group09.ComicReader.model.ReaderAudioPage;
 import com.group09.ComicReader.model.ReaderPage;
 import com.group09.ComicReader.model.ReaderPageResponse;
 import com.group09.ComicReader.model.RecentReadResponse;
@@ -34,6 +38,12 @@ public class ReaderRepository {
 
     public interface HistoryCallback {
         void onSuccess();
+
+        void onError(@NonNull String message);
+    }
+
+    public interface AudioPlaylistCallback {
+        void onSuccess(@NonNull List<ReaderAudioPage> pages);
 
         void onError(@NonNull String message);
     }
@@ -130,6 +140,48 @@ public class ReaderRepository {
 
             @Override
             public void onFailure(@NonNull Call<RecentReadResponse> call, @NonNull Throwable throwable) {
+                callback.onError(throwable.getMessage() == null ? "Network error" : throwable.getMessage());
+            }
+        });
+    }
+
+    public void createOrGetChapterAudioPlaylist(long chapterId, @NonNull AudioPlaylistCallback callback) {
+        ChapterAudioPlaylistRequest request = new ChapterAudioPlaylistRequest();
+        apiClient.chapterApi().createOrGetAudioPlaylist(chapterId, request).enqueue(new Callback<ChapterAudioPlaylistResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<ChapterAudioPlaylistResponse> call,
+                    @NonNull Response<ChapterAudioPlaylistResponse> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError("Failed to generate audio (" + response.code() + ")");
+                    return;
+                }
+
+                List<ChapterAudioPageResponse> audioPages = response.body().getAudioPages();
+                if (audioPages == null) {
+                    callback.onSuccess(new ArrayList<>());
+                    return;
+                }
+
+                List<ReaderAudioPage> result = new ArrayList<>();
+                for (ChapterAudioPageResponse page : audioPages) {
+                    if (page == null || page.getAudioUrl() == null || page.getAudioUrl().trim().isEmpty()) {
+                        continue;
+                    }
+                    int pageNumber = page.getPageNumber() == null ? 0 : page.getPageNumber();
+                    int durationMs = page.getDurationMs() == null ? 0 : page.getDurationMs();
+                    result.add(new ReaderAudioPage(
+                            pageNumber,
+                            ApiClient.toAbsoluteUrl(page.getAudioUrl()),
+                            durationMs
+                    ));
+                }
+
+                result.sort(Comparator.comparingInt(ReaderAudioPage::getPageNumber));
+                callback.onSuccess(result);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ChapterAudioPlaylistResponse> call, @NonNull Throwable throwable) {
                 callback.onError(throwable.getMessage() == null ? "Network error" : throwable.getMessage());
             }
         });
