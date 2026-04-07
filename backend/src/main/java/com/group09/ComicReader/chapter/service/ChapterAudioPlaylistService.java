@@ -3,6 +3,7 @@ package com.group09.ComicReader.chapter.service;
 import com.group09.ComicReader.chapter.dto.ChapterAudioPageResponse;
 import com.group09.ComicReader.chapter.dto.ChapterAudioPlaylistRequest;
 import com.group09.ComicReader.chapter.dto.ChapterAudioPlaylistResponse;
+import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.chapter.entity.ChapterPageEntity;
 import com.group09.ComicReader.chapter.repository.ChapterPageRepository;
 import com.group09.ComicReader.common.exception.BadRequestException;
@@ -66,6 +67,7 @@ public class ChapterAudioPlaylistService {
 
     @Transactional
     public ChapterAudioPlaylistResponse createOrGetPlaylist(Long chapterId, ChapterAudioPlaylistRequest request) {
+        ChapterEntity chapter = chapterService.getChapterEntity(chapterId);
         // Reuse existing access-control and lazy-page-loading path.
         chapterService.getPages(chapterId);
 
@@ -74,7 +76,8 @@ public class ChapterAudioPlaylistService {
             throw new BadRequestException("Chapter has no pages");
         }
 
-        String sourceLang = normalizeLang(request == null ? null : request.getSourceLang(), ttsWorkerProperties.getDefaultLang());
+        String chapterLang = normalizeLang(chapter.getLanguage(), ttsWorkerProperties.getDefaultLang());
+        String sourceLang = normalizeLang(request == null ? null : request.getSourceLang(), chapterLang);
         String lang = normalizeLang(request == null ? null : request.getLang(), sourceLang);
         String voice = resolveVoice(request == null ? null : request.getVoice(), lang);
         Double speed = normalizeSpeed(request == null ? null : request.getSpeed(), ttsWorkerProperties.getDefaultSpeed());
@@ -186,13 +189,15 @@ public class ChapterAudioPlaylistService {
 
     @Transactional(readOnly = true)
     public ChapterAudioPlaylistResponse getExistingPlaylist(Long chapterId, ChapterAudioPlaylistRequest request) {
+        ChapterEntity chapter = chapterService.getChapterEntity(chapterId);
         chapterService.getPages(chapterId);
         List<ChapterPageEntity> chapterPages = chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapterId);
         if (chapterPages.isEmpty()) {
             throw new BadRequestException("Chapter has no pages");
         }
 
-        String sourceLang = normalizeLang(request == null ? null : request.getSourceLang(), ttsWorkerProperties.getDefaultLang());
+        String chapterLang = normalizeLang(chapter.getLanguage(), ttsWorkerProperties.getDefaultLang());
+        String sourceLang = normalizeLang(request == null ? null : request.getSourceLang(), chapterLang);
         String lang = normalizeLang(request == null ? null : request.getLang(), sourceLang);
         String voice = resolveVoice(request == null ? null : request.getVoice(), lang);
         Double speed = normalizeSpeed(request == null ? null : request.getSpeed(), ttsWorkerProperties.getDefaultSpeed());

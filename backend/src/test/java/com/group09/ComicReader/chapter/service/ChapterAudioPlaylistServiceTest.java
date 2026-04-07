@@ -62,8 +62,8 @@ class ChapterAudioPlaylistServiceTest {
     @BeforeEach
     void setUp() {
         TtsWorkerProperties properties = new TtsWorkerProperties();
-        properties.setDefaultLang("auto");
-        properties.setDefaultVoice("af_heart");
+        properties.setDefaultLang("vi");
+        properties.setDefaultVoice("vi_VN-vais1000-medium");
         properties.setVoiceVi("vi_VN-vais1000-medium");
         properties.setVoiceEn("en_US-lessac-medium");
         properties.setVoiceJa("ja_JP-kokoro-medium");
@@ -87,25 +87,27 @@ class ChapterAudioPlaylistServiceTest {
     void createOrGetPlaylistShouldReturnExistingAudioWithoutCallingWorkers() {
         long chapterId = 10L;
         List<ChapterPageEntity> chapterPages = buildChapterPages(chapterId, 2);
+        ChapterEntity chapter = buildChapter(chapterId, "vi");
+        when(chapterService.getChapterEntity(chapterId)).thenReturn(chapter);
         when(chapterService.getPages(chapterId)).thenReturn(List.of(new ChapterPageResponse(), new ChapterPageResponse()));
         when(chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapterId)).thenReturn(chapterPages);
 
         ChapterPageTtsAudioEntity page1 = new ChapterPageTtsAudioEntity();
         page1.setPageNumber(1);
-        page1.setLang("auto");
-        page1.setVoice("af_heart");
+        page1.setLang("vi");
+        page1.setVoice("vi_VN-vais1000-medium");
         page1.setSpeed(1.0);
-        page1.setAudioPath("/uploads/chapter-10/tts/auto/af_heart-1_0/page-1.wav");
+        page1.setAudioPath("/uploads/chapter-10/tts/vi/vi_vn-vais1000-medium-1_0/page-1.wav");
 
         ChapterPageTtsAudioEntity page2 = new ChapterPageTtsAudioEntity();
         page2.setPageNumber(2);
-        page2.setLang("auto");
-        page2.setVoice("af_heart");
+        page2.setLang("vi");
+        page2.setVoice("vi_VN-vais1000-medium");
         page2.setSpeed(1.0);
-        page2.setAudioPath("/uploads/chapter-10/tts/auto/af_heart-1_0/page-2.wav");
+        page2.setAudioPath("/uploads/chapter-10/tts/vi/vi_vn-vais1000-medium-1_0/page-2.wav");
 
         when(chapterPageTtsAudioRepository.findByChapterIdAndLangAndVoiceAndSpeedOrderByPageNumberAsc(
-                chapterId, "auto", "af_heart", 1.0
+                chapterId, "vi", "vi_VN-vais1000-medium", 1.0
         )).thenReturn(List.of(page1, page2));
 
         var response = chapterAudioPlaylistService.createOrGetPlaylist(chapterId, new ChapterAudioPlaylistRequest());
@@ -120,27 +122,29 @@ class ChapterAudioPlaylistServiceTest {
     void createOrGetPlaylistShouldGenerateAudioAfterOcrFallback() {
         long chapterId = 22L;
         List<ChapterPageEntity> chapterPages = buildChapterPages(chapterId, 2);
+        ChapterEntity chapter = buildChapter(chapterId, "vi");
+        when(chapterService.getChapterEntity(chapterId)).thenReturn(chapter);
         when(chapterService.getPages(chapterId)).thenReturn(List.of(new ChapterPageResponse(), new ChapterPageResponse()));
         when(chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapterId)).thenReturn(chapterPages);
 
         when(chapterPageTtsAudioRepository.findByChapterIdAndLangAndVoiceAndSpeedOrderByPageNumberAsc(
-                chapterId, "auto", "af_heart", 1.0
+                chapterId, "vi", "vi_VN-vais1000-medium", 1.0
         )).thenReturn(List.of());
 
-        when(chapterPageOcrTextRepository.findByChapterIdAndSourceLangOrderByPageNumberAsc(chapterId, "auto"))
+        when(chapterPageOcrTextRepository.findByChapterIdAndSourceLangOrderByPageNumberAsc(chapterId, "vi"))
                 .thenReturn(List.of());
 
         ChapterPageOcrTextEntity ocr1 = new ChapterPageOcrTextEntity();
         ocr1.setPageNumber(1);
-        ocr1.setSourceLang("auto");
+        ocr1.setSourceLang("vi");
         ocr1.setOcrText("hello page one");
 
         ChapterPageOcrTextEntity ocr2 = new ChapterPageOcrTextEntity();
         ocr2.setPageNumber(2);
-        ocr2.setSourceLang("auto");
+        ocr2.setSourceLang("vi");
         ocr2.setOcrText("hello page two");
 
-        when(translationJobService.ensureChapterOcrText(chapterId, "auto"))
+        when(translationJobService.ensureChapterOcrText(chapterId, "vi"))
                 .thenReturn(List.of(ocr1, ocr2));
 
         TtsWorkerAudioPage generated1 = new TtsWorkerAudioPage();
@@ -158,10 +162,10 @@ class ChapterAudioPlaylistServiceTest {
         workerResponse.setAudioPages(List.of(generated1, generated2));
         when(ttsWorkerClient.synthesizeBatch(any())).thenReturn(workerResponse);
 
-        when(fileStorageService.storeChapterPageAudio(eq(chapterId), eq(1), eq("auto"), eq("af_heart"), eq(1.0), any()))
-                .thenReturn("/uploads/chapter-22/tts/auto/af_heart-1_0/page-1.wav");
-        when(fileStorageService.storeChapterPageAudio(eq(chapterId), eq(2), eq("auto"), eq("af_heart"), eq(1.0), any()))
-                .thenReturn("/uploads/chapter-22/tts/auto/af_heart-1_0/page-2.wav");
+        when(fileStorageService.storeChapterPageAudio(eq(chapterId), eq(1), eq("vi"), eq("vi_VN-vais1000-medium"), eq(1.0), any()))
+                .thenReturn("/uploads/chapter-22/tts/vi/vi_vn-vais1000-medium-1_0/page-1.wav");
+        when(fileStorageService.storeChapterPageAudio(eq(chapterId), eq(2), eq("vi"), eq("vi_VN-vais1000-medium"), eq(1.0), any()))
+                .thenReturn("/uploads/chapter-22/tts/vi/vi_vn-vais1000-medium-1_0/page-2.wav");
 
         when(chapterPageTtsAudioRepository.save(any(ChapterPageTtsAudioEntity.class))).thenAnswer(invocation -> {
             ChapterPageTtsAudioEntity entity = invocation.getArgument(0);
@@ -183,6 +187,8 @@ class ChapterAudioPlaylistServiceTest {
     void createOrGetPlaylistShouldMapVoiceFromLanguageWhenVoiceMissing() {
         long chapterId = 35L;
         List<ChapterPageEntity> chapterPages = buildChapterPages(chapterId, 1);
+        ChapterEntity chapter = buildChapter(chapterId, "ja");
+        when(chapterService.getChapterEntity(chapterId)).thenReturn(chapter);
         when(chapterService.getPages(chapterId)).thenReturn(List.of(new ChapterPageResponse()));
         when(chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapterId)).thenReturn(chapterPages);
 
@@ -238,8 +244,7 @@ class ChapterAudioPlaylistServiceTest {
         ComicEntity comic = new ComicEntity();
         comic.setId(300L);
 
-        ChapterEntity chapter = new ChapterEntity();
-        chapter.setId(chapterId);
+        ChapterEntity chapter = buildChapter(chapterId, "vi");
         chapter.setComic(comic);
 
         ChapterPageEntity first = new ChapterPageEntity();
@@ -258,5 +263,12 @@ class ChapterAudioPlaylistServiceTest {
         second.setPageNumber(9);
         second.setImageUrl("/uploads/b.png");
         return List.of(first, second);
+    }
+
+    private ChapterEntity buildChapter(long chapterId, String language) {
+        ChapterEntity chapter = new ChapterEntity();
+        chapter.setId(chapterId);
+        chapter.setLanguage(language);
+        return chapter;
     }
 }
