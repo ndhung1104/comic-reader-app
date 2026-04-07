@@ -31,6 +31,11 @@ _strict_startup = os.environ.get("PIPER_STRICT_STARTUP", "false").lower() == "tr
 _enable_real_model = os.environ.get("PIPER_ENABLE_MODEL", "true").lower() == "true"
 _default_voice = os.environ.get("PIPER_DEFAULT_VOICE", "vi_VN-vais1000-medium").strip()
 _model_dir = Path(os.environ.get("PIPER_MODEL_DIR", "/var/lib/piper/models")).resolve()
+_voice_vi = os.environ.get("PIPER_VOICE_VI", "vi_VN-vais1000-medium").strip()
+_voice_en = os.environ.get("PIPER_VOICE_EN", "en_US-lessac-medium").strip()
+_voice_ja = os.environ.get("PIPER_VOICE_JA", _voice_en).strip()
+_voice_ko = os.environ.get("PIPER_VOICE_KO", _voice_en).strip()
+_fallback_voice = os.environ.get("PIPER_FALLBACK_VOICE", _voice_en).strip()
 
 
 class TtsPageInput(BaseModel):
@@ -41,7 +46,7 @@ class TtsPageInput(BaseModel):
 class TtsSynthesizeBatchRequest(BaseModel):
     chapterId: str
     lang: str = "auto"
-    voice: str = _default_voice
+    voice: Optional[str] = None
     speed: float = Field(1.0, ge=0.5, le=2.0)
     pages: List[TtsPageInput]
 
@@ -83,7 +88,19 @@ def health() -> dict:
         detail = warning or "Piper warmup is still running"
         raise HTTPException(status_code=503, detail=detail)
 
-    response = {"status": "ok", "engine": engine, "warmupState": state, "defaultVoice": _default_voice}
+    response = {
+        "status": "ok",
+        "engine": engine,
+        "warmupState": state,
+        "defaultVoice": _default_voice,
+        "voiceMap": {
+            "vi": _voice_vi,
+            "en": _voice_en,
+            "ja": _voice_ja,
+            "ko": _voice_ko,
+            "fallback": _fallback_voice,
+        },
+    }
     if warning:
         response["warning"] = warning
     return response
@@ -94,7 +111,8 @@ def synthesize_batch(request: TtsSynthesizeBatchRequest) -> TtsSynthesizeBatchRe
     if not request.pages:
         raise HTTPException(status_code=400, detail="pages must not be empty")
 
-    voice = _canonicalize_voice(request.voice or _default_voice)
+    voice = _resolve_voice(request.voice, request.lang)
+    logger.info("Resolved voice '%s' for lang '%s' (requestedVoice=%s)", voice, request.lang, request.voice)
     audio_pages: List[TtsAudioPage] = []
 
     for page in request.pages:
@@ -126,7 +144,7 @@ def synthesize_batch(request: TtsSynthesizeBatchRequest) -> TtsSynthesizeBatchRe
 
 def _warmup_runner() -> None:
     try:
-        voice = _canonicalize_voice(_default_voice)
+        voice = _resolve_voice(_default_voice, "auto")
         _ensure_voice_ready(voice)
         _set_state("ready", None)
         logger.info("Piper warmup completed with voice %s", voice)
@@ -169,14 +187,15 @@ def _ensure_voice_ready(voice: str) -> object:
 
     _ensure_voice_assets(voice)
     try:
-        from piper.voice import PiperVoice  # type: ignore
-
-        model_path = _model_dir / f"{voice}.onnx"
-        config_path = _model_dir / f"{voice}.onnx.json"
-        loaded = PiperVoice.load(model_path=model_path, config_path=config_path, use_cuda=False)
-    except Exception as exception:
-        _voice_errors[voice] = str(exception)
-        raise RuntimeError(f"Cannot load Piper voice '{voice}': {exception}") from exception
+        loaded = _load_piper_voice(voice)
+    except Exception as first_exception:
+        logger.warning("Piper voice '%s' failed to load, forcing redownload: %s", voice, first_exception)
+        _download_voice_assets(voice, force_redownload=True)
+        try:
+            loaded = _load_piper_voice(voice)
+        except Exception as second_exception:
+            _voice_errors[voice] = str(second_exception)
+            raise RuntimeError(f"Cannot load Piper voice '{voice}': {second_exception}") from second_exception
 
     with _state_lock:
         _voice_cache[voice] = loaded
@@ -190,11 +209,18 @@ def _ensure_voice_assets(voice: str) -> None:
     if model_path.exists() and config_path.exists():
         return
 
+    _download_voice_assets(voice, force_redownload=False)
+
+    if not model_path.exists() or not config_path.exists():
+        raise FileNotFoundError(f"Missing Piper model assets for voice '{voice}' in {_model_dir}")
+
+
+def _download_voice_assets(voice: str, force_redownload: bool) -> None:
     try:
         from piper.download_voices import download_voice  # type: ignore
 
-        logger.info("Downloading Piper voice assets for %s", voice)
-        download_voice(voice=voice, download_dir=_model_dir, force_redownload=False)
+        logger.info("Downloading Piper voice assets for %s (force=%s)", voice, force_redownload)
+        download_voice(voice=voice, download_dir=_model_dir, force_redownload=force_redownload)
     except Exception as exception:
         _voice_errors[voice] = str(exception)
         raise RuntimeError(
@@ -202,8 +228,13 @@ def _ensure_voice_assets(voice: str) -> None:
                 "Provide a valid voice name like vi_VN-vais1000-medium."
         ) from exception
 
-    if not model_path.exists() or not config_path.exists():
-        raise FileNotFoundError(f"Missing Piper model assets for voice '{voice}' in {_model_dir}")
+
+def _load_piper_voice(voice: str) -> object:
+    from piper.voice import PiperVoice  # type: ignore
+
+    model_path = _model_dir / f"{voice}.onnx"
+    config_path = _model_dir / f"{voice}.onnx.json"
+    return PiperVoice.load(model_path=model_path, config_path=config_path, use_cuda=False)
 
 
 def _synthesize_with_piper(voice: object, text: str, speed: float) -> bytes:
@@ -255,6 +286,43 @@ def _canonicalize_voice(raw_voice: str) -> str:
     if not matched:
         return voice
     return f"{matched.group(1).lower()}_{matched.group(2).upper()}-{matched.group(3)}-{matched.group(4)}"
+
+
+def _resolve_voice(request_voice: Optional[str], lang: str) -> str:
+    if request_voice is not None and request_voice.strip() and request_voice.strip().lower() != "auto":
+        return _canonicalize_voice(request_voice)
+
+    lang_voice = _voice_for_lang(lang)
+    if lang_voice:
+        return _canonicalize_voice(lang_voice)
+
+    if _default_voice:
+        return _canonicalize_voice(_default_voice)
+    return _canonicalize_voice(_fallback_voice)
+
+
+def _voice_for_lang(lang: str) -> str:
+    normalized = _normalize_lang(lang)
+    if _is_lang(normalized, "vi", "vietnamese"):
+        return _voice_vi or _fallback_voice
+    if _is_lang(normalized, "ko", "korean"):
+        return _voice_ko or _fallback_voice
+    if _is_lang(normalized, "ja", "japanese"):
+        return _voice_ja or _fallback_voice
+    if _is_lang(normalized, "en", "english"):
+        return _voice_en or _fallback_voice
+    return _fallback_voice
+
+
+def _normalize_lang(lang: str) -> str:
+    return (lang or "").strip().lower()
+
+
+def _is_lang(normalized: str, short_code: str, long_name: str) -> bool:
+    return normalized == short_code \
+        or normalized.startswith(short_code + "-") \
+        or normalized.startswith(short_code + "_") \
+        or normalized == long_name
 
 
 def _wav_duration_and_rate(wav_bytes: bytes) -> tuple[int, int]:

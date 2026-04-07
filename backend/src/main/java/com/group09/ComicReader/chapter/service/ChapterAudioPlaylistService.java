@@ -76,7 +76,7 @@ public class ChapterAudioPlaylistService {
 
         String sourceLang = normalizeLang(request == null ? null : request.getSourceLang(), ttsWorkerProperties.getDefaultLang());
         String lang = normalizeLang(request == null ? null : request.getLang(), sourceLang);
-        String voice = normalizeVoice(request == null ? null : request.getVoice(), ttsWorkerProperties.getDefaultVoice());
+        String voice = resolveVoice(request == null ? null : request.getVoice(), lang);
         Double speed = normalizeSpeed(request == null ? null : request.getSpeed(), ttsWorkerProperties.getDefaultSpeed());
 
         List<ChapterPageTtsAudioEntity> existingAudio = chapterPageTtsAudioRepository
@@ -194,7 +194,7 @@ public class ChapterAudioPlaylistService {
 
         String sourceLang = normalizeLang(request == null ? null : request.getSourceLang(), ttsWorkerProperties.getDefaultLang());
         String lang = normalizeLang(request == null ? null : request.getLang(), sourceLang);
-        String voice = normalizeVoice(request == null ? null : request.getVoice(), ttsWorkerProperties.getDefaultVoice());
+        String voice = resolveVoice(request == null ? null : request.getVoice(), lang);
         Double speed = normalizeSpeed(request == null ? null : request.getSpeed(), ttsWorkerProperties.getDefaultSpeed());
 
         List<ChapterPageTtsAudioEntity> existingAudio = chapterPageTtsAudioRepository
@@ -295,11 +295,43 @@ public class ChapterAudioPlaylistService {
         return value.trim().toLowerCase(Locale.ROOT);
     }
 
-    private String normalizeVoice(String value, String fallback) {
-        if (value == null || value.isBlank()) {
-            return fallback;
+    private String resolveVoice(String requestedVoice, String lang) {
+        if (requestedVoice != null && !requestedVoice.isBlank() && !"auto".equalsIgnoreCase(requestedVoice.trim())) {
+            return requestedVoice.trim();
         }
-        return value.trim();
+
+        String normalizedLang = lang == null ? "" : lang.trim().toLowerCase(Locale.ROOT);
+        if (isLang(normalizedLang, "vi", "vietnamese")) {
+            return fallbackVoice(ttsWorkerProperties.getVoiceVi());
+        }
+        if (isLang(normalizedLang, "ko", "korean")) {
+            return fallbackVoice(ttsWorkerProperties.getVoiceKo());
+        }
+        if (isLang(normalizedLang, "ja", "japanese")) {
+            return fallbackVoice(ttsWorkerProperties.getVoiceJa());
+        }
+        if (isLang(normalizedLang, "en", "english")) {
+            return fallbackVoice(ttsWorkerProperties.getVoiceEn());
+        }
+
+        return fallbackVoice(ttsWorkerProperties.getDefaultVoice());
+    }
+
+    private boolean isLang(String normalizedLang, String shortCode, String longName) {
+        return normalizedLang.equals(shortCode)
+                || normalizedLang.startsWith(shortCode + "-")
+                || normalizedLang.startsWith(shortCode + "_")
+                || normalizedLang.equals(longName);
+    }
+
+    private String fallbackVoice(String value) {
+        if (value != null && !value.isBlank()) {
+            return value.trim();
+        }
+        if (ttsWorkerProperties.getFallbackVoice() != null && !ttsWorkerProperties.getFallbackVoice().isBlank()) {
+            return ttsWorkerProperties.getFallbackVoice().trim();
+        }
+        return "en_US-lessac-medium";
     }
 
     private Double normalizeSpeed(Double value, double fallback) {
