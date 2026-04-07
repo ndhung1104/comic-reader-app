@@ -26,13 +26,13 @@ services:
         condition: service_healthy
       comic-translate-worker:
         condition: service_started
-      kokoro-tts-worker:
+      piper-tts-worker:
         condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: docker
       DB_URL: jdbc:postgresql://postgres:5432/comic_reader
       TRANSLATION_WORKER_BASE_URL: http://comic-translate-worker:8090
-      TTS_WORKER_BASE_URL: http://kokoro-tts-worker:8091
+      TTS_WORKER_BASE_URL: http://piper-tts-worker:8091
     ports:
       - "8080:8080"
     volumes:
@@ -67,14 +67,17 @@ services:
       - worker_models:/var/lib/comic-translate/models
     restart: unless-stopped
 
-  kokoro-tts-worker:
+  piper-tts-worker:
     build:
-      context: ./worker/kokoro-tts-worker
+      context: ./worker/piper-tts-worker
       dockerfile: Dockerfile
-    container_name: comicreader-kokoro-tts-worker
+    container_name: comicreader-piper-tts-worker
     environment:
-      KOKORO_STRICT_STARTUP: "false"
-      KOKORO_SAMPLE_RATE: "24000"
+      PIPER_STRICT_STARTUP: "false"
+      PIPER_SAMPLE_RATE: "22050"
+      PIPER_MODEL_DIR: /var/lib/piper/models
+      PIPER_ENABLE_MODEL: "true"
+      PIPER_DEFAULT_VOICE: vi_VN-vais1000-medium
     ports:
       - "8091:8091"
     healthcheck:
@@ -84,8 +87,11 @@ services:
       retries: 10
       start_period: 2m
     restart: unless-stopped
+    volumes:
+      - piper_models:/var/lib/piper/models
 
 volumes:
   pg_data:
   uploads_data:
   worker_models:
+  piper_models:

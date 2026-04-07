@@ -15,4 +15,4 @@ translation-worker:
   base-url: ${TRANSLATION_WORKER_BASE_URL:http://comic-translate-worker:8090}
 
 tts-worker:
-  base-url: ${TTS_WORKER_BASE_URL:http://kokoro-tts-worker:8091}
+  base-url: ${TTS_WORKER_BASE_URL:http://piper-tts-worker:8091}

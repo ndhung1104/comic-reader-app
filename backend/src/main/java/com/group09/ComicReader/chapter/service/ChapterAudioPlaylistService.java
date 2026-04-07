@@ -74,9 +74,9 @@ public class ChapterAudioPlaylistService {
             throw new BadRequestException("Chapter has no pages");
         }
 
-        String sourceLang = normalizeString(request == null ? null : request.getSourceLang(), ttsWorkerProperties.getDefaultLang());
-        String lang = normalizeString(request == null ? null : request.getLang(), sourceLang);
-        String voice = normalizeString(request == null ? null : request.getVoice(), ttsWorkerProperties.getDefaultVoice());
+        String sourceLang = normalizeLang(request == null ? null : request.getSourceLang(), ttsWorkerProperties.getDefaultLang());
+        String lang = normalizeLang(request == null ? null : request.getLang(), sourceLang);
+        String voice = normalizeVoice(request == null ? null : request.getVoice(), ttsWorkerProperties.getDefaultVoice());
         Double speed = normalizeSpeed(request == null ? null : request.getSpeed(), ttsWorkerProperties.getDefaultSpeed());
 
         List<ChapterPageTtsAudioEntity> existingAudio = chapterPageTtsAudioRepository
@@ -192,9 +192,9 @@ public class ChapterAudioPlaylistService {
             throw new BadRequestException("Chapter has no pages");
         }
 
-        String sourceLang = normalizeString(request == null ? null : request.getSourceLang(), ttsWorkerProperties.getDefaultLang());
-        String lang = normalizeString(request == null ? null : request.getLang(), sourceLang);
-        String voice = normalizeString(request == null ? null : request.getVoice(), ttsWorkerProperties.getDefaultVoice());
+        String sourceLang = normalizeLang(request == null ? null : request.getSourceLang(), ttsWorkerProperties.getDefaultLang());
+        String lang = normalizeLang(request == null ? null : request.getLang(), sourceLang);
+        String voice = normalizeVoice(request == null ? null : request.getVoice(), ttsWorkerProperties.getDefaultVoice());
         Double speed = normalizeSpeed(request == null ? null : request.getSpeed(), ttsWorkerProperties.getDefaultSpeed());
 
         List<ChapterPageTtsAudioEntity> existingAudio = chapterPageTtsAudioRepository
@@ -288,11 +288,18 @@ public class ChapterAudioPlaylistService {
         return response;
     }
 
-    private String normalizeString(String value, String fallback) {
+    private String normalizeLang(String value, String fallback) {
         if (value == null || value.isBlank()) {
             return fallback;
         }
         return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeVoice(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        return value.trim();
     }
 
     private Double normalizeSpeed(Double value, double fallback) {
