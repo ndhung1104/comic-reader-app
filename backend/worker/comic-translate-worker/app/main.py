@@ -15,7 +15,7 @@ import requests
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from .ocr_pipeline import OgkaluHeadlessOcr
+from .ocr_pipeline import OgkaluHeadlessOcr, UnsupportedImageFormatError
 
 
 class PageInput(BaseModel):
@@ -68,6 +68,7 @@ _model_root = Path(
     or "/var/lib/comic-translate/models"
 )
 _ocr_pipeline = OgkaluHeadlessOcr(model_root=_model_root, device=os.environ.get("OCR_DEVICE", "cpu"))
+UNSUPPORTED_IMAGE_FALLBACK_TEXT = "dinh dang anh khong ho tro"
 
 
 def _start_warmup_if_needed() -> None:
@@ -157,12 +158,23 @@ def _process_job(job_id: str, request: SubmitJobRequest) -> None:
         try:
             sorted_pages = sorted(request.pages, key=lambda page: page.pageNumber)
             ocr_pages: List[OcrPageText] = []
+            fallback_page_count = 0
 
             total_pages = len(sorted_pages)
             for index, page in enumerate(sorted_pages, start=1):
                 logger.info("Processing OCR page %d/%d (job=%s, chapter=%s)", index, total_pages, job_id, request.chapterId)
                 image_bytes = _download_image_bytes(page.imageUrl)
-                ocr_text = _ocr_pipeline.extract_page_text(image_bytes=image_bytes, source_lang=source_lang)
+                try:
+                    ocr_text = _ocr_pipeline.extract_page_text(image_bytes=image_bytes, source_lang=source_lang)
+                except UnsupportedImageFormatError:
+                    fallback_page_count += 1
+                    ocr_text = UNSUPPORTED_IMAGE_FALLBACK_TEXT
+                    logger.warning(
+                        "Unsupported image format at page %s (job=%s, chapter=%s); using fallback OCR text",
+                        page.pageNumber,
+                        job_id,
+                        request.chapterId,
+                    )
                 ocr_pages.append(
                     OcrPageText(
                         chapterId=request.chapterId,
@@ -181,6 +193,7 @@ def _process_job(job_id: str, request: SubmitJobRequest) -> None:
                 "worker": "comic-translate-worker-ogkalu-headless",
                 "ocrProvider": "ogkalu-rtdetr+manga-ocr",
                 "pagesProcessed": len(ocr_pages),
+                "fallbackPages": fallback_page_count,
                 "processingMs": duration_ms,
             }
             result = JobStatusResponse(

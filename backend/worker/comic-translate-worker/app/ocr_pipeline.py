@@ -14,12 +14,16 @@ import cv2
 import jaconv
 import numpy as np
 import onnxruntime as ort
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import pyclipper
 import requests
 from shapely.geometry import Polygon
 
 logger = logging.getLogger("uvicorn.error")
+
+
+class UnsupportedImageFormatError(RuntimeError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -812,7 +816,10 @@ class OgkaluHeadlessOcr:
 
     @staticmethod
     def _load_rgb_image(image_bytes: bytes) -> np.ndarray:
-        image = Image.open(BytesIO(image_bytes)).convert("RGB")
+        try:
+            image = Image.open(BytesIO(image_bytes)).convert("RGB")
+        except (UnidentifiedImageError, OSError, ValueError) as exc:
+            raise UnsupportedImageFormatError("unsupported image format") from exc
         max_side = max(512, int(os.environ.get("OCR_MAX_IMAGE_SIDE", "2048")))
         width, height = image.size
         largest_side = max(width, height)
