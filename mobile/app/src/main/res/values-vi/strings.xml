@@ -96,6 +96,13 @@
     <string name="reader_chapter">Chương %1$d</string>
     <string name="reader_no_pages">Không có trang nào</string>
     <string name="reader_invalid_chapter">Chương không hợp lệ</string>
+    <string name="reader_audio_request">Yêu cầu audio</string>
+    <string name="reader_audio_play">Phát</string>
+    <string name="reader_audio_pause">Tạm dừng</string>
+    <string name="reader_audio_loading">Đang xử lý...</string>
+    <string name="reader_audio_no_content">Không tạo được audio</string>
+    <string name="reader_audio_missing_url">Thiếu URL audio</string>
+    <string name="reader_audio_playback_failed">Phát audio thất bại</string>
 
     <string name="comment_hint">Viết bình luận...</string>
     <string name="comment_send">Gửi</string>

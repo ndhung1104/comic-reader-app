@@ -47,3 +47,12 @@ translate:
 translation-worker:
   base-url: ${TRANSLATION_WORKER_BASE_URL:http://localhost:8090}
   timeout-ms: ${TRANSLATION_WORKER_TIMEOUT_MS:15000}
+
+tts-worker:
+  base-url: ${TTS_WORKER_BASE_URL:http://localhost:8091}
+  timeout-ms: ${TTS_WORKER_TIMEOUT_MS:300000}
+  poll-interval-ms: ${TTS_WORKER_POLL_INTERVAL_MS:3000}
+  max-poll-attempts: ${TTS_WORKER_MAX_POLL_ATTEMPTS:60}
+  default-voice: ${TTS_DEFAULT_VOICE:af_heart}
+  default-speed: ${TTS_DEFAULT_SPEED:1.0}
+  default-lang: ${TTS_DEFAULT_LANG:auto}
