@@ -36,6 +36,9 @@ public class ChapterEntity {
     @Column(nullable = false)
     private String title;
 
+    @Column(name = "language", nullable = false)
+    private String language = "vi";
+
     @Column(nullable = false)
     private boolean premium;
 

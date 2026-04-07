@@ -209,6 +209,7 @@ public class ComicService {
         chapter.setComic(comic);
         chapter.setChapterNumber(request.getChapterNumber());
         chapter.setTitle(request.getTitle());
+        chapter.setLanguage("vi");
         chapter.setPremium(Boolean.TRUE.equals(request.getPremium()));
         if (request.getPrice() != null) {
             chapter.setPrice(request.getPrice());
@@ -266,6 +267,7 @@ public class ComicService {
         response.setComicId(entity.getComic().getId());
         response.setChapterNumber(entity.getChapterNumber());
         response.setTitle(entity.getTitle());
+        response.setLanguage(entity.getLanguage());
         response.setPremium(entity.isPremium());
         response.setPrice(entity.getPrice());
         return response;

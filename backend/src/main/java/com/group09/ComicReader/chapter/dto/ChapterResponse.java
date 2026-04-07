@@ -6,6 +6,7 @@ public class ChapterResponse {
     private Long comicId;
     private Integer chapterNumber;
     private String title;
+    private String language;
     private boolean premium;
     private Integer price;
     private boolean unlocked;
@@ -40,6 +41,14 @@ public class ChapterResponse {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
     }
 
     public boolean isPremium() {

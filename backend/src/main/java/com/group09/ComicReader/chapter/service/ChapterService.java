@@ -216,6 +216,7 @@ public class ChapterService {
         response.setComicId(entity.getComic().getId());
         response.setChapterNumber(entity.getChapterNumber());
         response.setTitle(entity.getTitle());
+        response.setLanguage(entity.getLanguage());
         response.setPremium(entity.isPremium());
         response.setPrice(entity.getPrice());
         return response;

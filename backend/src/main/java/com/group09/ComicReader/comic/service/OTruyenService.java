@@ -217,6 +217,7 @@ public class OTruyenService {
                 title = cData.getChapter_name();
             }
             chapter.setTitle(title);
+            chapter.setLanguage("vi");
             chapter.setOtruyenApiData(cData.getChapter_api_data());
             chapter.setPremium(false);
             chapter.setPrice(0);
