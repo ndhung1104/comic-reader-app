@@ -102,6 +102,10 @@
     <string name="reader_audio_no_content">No audio generated</string>
     <string name="reader_audio_missing_url">Audio URL is missing</string>
     <string name="reader_audio_playback_failed">Audio playback failed</string>
+    <string name="reader_audio_speed_075">0.75x</string>
+    <string name="reader_audio_speed_100">1.0x</string>
+    <string name="reader_audio_speed_125">1.25x</string>
+    <string name="reader_offline_download_required">No offline copy for this chapter. Please download it first.</string>
 
     <string name="comment_hint">Write a comment...</string>
     <string name="comment_send">Send</string>
@@ -118,6 +122,9 @@
     <string name="content_avatar">User avatar</string>
     <string name="content_back">Back</string>
     <string name="content_download">Download</string>
+    <string name="content_pause_download">Pause download</string>
+    <string name="content_resume_download">Resume download</string>
+    <string name="content_delete_download">Delete download</string>
     <string name="content_open_comments">Open comments</string>
     <string name="content_close_comments">Close comments</string>
     <string name="content_filter">Filter</string>
@@ -134,4 +141,11 @@
     <string name="comic_rate_success">Rating submitted!</string>
     <string name="comic_rate_login_required">Log in to rate comics</string>
     <string name="comic_your_rating">Your rating: %1$d/10</string>
+    <string name="download_no_chapter">No unlocked chapter available for download</string>
+    <string name="download_queued">Download queued for chapter %1$d</string>
+    <string name="download_paused">Download paused for chapter %1$d</string>
+    <string name="download_resumed">Download resumed for chapter %1$d</string>
+    <string name="download_deleted">Download removed for chapter %1$d</string>
+    <string name="download_completed_suffix">Downloaded</string>
+    <string name="download_failed_suffix">Download failed</string>
 </resources>
