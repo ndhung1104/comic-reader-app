@@ -10,10 +10,15 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface WalletTransactionRepository extends JpaRepository<WalletTransactionEntity, Long> {
 
     Page<WalletTransactionEntity> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+
+    Optional<WalletTransactionEntity> findFirstByUserIdAndTypeAndReferenceId(Long userId,
+                                                                              TransactionType type,
+                                                                              String referenceId);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM WalletTransactionEntity t " +
            "WHERE t.type = :type AND t.createdAt >= :from AND t.createdAt < :to")

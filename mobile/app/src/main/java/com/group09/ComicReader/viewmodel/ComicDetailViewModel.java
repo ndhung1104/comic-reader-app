@@ -45,6 +45,8 @@ public class ComicDetailViewModel extends ViewModel {
     private final MutableLiveData<Comic> comic = new MutableLiveData<>();
     private final MutableLiveData<List<Chapter>> chapters = new MutableLiveData<>();
     private final MutableLiveData<Boolean> chapterLoading = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> purchaseLoading = new MutableLiveData<>(false);
+    private final MutableLiveData<Chapter> purchasedChapter = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<List<Comic>> relatedComics = new MutableLiveData<>();
     private final MutableLiveData<Boolean> followed = new MutableLiveData<>(false);
@@ -91,6 +93,33 @@ public class ComicDetailViewModel extends ViewModel {
                 relatedComics.postValue(new ArrayList<>());
             }
         });
+        loadChapters(comicId, true);
+
+        /* Increment view count */
+        comicRepository.incrementViewCount(comicId);
+    }
+
+    public void purchaseChapter(int comicId, @NonNull Chapter chapter) {
+        purchaseLoading.setValue(true);
+        errorMessage.setValue(null);
+
+        readerRepository.purchaseChapter(chapter.getId(), new ReaderRepository.PurchaseChapterCallback() {
+            @Override
+            public void onSuccess(int newBalance) {
+                purchaseLoading.postValue(false);
+                purchasedChapter.postValue(chapter);
+                loadChapters(comicId, false);
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                purchaseLoading.postValue(false);
+                errorMessage.postValue(message);
+            }
+        });
+    }
+
+    private void loadChapters(int comicId, boolean fallbackToLocal) {
         chapterLoading.setValue(true);
         readerRepository.getComicChapters(comicId, new ReaderRepository.ChaptersCallback() {
             @Override
@@ -103,12 +132,11 @@ public class ComicDetailViewModel extends ViewModel {
             public void onError(String message) {
                 chapterLoading.postValue(false);
                 errorMessage.postValue(message);
-                chapters.postValue(comicRepository.getChaptersForComic(comicId));
+                if (fallbackToLocal) {
+                    chapters.postValue(comicRepository.getChaptersForComic(comicId));
+                }
             }
         });
-
-        /* Increment view count */
-        comicRepository.incrementViewCount(comicId);
     }
 
     /* ========== Translation ========== */
@@ -217,6 +245,8 @@ public class ComicDetailViewModel extends ViewModel {
     public LiveData<Comic> getComic() { return comic; }
     public LiveData<List<Chapter>> getChapters() { return chapters; }
     public LiveData<Boolean> getChapterLoading() { return chapterLoading; }
+    public LiveData<Boolean> getPurchaseLoading() { return purchaseLoading; }
+    public LiveData<Chapter> getPurchasedChapter() { return purchasedChapter; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
     public LiveData<List<Comic>> getRelatedComics() { return relatedComics; }
     public LiveData<Boolean> getFollowed() { return followed; }

@@ -7,6 +7,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.widget.Toast;
+import android.app.AlertDialog;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -72,12 +73,15 @@ public class ReaderActivity extends AppCompatActivity {
     private ReaderRepository readerRepository;
     private ReaderCommentsFooterAdapter commentsFooterAdapter;
     private CommentsViewModel commentsViewModel;
+    private SessionManager sessionManager;
     private boolean historyRecorded;
     private LinearLayoutManager layoutManager;
     private ReaderProgressStore readerProgressStore;
     private ReaderProgressStore.ReaderProgress restoredProgress;
     private boolean restoredPositionApplied;
     private boolean readerZoomed;
+    private boolean paywallDialogVisible;
+    private ComicChapterResponse currentChapterMeta;
 
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private final Runnable saveProgressRunnable = this::saveCurrentReadingProgress;
@@ -179,7 +183,7 @@ public class ReaderActivity extends AppCompatActivity {
         commentsViewModel.getHasMore().observe(this, more -> commentsFooterAdapter.setHasMore(more != null && more));
         commentsViewModel.getReplyingToLabel().observe(this, label -> commentsFooterAdapter.setReplyingToLabel(label));
 
-        SessionManager sessionManager = new SessionManager(this);
+        sessionManager = new SessionManager(this);
         commentsFooterAdapter.setLoggedIn(sessionManager.hasToken());
 
         commentsViewModel.getPostSuccess().observe(this, success -> {
@@ -198,9 +202,9 @@ public class ReaderActivity extends AppCompatActivity {
         });
 
         viewModel.getLoading().observe(this, loading -> {
-            boolean isLoading = loading != null && loading;
-            binding.prgReaderLoading.setVisibility(isLoading ? android.view.View.VISIBLE : android.view.View.GONE);
+            updateLoadingIndicator();
         });
+        viewModel.getPurchaseLoading().observe(this, loading -> updateLoadingIndicator());
         viewModel.getPages().observe(this, pages -> {
             List<ReaderPage> safePages = pages == null ? Collections.emptyList() : new ArrayList<>(pages);
             pageAdapter.submitList(safePages, () -> {
@@ -208,6 +212,9 @@ public class ReaderActivity extends AppCompatActivity {
                 binding.rcvReaderPages.post(this::preloadAroundCurrentViewport);
             });
             boolean hasPages = !safePages.isEmpty();
+            if (hasPages) {
+                paywallDialogVisible = false;
+            }
             binding.tvReaderEmpty.setVisibility(hasPages ? android.view.View.GONE : android.view.View.VISIBLE);
             if (hasPages && comicId > 0 && sessionManager.hasToken() && !historyRecorded) {
                 historyRecorded = true;
@@ -222,7 +229,18 @@ public class ReaderActivity extends AppCompatActivity {
                 }
                 binding.tvReaderEmpty.setVisibility(android.view.View.VISIBLE);
                 binding.tvReaderEmpty.setText(message);
+                if (isLockedChapterError(message)) {
+                    showPurchaseDialogForLockedChapter();
+                }
             }
+        });
+        viewModel.getPurchaseSuccessBalance().observe(this, balance -> {
+            if (balance == null) {
+                return;
+            }
+            Toast.makeText(this, getString(R.string.chapter_purchase_success), Toast.LENGTH_SHORT).show();
+            paywallDialogVisible = false;
+            viewModel.loadChapterPages(chapterId);
         });
 
         if (chapterId <= 0) {
@@ -241,13 +259,11 @@ public class ReaderActivity extends AppCompatActivity {
         if (readerRepository == null || chapterId <= 0) {
             return;
         }
-        if (comicId > 0 && chapterNumber > 0) {
-            return;
-        }
 
         readerRepository.getChapterById(chapterId, new ReaderRepository.ChapterCallback() {
             @Override
             public void onSuccess(@NonNull ComicChapterResponse chapter) {
+                currentChapterMeta = chapter;
                 if (chapter.getComicId() != null && comicId <= 0) {
                     comicId = chapter.getComicId().intValue();
                 }
@@ -266,6 +282,36 @@ public class ReaderActivity extends AppCompatActivity {
                 // Ignore: pages can still load without meta.
             }
         });
+    }
+
+    private boolean isLockedChapterError(@NonNull String message) {
+        String normalized = message.toLowerCase();
+        return normalized.contains("locked") || normalized.contains("purchase it to read");
+    }
+
+    private void showPurchaseDialogForLockedChapter() {
+        if (paywallDialogVisible) {
+            return;
+        }
+        if (!sessionManager.hasToken()) {
+            Toast.makeText(this, getString(R.string.chapter_purchase_login_required), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        paywallDialogVisible = true;
+        String message = currentChapterMeta != null
+                && currentChapterMeta.getPrice() != null
+                && currentChapterMeta.getPrice() > 0
+                ? getString(R.string.chapter_purchase_confirm_with_price, currentChapterMeta.getPrice())
+                : getString(R.string.chapter_purchase_confirm);
+
+        new AlertDialog.Builder(this)
+                .setTitle(getString(R.string.chapter_purchase_title))
+                .setMessage(message)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setOnDismissListener(dialog -> paywallDialogVisible = false)
+                .setPositiveButton(R.string.chapter_purchase_buy_now, (dialog, which) -> viewModel.purchaseChapter(chapterId))
+                .show();
     }
 
     private void initHeaderIfPossible() {
@@ -384,5 +430,11 @@ public class ReaderActivity extends AppCompatActivity {
         int firstVisible = layoutManager.findFirstVisibleItemPosition();
         int lastVisible = layoutManager.findLastVisibleItemPosition();
         pageAdapter.preloadAroundVisibleRange(firstVisible, lastVisible, readerZoomed);
+    }
+
+    private void updateLoadingIndicator() {
+        boolean pageLoading = Boolean.TRUE.equals(viewModel.getLoading().getValue());
+        boolean purchaseLoading = Boolean.TRUE.equals(viewModel.getPurchaseLoading().getValue());
+        binding.prgReaderLoading.setVisibility(pageLoading || purchaseLoading ? View.VISIBLE : View.GONE);
     }
 }

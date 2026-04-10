@@ -1,5 +1,6 @@
 package com.group09.ComicReader.viewmodel;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
@@ -32,8 +33,10 @@ public class ReaderViewModel extends ViewModel {
     private final ReaderRepository readerRepository;
     private final MutableLiveData<List<ReaderPage>> pages = new MutableLiveData<>();
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> purchaseLoading = new MutableLiveData<>(false);
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<Boolean> historySaved = new MutableLiveData<>(false);
+    private final MutableLiveData<Integer> purchaseSuccessBalance = new MutableLiveData<>();
 
     public ReaderViewModel(ReaderRepository readerRepository) {
         this.readerRepository = readerRepository;
@@ -70,6 +73,25 @@ public class ReaderViewModel extends ViewModel {
         return errorMessage;
     }
 
+    public void purchaseChapter(long chapterId) {
+        purchaseLoading.setValue(true);
+        errorMessage.setValue(null);
+
+        readerRepository.purchaseChapter(chapterId, new ReaderRepository.PurchaseChapterCallback() {
+            @Override
+            public void onSuccess(int newBalance) {
+                purchaseLoading.postValue(false);
+                purchaseSuccessBalance.postValue(newBalance);
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                purchaseLoading.postValue(false);
+                errorMessage.postValue(message);
+            }
+        });
+    }
+
     public void recordReadingHistory(int comicId, int chapterId, int pageNumber) {
         readerRepository.recordReadingHistory(comicId, chapterId, pageNumber, new ReaderRepository.HistoryCallback() {
             @Override
@@ -86,5 +108,13 @@ public class ReaderViewModel extends ViewModel {
 
     public LiveData<Boolean> getHistorySaved() {
         return historySaved;
+    }
+
+    public LiveData<Boolean> getPurchaseLoading() {
+        return purchaseLoading;
+    }
+
+    public LiveData<Integer> getPurchaseSuccessBalance() {
+        return purchaseSuccessBalance;
     }
 }

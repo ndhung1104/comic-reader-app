@@ -3,9 +3,9 @@ package com.group09.ComicReader.data;
 import androidx.annotation.NonNull;
 
 import com.group09.ComicReader.data.remote.ApiClient;
+import com.group09.ComicReader.model.IapVerifyRequest;
 import com.group09.ComicReader.model.WalletPackage;
 import com.group09.ComicReader.model.PageResponse;
-import com.group09.ComicReader.model.TopUpRequest;
 import com.group09.ComicReader.model.TransactionResponse;
 import com.group09.ComicReader.model.WalletTransaction;
 import com.group09.ComicReader.model.WalletResponse;
@@ -13,9 +13,9 @@ import com.group09.ComicReader.model.WalletResponse;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -65,17 +65,21 @@ public class WalletRepository {
     }
 
     public void topUp(@NonNull WalletPackage walletPackage, @NonNull WalletTopUpCallback callback) {
-        TopUpRequest request = new TopUpRequest(
-                walletPackage.getCoins(),
-                "COIN",
-                "wallet-package-" + walletPackage.getCoins()
+        String purchaseToken = "sandbox-" + UUID.randomUUID();
+        String orderId = "order-" + UUID.randomUUID();
+        IapVerifyRequest request = new IapVerifyRequest(
+                "GOOGLE",
+                purchaseToken,
+                walletPackage.getId(),
+                walletPackage.getId() == null ? "coins_" + walletPackage.getCoins() : null,
+                orderId
         );
 
-        apiClient.walletApi().topUp(request).enqueue(new Callback<WalletResponse>() {
+        apiClient.walletApi().verifyIap(request).enqueue(new Callback<WalletResponse>() {
             @Override
             public void onResponse(@NonNull Call<WalletResponse> call, @NonNull Response<WalletResponse> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    callback.onError(extractErrorMessage(response, "Top up failed"));
+                    callback.onError(extractErrorMessage(response, "Top up verification failed"));
                     return;
                 }
 

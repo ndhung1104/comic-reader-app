@@ -1,12 +1,14 @@
 package com.group09.ComicReader.wallet.dto;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 public class PurchaseChapterRequest {
 
-    @NotNull
+    @NotNull(message = "chapterId is required")
     private Long chapterId;
 
+    @Pattern(regexp = "^(?i)(COIN|POINT)$", message = "currency must be COIN or POINT")
     private String currency; // COIN or POINT, defaults to COIN
 
     public Long getChapterId() {

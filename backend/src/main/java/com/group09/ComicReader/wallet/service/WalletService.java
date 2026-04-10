@@ -8,14 +8,17 @@ import com.group09.ComicReader.common.exception.BadRequestException;
 import com.group09.ComicReader.common.exception.NotFoundException;
 import com.group09.ComicReader.wallet.dto.*;
 import com.group09.ComicReader.wallet.entity.ChapterPurchaseEntity;
+import com.group09.ComicReader.wallet.entity.TopUpPackageEntity;
 import com.group09.ComicReader.wallet.entity.TransactionType;
 import com.group09.ComicReader.wallet.entity.UserWalletEntity;
 import com.group09.ComicReader.wallet.entity.VipSubscriptionEntity;
 import com.group09.ComicReader.wallet.entity.WalletTransactionEntity;
 import com.group09.ComicReader.wallet.repository.ChapterPurchaseRepository;
+import com.group09.ComicReader.wallet.repository.TopUpPackageRepository;
 import com.group09.ComicReader.wallet.repository.UserWalletRepository;
 import com.group09.ComicReader.wallet.repository.VipSubscriptionRepository;
 import com.group09.ComicReader.wallet.repository.WalletTransactionRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,6 +44,7 @@ public class WalletService {
             "coins_100",  100,
             "coins_500",  500,
             "coins_1000", 1000,
+            "coins_2500", 2500,
             "coins_5000", 5000
     );
 
@@ -48,6 +52,7 @@ public class WalletService {
     private final WalletTransactionRepository transactionRepository;
     private final ChapterPurchaseRepository purchaseRepository;
     private final VipSubscriptionRepository vipRepository;
+    private final TopUpPackageRepository topUpPackageRepository;
     private final ChapterRepository chapterRepository;
     private final UserRepository userRepository;
 
@@ -55,12 +60,14 @@ public class WalletService {
                          WalletTransactionRepository transactionRepository,
                          ChapterPurchaseRepository purchaseRepository,
                          VipSubscriptionRepository vipRepository,
+                         TopUpPackageRepository topUpPackageRepository,
                          ChapterRepository chapterRepository,
                          UserRepository userRepository) {
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.purchaseRepository = purchaseRepository;
         this.vipRepository = vipRepository;
+        this.topUpPackageRepository = topUpPackageRepository;
         this.chapterRepository = chapterRepository;
         this.userRepository = userRepository;
     }
@@ -138,6 +145,10 @@ public class WalletService {
             throw new BadRequestException("Chapter has no price set");
         }
 
+        if (isUserVip(user.getId())) {
+            throw new BadRequestException("Chapter already unlocked by VIP");
+        }
+
         // Check already purchased
         if (purchaseRepository.existsByUserIdAndChapterId(user.getId(), chapter.getId())) {
             throw new BadRequestException("Chapter already purchased");
@@ -172,7 +183,11 @@ public class WalletService {
         purchase.setChapter(chapter);
         purchase.setPricePaid(price);
         purchase.setCurrency(currency.toUpperCase());
-        purchaseRepository.save(purchase);
+        try {
+            purchaseRepository.save(purchase);
+        } catch (DataIntegrityViolationException exception) {
+            throw new BadRequestException("Chapter already purchased");
+        }
 
         // Record transaction
         WalletTransactionEntity tx = new WalletTransactionEntity();
@@ -327,25 +342,36 @@ public class WalletService {
 
     @Transactional
     public WalletResponse verifyIap(IapVerifyRequest request) {
-        if (request.getProductId() == null || request.getProductId().isBlank()) {
-            throw new BadRequestException("productId is required");
-        }
-        if (request.getPurchaseToken() == null || request.getPurchaseToken().isBlank()) {
-            throw new BadRequestException("purchaseToken is required");
-        }
-
-        Integer coinAmount = IAP_PRODUCTS.get(request.getProductId());
-        if (coinAmount == null) {
-            throw new BadRequestException("Unknown product: " + request.getProductId());
-        }
-
-        // In production, verify the purchaseToken with Google/Apple servers here.
-        // For now we trust the client and credit the coins.
-
         UserEntity user = getCurrentUser();
+        Integer coinAmount;
+        String productHint;
+
+        if (request.getPackageId() != null) {
+            TopUpPackageEntity topUpPackage = topUpPackageRepository.findByIdAndActiveTrue(request.getPackageId())
+                    .orElseThrow(() -> new BadRequestException("Top-up package not found or inactive"));
+            coinAmount = topUpPackage.getCoins();
+            productHint = "package-" + topUpPackage.getId();
+        } else {
+            productHint = request.getProductId();
+            coinAmount = IAP_PRODUCTS.get(productHint);
+            if (coinAmount == null) {
+                throw new BadRequestException("Unknown product: " + productHint);
+            }
+        }
+
+        String purchaseReference = request.getOrderId() != null && !request.getOrderId().isBlank()
+                ? request.getOrderId()
+                : request.getPurchaseToken();
+        String referenceId = "iap-" + purchaseReference;
 
         UserWalletEntity wallet = walletRepository.findByUserIdForUpdate(user.getId())
                 .orElseGet(() -> createWallet(user));
+
+        Optional<WalletTransactionEntity> existing = transactionRepository
+                .findFirstByUserIdAndTypeAndReferenceId(user.getId(), TransactionType.TOP_UP, referenceId);
+        if (existing.isPresent()) {
+            return toWalletResponse(wallet);
+        }
 
         wallet.setCoinBalance(wallet.getCoinBalance() + coinAmount);
         wallet.setUpdatedAt(LocalDateTime.now());
@@ -357,8 +383,8 @@ public class WalletService {
         tx.setAmount(coinAmount);
         tx.setCurrency("COIN");
         tx.setBalanceAfter(wallet.getCoinBalance());
-        tx.setDescription("IAP " + request.getProductId() + " (" + request.getStore() + ")");
-        tx.setReferenceId(request.getOrderId() != null ? request.getOrderId() : request.getPurchaseToken());
+        tx.setDescription("IAP " + productHint + " (" + request.getStore() + ")");
+        tx.setReferenceId(referenceId);
         transactionRepository.save(tx);
 
         return toWalletResponse(wallet);

@@ -4,6 +4,7 @@ import com.group09.ComicReader.chapter.dto.ChapterRequest;
 import com.group09.ComicReader.chapter.dto.ChapterResponse;
 import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.chapter.repository.ChapterRepository;
+import com.group09.ComicReader.chapter.service.ChapterPremiumPolicyService;
 import com.group09.ComicReader.comic.dto.ComicRequest;
 import com.group09.ComicReader.comic.dto.ComicResponse;
 import com.group09.ComicReader.comic.entity.ComicEntity;
@@ -42,19 +43,22 @@ public class ComicService {
     private final VipSubscriptionRepository vipRepository;
     private final UserRepository userRepository;
     private final ComicRatingRepository comicRatingRepository;
+    private final ChapterPremiumPolicyService chapterPremiumPolicyService;
 
     public ComicService(ComicRepository comicRepository,
                         ChapterRepository chapterRepository,
                         ChapterPurchaseRepository purchaseRepository,
                         VipSubscriptionRepository vipRepository,
                         UserRepository userRepository,
-                        ComicRatingRepository comicRatingRepository) {
+                        ComicRatingRepository comicRatingRepository,
+                        ChapterPremiumPolicyService chapterPremiumPolicyService) {
         this.comicRepository = comicRepository;
         this.chapterRepository = chapterRepository;
         this.purchaseRepository = purchaseRepository;
         this.vipRepository = vipRepository;
         this.userRepository = userRepository;
         this.comicRatingRepository = comicRatingRepository;
+        this.chapterPremiumPolicyService = chapterPremiumPolicyService;
     }
 
     public Page<ComicResponse> getComics(String keyword, String category, Pageable pageable) {
@@ -210,7 +214,11 @@ public class ComicService {
             chapter.setPrice(request.getPrice());
         }
         ChapterEntity saved = chapterRepository.save(chapter);
-        return toChapterResponse(saved);
+        chapterPremiumPolicyService.applyLastThreePremiumPolicy(comicId);
+
+        ChapterEntity refreshed = chapterRepository.findById(saved.getId())
+                .orElseThrow(() -> new NotFoundException("Chapter not found: " + saved.getId()));
+        return toChapterResponse(refreshed);
     }
 
     /* ========== Helpers ========== */

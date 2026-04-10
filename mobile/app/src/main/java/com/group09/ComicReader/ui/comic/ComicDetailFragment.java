@@ -49,6 +49,7 @@ public class ComicDetailFragment extends BaseFragment {
     private SessionManager sessionManager;
     private ReaderProgressStore readerProgressStore;
     private int comicId;
+    private int pendingPurchaseChapterId = -1;
     private Comic currentComic;
     private List<Chapter> currentChapters = new ArrayList<>();
 
@@ -108,6 +109,9 @@ public class ComicDetailFragment extends BaseFragment {
     public void onResume() {
         super.onResume();
         updateCommentsFooterLoginState();
+        if (comicId > 0) {
+            viewModel.loadData(comicId);
+        }
     }
 
     private void setupCommentsFooter() {
@@ -230,6 +234,16 @@ public class ComicDetailFragment extends BaseFragment {
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
             if (message != null && !message.trim().isEmpty()) {
                 showToast(message);
+            }
+        });
+        viewModel.getPurchasedChapter().observe(getViewLifecycleOwner(), chapter -> {
+            if (chapter == null) {
+                return;
+            }
+            if (pendingPurchaseChapterId > 0 && chapter.getId() == pendingPurchaseChapterId) {
+                pendingPurchaseChapterId = -1;
+                showToast(getString(R.string.chapter_purchase_success));
+                openReader(chapter.getId(), chapter.getNumber());
             }
         });
         viewModel.getRelatedComics().observe(getViewLifecycleOwner(), comics -> {
@@ -366,10 +380,42 @@ public class ComicDetailFragment extends BaseFragment {
             return;
         }
         if (!chapter.isUnlocked()) {
-            showToast(getString(com.group09.ComicReader.R.string.chapter_locked_message));
+            showPurchaseChapterDialog(chapter);
             return;
         }
         openReader(chapter.getId(), chapter.getNumber());
+    }
+
+    private void showPurchaseChapterDialog(@NonNull Chapter chapter) {
+        if (sessionManager == null || !sessionManager.hasToken()) {
+            showToast(getString(R.string.chapter_purchase_login_required));
+            if (getView() != null) {
+                Navigation.findNavController(getView()).navigate(R.id.loginFragment);
+            }
+            return;
+        }
+
+        String message;
+        if (chapter.getPrice() > 0) {
+            message = getString(R.string.chapter_purchase_confirm_with_price, chapter.getPrice());
+        } else {
+            message = getString(R.string.chapter_purchase_confirm);
+        }
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(getString(R.string.chapter_purchase_title))
+                .setMessage(message)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setNeutralButton(R.string.chapter_purchase_top_up, (dialog, which) -> {
+                    if (getView() != null) {
+                        Navigation.findNavController(getView()).navigate(R.id.walletFragment);
+                    }
+                })
+                .setPositiveButton(R.string.chapter_purchase_buy_now, (dialog, which) -> {
+                    pendingPurchaseChapterId = chapter.getId();
+                    viewModel.purchaseChapter(comicId, chapter);
+                })
+                .show();
     }
 
     private void openFirstAvailableChapter() {

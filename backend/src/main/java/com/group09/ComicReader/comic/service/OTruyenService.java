@@ -2,6 +2,7 @@ package com.group09.ComicReader.comic.service;
 
 import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.chapter.repository.ChapterRepository;
+import com.group09.ComicReader.chapter.service.ChapterPremiumPolicyService;
 import com.group09.ComicReader.comic.dto.ComicResponse;
 import com.group09.ComicReader.comic.dto.OTruyenDetailResponseDTO;
 import com.group09.ComicReader.comic.dto.OTruyenResponseDTO;
@@ -27,11 +28,15 @@ public class OTruyenService {
 
     private final ComicRepository comicRepository;
     private final ChapterRepository chapterRepository;
+    private final ChapterPremiumPolicyService chapterPremiumPolicyService;
     private final RestTemplate restTemplate;
 
-    public OTruyenService(ComicRepository comicRepository, ChapterRepository chapterRepository) {
+    public OTruyenService(ComicRepository comicRepository,
+                          ChapterRepository chapterRepository,
+                          ChapterPremiumPolicyService chapterPremiumPolicyService) {
         this.comicRepository = comicRepository;
         this.chapterRepository = chapterRepository;
+        this.chapterPremiumPolicyService = chapterPremiumPolicyService;
         this.restTemplate = new RestTemplate();
     }
 
@@ -221,6 +226,8 @@ public class OTruyenService {
             chapterRepository.save(chapter);
             count++;
         }
+
+        chapterPremiumPolicyService.applyLastThreePremiumPolicy(comic.getId());
         return count;
     }
 

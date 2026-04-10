@@ -1,6 +1,7 @@
 package com.group09.ComicReader.wallet.controller;
 
 import com.group09.ComicReader.wallet.dto.*;
+import jakarta.validation.Valid;
 import com.group09.ComicReader.wallet.service.WalletService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,12 +33,12 @@ public class WalletController {
     }
 
     @PostMapping("/topup")
-    public ResponseEntity<WalletResponse> topUp(@RequestBody TopUpRequest request) {
+    public ResponseEntity<WalletResponse> topUp(@Valid @RequestBody TopUpRequest request) {
         return ResponseEntity.ok(walletService.topUp(request));
     }
 
     @PostMapping("/purchase-chapter")
-    public ResponseEntity<WalletResponse> purchaseChapter(@RequestBody PurchaseChapterRequest request) {
+    public ResponseEntity<WalletResponse> purchaseChapter(@Valid @RequestBody PurchaseChapterRequest request) {
         return ResponseEntity.ok(walletService.purchaseChapter(request));
     }
 
@@ -49,7 +50,7 @@ public class WalletController {
     }
 
     @PostMapping("/vip/purchase")
-    public ResponseEntity<VipStatusResponse> purchaseVip(@RequestBody VipPurchaseRequest request) {
+    public ResponseEntity<VipStatusResponse> purchaseVip(@Valid @RequestBody VipPurchaseRequest request) {
         return ResponseEntity.ok(walletService.purchaseVip(request));
     }
 
@@ -63,7 +64,7 @@ public class WalletController {
     // ── IAP Verification ───────────────────────────────
 
     @PostMapping("/iap-verify")
-    public ResponseEntity<WalletResponse> verifyIap(@RequestBody IapVerifyRequest request) {
+    public ResponseEntity<WalletResponse> verifyIap(@Valid @RequestBody IapVerifyRequest request) {
         return ResponseEntity.ok(walletService.verifyIap(request));
     }
 }

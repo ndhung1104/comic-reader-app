@@ -41,6 +41,7 @@ public class ChapterService {
     private final ChapterPurchaseRepository purchaseRepository;
     private final VipSubscriptionRepository vipRepository;
     private final UserRepository userRepository;
+    private final ChapterPremiumPolicyService chapterPremiumPolicyService;
     private final RestTemplate restTemplate;
 
     public ChapterService(ChapterRepository chapterRepository,
@@ -48,13 +49,15 @@ public class ChapterService {
             FileStorageService fileStorageService,
             ChapterPurchaseRepository purchaseRepository,
             VipSubscriptionRepository vipRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            ChapterPremiumPolicyService chapterPremiumPolicyService) {
         this.chapterRepository = chapterRepository;
         this.chapterPageRepository = chapterPageRepository;
         this.fileStorageService = fileStorageService;
         this.purchaseRepository = purchaseRepository;
         this.vipRepository = vipRepository;
         this.userRepository = userRepository;
+        this.chapterPremiumPolicyService = chapterPremiumPolicyService;
         this.restTemplate = new RestTemplate();
     }
 
@@ -140,6 +143,8 @@ public class ChapterService {
     @Transactional
     public ChapterResponse updateChapter(Long chapterId, ChapterRequest request) {
         ChapterEntity chapter = getChapterEntity(chapterId);
+        Long comicId = chapter.getComic().getId();
+
         chapter.setChapterNumber(request.getChapterNumber());
         chapter.setTitle(request.getTitle());
         chapter.setPremium(Boolean.TRUE.equals(request.getPremium()));
@@ -147,13 +152,20 @@ public class ChapterService {
             chapter.setPrice(request.getPrice());
         }
         chapter.setUpdatedAt(LocalDateTime.now());
-        return toChapterResponse(chapterRepository.save(chapter));
+        chapterRepository.save(chapter);
+
+        chapterPremiumPolicyService.applyLastThreePremiumPolicy(comicId);
+
+        ChapterEntity refreshed = getChapterEntity(chapterId);
+        return toChapterResponse(refreshed);
     }
 
     @Transactional
     public void deleteChapter(Long chapterId) {
         ChapterEntity chapter = getChapterEntity(chapterId);
+        Long comicId = chapter.getComic().getId();
         chapterRepository.delete(chapter);
+        chapterPremiumPolicyService.applyLastThreePremiumPolicy(comicId);
     }
 
     @Transactional
