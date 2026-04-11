@@ -144,6 +144,32 @@
                 app:layout_constraintTop_toBottomOf="@id/tv_home_daily_title" />
 
             <TextView
+                android:id="@+id/tv_home_trending_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_lg"
+                android:layout_marginTop="@dimen/spacing_xl"
+                android:text="@string/home_top_trending"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_lg"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/rcv_home_daily_list" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rcv_home_trending_list"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:nestedScrollingEnabled="false"
+                android:paddingStart="@dimen/spacing_lg"
+                android:paddingEnd="@dimen/spacing_lg"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_home_trending_title" />
+
+            <TextView
                 android:id="@+id/tv_home_recommended_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -154,7 +180,7 @@
                 android:textSize="@dimen/text_lg"
                 android:textStyle="bold"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/rcv_home_daily_list" />
+                app:layout_constraintTop_toBottomOf="@id/rcv_home_trending_list" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rcv_home_recommended_grid"

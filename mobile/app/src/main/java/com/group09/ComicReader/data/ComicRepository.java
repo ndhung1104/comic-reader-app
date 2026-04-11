@@ -297,7 +297,7 @@ public class ComicRepository {
                 if (response.isSuccessful()) {
                     callback.onSuccess();
                 } else {
-                    callback.onError("Error: " + response.code());
+                    callback.onError(extractErrorMessage(response));
                 }
             }
 
@@ -306,6 +306,39 @@ public class ComicRepository {
                 callback.onError(t.getMessage());
             }
         });
+    }
+
+    private String extractErrorMessage(@NonNull Response<?> response) {
+        String errorBodyText = null;
+        try {
+            ResponseBody errorBody = response.errorBody();
+            if (errorBody != null) {
+                errorBodyText = errorBody.string();
+            }
+        } catch (Exception ignored) {
+        }
+
+        if (errorBodyText != null && !errorBodyText.trim().isEmpty()) {
+            try {
+                JSONObject obj = new JSONObject(errorBodyText);
+
+                JSONObject fields = obj.optJSONObject("fields");
+                if (fields != null) {
+                    String scoreError = fields.optString("score", null);
+                    if (scoreError != null && !scoreError.trim().isEmpty()) {
+                        return scoreError;
+                    }
+                }
+
+                String msg = obj.optString("error", null);
+                if (msg != null && !msg.trim().isEmpty()) {
+                    return msg;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        return "Error: " + response.code();
     }
 
     public void incrementViewCount(int comicId) {
@@ -331,11 +364,18 @@ public class ComicRepository {
                     public void onResponse(@NonNull Call<TranslateApi.ComicTranslateResponse> call,
                             @NonNull Response<TranslateApi.ComicTranslateResponse> response) {
                         if (response.isSuccessful() && response.body() != null) {
+                            String translatedTitle = response.body().getTranslatedTitle();
+                            String translatedSynopsis = response.body().getTranslatedSynopsis();
+                            String translationFailure = extractTranslationFailure(translatedTitle, translatedSynopsis);
+                            if (translationFailure != null) {
+                                callback.onError(translationFailure);
+                                return;
+                            }
                             callback.onSuccess(
-                                    response.body().getTranslatedTitle(),
-                                    response.body().getTranslatedSynopsis());
+                                    translatedTitle,
+                                    translatedSynopsis);
                         } else {
-                            callback.onError("Translation error: " + response.code());
+                            callback.onError(extractErrorMessage(response));
                         }
                     }
 
@@ -344,6 +384,24 @@ public class ComicRepository {
                         callback.onError(t.getMessage());
                     }
                 });
+    }
+
+    private String extractTranslationFailure(String translatedTitle, String translatedSynopsis) {
+        String[] translatedFields = {translatedTitle, translatedSynopsis};
+        for (String translatedField : translatedFields) {
+            if (translatedField == null) {
+                continue;
+            }
+            String normalized = translatedField.trim();
+            if (!normalized.startsWith("[Translation")) {
+                continue;
+            }
+            if (normalized.toLowerCase(Locale.US).contains("configured")) {
+                return "Translation service is not configured on server";
+            }
+            return "Translation service is temporarily unavailable";
+        }
+        return null;
     }
 
     /* ========== Filters ========== */

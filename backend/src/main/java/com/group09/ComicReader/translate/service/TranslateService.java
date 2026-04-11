@@ -1,5 +1,6 @@
 package com.group09.ComicReader.translate.service;
 
+import com.group09.ComicReader.common.exception.ServiceUnavailableException;
 import com.group09.ComicReader.config.GeminiConfig;
 import com.group09.ComicReader.comic.entity.ComicEntity;
 import com.group09.ComicReader.comic.service.ComicService;
@@ -7,8 +8,16 @@ import com.group09.ComicReader.translate.dto.ComicTranslateResponse;
 import com.group09.ComicReader.translate.dto.TranslateResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.http.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
@@ -18,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class TranslateService {
 
+    private static final Logger log = LoggerFactory.getLogger(TranslateService.class);
     private static final String GEMINI_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=%s";
 
@@ -58,7 +68,7 @@ public class TranslateService {
     private String callGemini(String text, String sourceLang, String targetLang) {
         String apiKey = geminiConfig.getApiKey();
         if (apiKey == null || apiKey.isBlank()) {
-            return "[Translation unavailable – Gemini API key not configured]";
+            throw new ServiceUnavailableException("Translation service is not configured on server");
         }
 
         String prompt = String.format(
@@ -90,13 +100,27 @@ public class TranslateService {
                 if (candidates.isArray() && !candidates.isEmpty()) {
                     JsonNode parts = candidates.get(0).path("content").path("parts");
                     if (parts.isArray() && !parts.isEmpty()) {
-                        return parts.get(0).path("text").asText("").trim();
+                        String translatedText = parts.get(0).path("text").asText("").trim();
+                        if (!translatedText.isEmpty()) {
+                            return translatedText;
+                        }
                     }
                 }
             }
-            return "[Translation failed]";
+
+            log.warn("Gemini returned an empty or invalid translation response");
+            throw new ServiceUnavailableException("Translation service returned an invalid response");
+        } catch (ResourceAccessException e) {
+            log.warn("Failed to reach Gemini translation service", e);
+            throw new ServiceUnavailableException("Translation service is temporarily unavailable");
+        } catch (RestClientResponseException e) {
+            log.warn("Gemini translation request failed with status {}", e.getStatusCode(), e);
+            throw new ServiceUnavailableException("Translation service request failed");
+        } catch (ServiceUnavailableException e) {
+            throw e;
         } catch (Exception e) {
-            return "[Translation error: " + e.getMessage() + "]";
+            log.warn("Unexpected error while translating with Gemini", e);
+            throw new ServiceUnavailableException("Translation service failed to process the request");
         }
     }
 }
