@@ -4,5 +4,7 @@ spring:
     username: ${DB_USERNAME:comic_user}
     password: ${DB_PASSWORD:comic_pass}
     driver-class-name: org.postgresql.Driver
+  flyway:
+    validate-on-migrate: false
   jpa:
     show-sql: true

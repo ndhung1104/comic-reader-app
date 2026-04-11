@@ -30,6 +30,7 @@
     <string name="register_login_link">Already have an account? Login</string>
 
     <string name="home_daily_updates">Daily Updates</string>
+    <string name="home_top_trending">Top Trending</string>
     <string name="home_recommended">Recommended for You</string>
     <string name="home_read_chapter_one">Read Chapter 1</string>
     <string name="home_see_all">See All</string>
@@ -126,5 +127,5 @@
     <string name="comic_rate_submit">Submit</string>
     <string name="comic_rate_success">Rating submitted!</string>
     <string name="comic_rate_login_required">Log in to rate comics</string>
-    <string name="comic_your_rating">Your rating: %1$d/10</string>
+    <string name="comic_your_rating">Your rating: %1$d/5</string>
 </resources>

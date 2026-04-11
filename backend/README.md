@@ -24,6 +24,13 @@ cp .env.example .env
 ```bash
 docker compose up --build
 ```
+3. If Docker starts failing on a Flyway checksum mismatch after pulling schema changes, your
+   existing `pg_data` volume is likely carrying an older migration history. For disposable local
+   data, reset it with:
+```bash
+docker compose down -v --remove-orphans
+docker compose up --build
+```
 
 ## Run local (without Docker)
 1. Copy env file:
@@ -54,3 +61,4 @@ cp .env.example .env
 - Backend reads `backend/.env` via Spring `spring.config.import`
 - Docker Compose also reads `backend/.env`
 - `DB_URL` in `.env` is intended for local runs; Docker overrides it to use the `postgres` service host
+- `docker compose up` reuses the named `pg_data` volume, so schema history survives rebuilds until you remove that volume

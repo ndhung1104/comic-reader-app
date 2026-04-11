@@ -3,6 +3,7 @@ package com.group09.ComicReader.ui.comic;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,6 +12,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatRatingBar;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -295,19 +297,28 @@ public class ComicDetailFragment extends BaseFragment {
         // Create layout programmatically: label + RatingBar
         android.widget.LinearLayout layout = new android.widget.LinearLayout(requireContext());
         layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setGravity(Gravity.CENTER_HORIZONTAL);
         int pad = (int) (16 * getResources().getDisplayMetrics().density);
         layout.setPadding(pad, pad, pad, 0);
 
         final TextView tvScore = new TextView(requireContext());
         tvScore.setTextSize(14);
-        tvScore.setText(getString(R.string.comic_your_rating, 5));
+        tvScore.setText(getString(R.string.comic_your_rating, 3));
+        tvScore.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        final RatingBar ratingBar = new RatingBar(requireContext());
+        final RatingBar ratingBar = new AppCompatRatingBar(requireContext(), null, android.R.attr.ratingBarStyle);
+        android.widget.LinearLayout.LayoutParams ratingParams =
+                new android.widget.LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+        ratingParams.gravity = Gravity.CENTER_HORIZONTAL;
+        ratingBar.setLayoutParams(ratingParams);
         ratingBar.setNumStars(5);
+        ratingBar.setMax(5);
         ratingBar.setStepSize(1f);
-        ratingBar.setRating(2.5f); // default = 5/10
+        ratingBar.setRating(3f);
         ratingBar.setOnRatingBarChangeListener((rb, rating, fromUser) -> {
-            int score = Math.max(1, Math.round(rating * 2));
+            int score = Math.max(1, Math.round(rating));
             tvScore.setText(getString(R.string.comic_your_rating, score));
         });
 
@@ -316,7 +327,7 @@ public class ComicDetailFragment extends BaseFragment {
         builder.setView(layout);
 
         builder.setPositiveButton(getString(R.string.comic_rate_submit), (dialog, which) -> {
-            int score = Math.max(1, Math.round(ratingBar.getRating() * 2));
+            int score = Math.max(1, Math.round(ratingBar.getRating()));
             viewModel.rateComic(comicId, score);
         });
         builder.setNegativeButton(android.R.string.cancel, null);

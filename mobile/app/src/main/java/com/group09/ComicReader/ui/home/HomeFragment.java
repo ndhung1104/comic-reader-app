@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.bumptech.glide.Glide;
 import com.group09.ComicReader.adapter.HomeDailyAdapter;
 import com.group09.ComicReader.adapter.HomeRecommendedAdapter;
+import com.group09.ComicReader.adapter.HomeTrendingAdapter;
 import com.group09.ComicReader.base.BaseFragment;
 import com.group09.ComicReader.databinding.FragmentHomeBinding;
 import com.group09.ComicReader.model.Comic;
@@ -27,6 +28,7 @@ public class HomeFragment extends BaseFragment {
     private HomeViewModel viewModel;
     private HomeDailyAdapter dailyAdapter;
     private HomeRecommendedAdapter recommendedAdapter;
+    private HomeTrendingAdapter topTrendingAdapter;
     private Comic heroComic;
 
     @Nullable
@@ -44,9 +46,14 @@ public class HomeFragment extends BaseFragment {
 
         dailyAdapter = new HomeDailyAdapter(this::openComicDetail);
         recommendedAdapter = new HomeRecommendedAdapter(this::openComicDetail);
+        topTrendingAdapter = new HomeTrendingAdapter(this::openComicDetail);
 
         binding.rcvHomeDailyList.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
         binding.rcvHomeDailyList.setAdapter(dailyAdapter);
+
+        binding.rcvHomeTrendingList.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
+        binding.rcvHomeTrendingList.setNestedScrollingEnabled(false);
+        binding.rcvHomeTrendingList.setAdapter(topTrendingAdapter);
 
         binding.rcvHomeRecommendedGrid.setLayoutManager(new GridLayoutManager(requireContext(), 2));
         binding.rcvHomeRecommendedGrid.setAdapter(recommendedAdapter);
@@ -76,6 +83,12 @@ public class HomeFragment extends BaseFragment {
         });
 
         viewModel.getDailyUpdates().observe(getViewLifecycleOwner(), dailyAdapter::submitList);
+        viewModel.getTopTrendingComics().observe(getViewLifecycleOwner(), comics -> {
+            boolean hasTrending = comics != null && !comics.isEmpty();
+            binding.tvHomeTrendingTitle.setVisibility(hasTrending ? View.VISIBLE : View.GONE);
+            binding.rcvHomeTrendingList.setVisibility(hasTrending ? View.VISIBLE : View.GONE);
+            topTrendingAdapter.submitList(comics);
+        });
         viewModel.getRecommended().observe(getViewLifecycleOwner(), recommendedAdapter::submitList);
     }
 

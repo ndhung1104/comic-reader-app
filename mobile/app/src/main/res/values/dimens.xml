@@ -43,4 +43,5 @@
     <dimen name="cover_detail_height">224dp</dimen>
     <dimen name="avatar_size">72dp</dimen>
     <dimen name="sheet_peek_padding">20dp</dimen>
+    <dimen name="ranking_number_min_width">40dp</dimen>
 </resources>

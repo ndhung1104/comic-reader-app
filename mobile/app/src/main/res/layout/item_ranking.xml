@@ -10,9 +10,13 @@
 
     <TextView
         android:id="@+id/tv_ranking_number"
-        android:layout_width="@dimen/icon_lg"
-        android:layout_height="@dimen/icon_lg"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:gravity="center"
+        android:minWidth="@dimen/ranking_number_min_width"
+        android:minHeight="@dimen/icon_xl"
+        android:paddingStart="@dimen/spacing_xs"
+        android:paddingEnd="@dimen/spacing_xs"
         android:textColor="@color/accent_primary"
         android:textSize="@dimen/text_xl"
         android:textStyle="bold"
