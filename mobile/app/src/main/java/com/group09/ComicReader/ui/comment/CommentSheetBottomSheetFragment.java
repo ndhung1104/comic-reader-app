@@ -99,7 +99,14 @@ public class CommentSheetBottomSheetFragment extends BottomSheetDialogFragment {
     }
 
     private void setupRecyclerView() {
-        adapter = new CommentAdapter();
+        adapter = new CommentAdapter(comment -> {
+            if (!sessionManager.hasToken()) {
+                Toast.makeText(requireContext(), R.string.comment_login_required, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            viewModel.startReply(comment);
+            binding.edtCommentSheetInput.requestFocus();
+        });
         binding.rcvCommentSheetComments.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rcvCommentSheetComments.setAdapter(adapter);
         binding.btnCommentSheetClose.setOnClickListener(v -> dismiss());
@@ -108,18 +115,15 @@ public class CommentSheetBottomSheetFragment extends BottomSheetDialogFragment {
     }
 
     private void setupInputArea() {
-        boolean isLoggedIn = sessionManager.hasToken();
-
-        if (isLoggedIn) {
-            binding.tilCommentSheetInput.setVisibility(View.VISIBLE);
-            binding.tilCommentSheetInput.setEndIconOnClickListener(v -> submitComment());
-        } else {
-            binding.tilCommentSheetInput.setVisibility(View.VISIBLE);
-            binding.edtCommentSheetInput.setEnabled(false);
-            binding.edtCommentSheetInput.setHint(R.string.comment_login_required);
-            binding.tilCommentSheetInput.setEndIconOnClickListener(v ->
-                    Toast.makeText(requireContext(), R.string.comment_login_required, Toast.LENGTH_SHORT).show());
-        }
+        binding.btnCommentSheetSend.setOnClickListener(v -> {
+            if (!sessionManager.hasToken()) {
+                Toast.makeText(requireContext(), R.string.comment_login_required, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            submitComment();
+        });
+        binding.tvCommentSheetCancelReply.setOnClickListener(v -> viewModel.cancelReply());
+        refreshInputLoginState();
     }
 
     private void setupObservers() {
@@ -131,9 +135,9 @@ public class CommentSheetBottomSheetFragment extends BottomSheetDialogFragment {
             binding.rcvCommentSheetComments.setVisibility(hasComments ? View.VISIBLE : View.GONE);
             binding.tvCommentSheetEmpty.setVisibility(hasComments ? View.GONE : View.VISIBLE);
 
-            // Update title with count
             int count = comments == null ? 0 : comments.size();
-            binding.tvCommentSheetTitle.setText(getString(R.string.comment_count, count));
+            binding.tvCommentSheetTitle.setText(R.string.comment_discussion_title);
+            binding.tvCommentSheetSubtitle.setText(getString(R.string.comment_discussion_subtitle, count));
         });
 
         viewModel.getHasMore().observe(getViewLifecycleOwner(), more -> {
@@ -158,22 +162,34 @@ public class CommentSheetBottomSheetFragment extends BottomSheetDialogFragment {
                 binding.rcvCommentSheetComments.scrollToPosition(0);
             }
         });
+        viewModel.getReplyingToLabel().observe(getViewLifecycleOwner(), label -> {
+            boolean isReplying = label != null && !label.trim().isEmpty();
+            binding.clCommentSheetReplying.setVisibility(isReplying ? View.VISIBLE : View.GONE);
+            if (isReplying) {
+                binding.tvCommentSheetReplyingTo.setText(label);
+            }
+        });
 
-        // Error message
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
             if (error != null && !error.isEmpty()) {
                 if ("Session expired. Please log in again.".equals(error)) {
                     sessionManager.clear();
                     binding.edtCommentSheetInput.setText("");
-                    binding.edtCommentSheetInput.setEnabled(false);
-                    binding.edtCommentSheetInput.setHint(R.string.comment_login_required);
-                    binding.tilCommentSheetInput.setEndIconOnClickListener(v ->
-                            Toast.makeText(requireContext(), R.string.comment_login_required, Toast.LENGTH_SHORT)
-                                    .show());
+                    viewModel.cancelReply();
+                    refreshInputLoginState();
                 }
                 Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void refreshInputLoginState() {
+        boolean isLoggedIn = sessionManager.hasToken();
+        binding.edtCommentSheetInput.setEnabled(isLoggedIn);
+        binding.tilCommentSheetInput.setHint(isLoggedIn
+                ? getString(R.string.comment_hint)
+                : getString(R.string.comment_login_required));
+        binding.btnCommentSheetSend.setAlpha(isLoggedIn ? 1f : 0.5f);
     }
 
     private void submitComment() {

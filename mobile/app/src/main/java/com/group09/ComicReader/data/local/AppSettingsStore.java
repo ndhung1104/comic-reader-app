@@ -9,6 +9,7 @@ public class AppSettingsStore {
     private static final String PREFS_NAME = "comic_reader_settings";
     private static final String KEY_LANGUAGE_CODE = "language_code";
     private static final String KEY_LANGUAGE_SELECTED = "language_selected";
+    private static final String KEY_DARK_MODE_ENABLED = "dark_mode_enabled";
 
     private final SharedPreferences prefs;
 
@@ -31,5 +32,13 @@ public class AppSettingsStore {
 
     public boolean isLanguageSelected() {
         return prefs.getBoolean(KEY_LANGUAGE_SELECTED, false);
+    }
+
+    public void setDarkModeEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_DARK_MODE_ENABLED, enabled).apply();
+    }
+
+    public boolean isDarkModeEnabled() {
+        return prefs.getBoolean(KEY_DARK_MODE_ENABLED, false);
     }
 }

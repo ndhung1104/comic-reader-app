@@ -27,6 +27,7 @@ import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.group09.ComicReader.BuildConfig;
+import com.group09.ComicReader.R;
 import com.group09.ComicReader.base.BaseFragment;
 import com.group09.ComicReader.data.AuthRepository;
 import com.group09.ComicReader.data.local.SessionManager;
@@ -197,6 +198,11 @@ public class LoginFragment extends BaseFragment {
         };
 
         binding.btnLoginSubmit.setOnClickListener(loginAction);
+        binding.btnLoginTabLogin.setOnClickListener(v -> {
+            // Current screen.
+        });
+        binding.btnLoginTabSignup.setOnClickListener(v -> Navigation.findNavController(v)
+                .navigate(LoginFragmentDirections.actionLoginToRegister()));
         binding.btnLoginGoogle.setOnClickListener(v -> {
             hideKeyboard();
             if (googleSignInClient == null) {
@@ -218,7 +224,8 @@ public class LoginFragment extends BaseFragment {
                 googleSignInLauncher.launch(googleSignInClient.getSignInIntent());
             });
         });
-        binding.tvLoginForgot.setOnClickListener(v -> showToast("Forgot password is not implemented"));
+        binding.tvLoginForgot.setOnClickListener(v -> Navigation.findNavController(v)
+                .navigate(R.id.action_login_to_forgot_password));
 
         binding.tvLoginSignUp.setOnClickListener(v -> Navigation.findNavController(v)
                 .navigate(LoginFragmentDirections.actionLoginToRegister()));

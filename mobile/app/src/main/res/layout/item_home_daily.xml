@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cl_home_daily_item"
-    android:layout_width="wrap_content"
+    android:layout_width="@dimen/home_daily_card_width"
     android:layout_height="wrap_content"
-    android:layout_marginEnd="@dimen/spacing_md">
+    android:layout_marginEnd="@dimen/spacing_lg">
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_home_daily_item"
-        android:layout_width="@dimen/cover_daily_width"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/bg_surface"
-        app:cardCornerRadius="@dimen/radius_md"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:cardBackgroundColor="@color/surface_container_highest"
+        app:cardCornerRadius="@dimen/radius_xl"
+        app:cardElevation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -24,47 +25,49 @@
             <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/img_home_daily_cover"
                 android:layout_width="0dp"
-                android:layout_height="@dimen/cover_daily_height"
+                android:layout_height="@dimen/home_daily_cover_height"
                 android:contentDescription="@string/content_cover"
                 android:scaleType="centerCrop"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@mipmap/ic_launcher" />
+                tools:srcCompat="@mipmap/ic_launcher" />
 
             <TextView
                 android:id="@+id/tv_home_daily_title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="@dimen/spacing_sm"
                 android:layout_marginStart="@dimen/spacing_sm"
                 android:layout_marginTop="@dimen/spacing_sm"
+                android:layout_marginEnd="@dimen/spacing_sm"
                 android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="@color/text_primary"
+                android:maxLines="2"
+                android:textColor="@color/on_surface"
                 android:textSize="@dimen/text_sm"
                 android:textStyle="bold"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/img_home_daily_cover" />
+                app:layout_constraintTop_toBottomOf="@id/img_home_daily_cover"
+                tools:text="Neon Ronin" />
 
             <TextView
-                android:id="@+id/tv_home_daily_rating"
+                android:id="@+id/tv_home_daily_info"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_sm"
-                android:layout_marginEnd="@dimen/spacing_sm"
                 android:layout_marginStart="@dimen/spacing_sm"
-                android:drawableEnd="@drawable/ic_star_24"
-                android:drawablePadding="@dimen/spacing_xs"
-                android:textColor="@color/text_secondary"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:layout_marginEnd="@dimen/spacing_sm"
+                android:layout_marginBottom="@dimen/spacing_sm"
+                android:textColor="@color/on_surface_variant"
                 android:textSize="@dimen/text_xs"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_home_daily_title" />
+                app:layout_constraintTop_toBottomOf="@id/tv_home_daily_title"
+                tools:text="Ch. 42 - Action" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
+
     </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

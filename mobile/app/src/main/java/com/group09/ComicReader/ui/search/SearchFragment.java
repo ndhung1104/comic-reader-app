@@ -9,8 +9,10 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.SearchResultAdapter;
@@ -24,6 +26,8 @@ public class SearchFragment extends BaseFragment {
     private FragmentSearchBinding binding;
     private SearchViewModel viewModel;
     private SearchResultAdapter adapter;
+    private boolean gridMode = true;
+    private String initialFilter;
 
     @Nullable
     @Override
@@ -37,9 +41,15 @@ public class SearchFragment extends BaseFragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        initialFilter = getArguments() == null ? null : getArguments().getString("initialFilter");
         adapter = new SearchResultAdapter(this::openComicDetail);
         binding.rcvSearchResults.setLayoutManager(new GridLayoutManager(requireContext(), 2));
         binding.rcvSearchResults.setAdapter(adapter);
+
+        binding.imgSearchGrid.setOnClickListener(v -> setGridMode(true));
+        binding.imgSearchList.setOnClickListener(v -> setGridMode(false));
+        setGridMode(true);
+        binding.tilSearchQuery.setEndIconOnClickListener(v -> binding.edtSearchQuery.setText(""));
 
         binding.edtSearchQuery.addTextChangedListener(new TextWatcher() {
             @Override
@@ -76,9 +86,7 @@ public class SearchFragment extends BaseFragment {
                 chip.setCheckable(true);
                 binding.cgSearchFilters.addView(chip);
             }
-            if (binding.cgSearchFilters.getChildCount() > 0 && binding.cgSearchFilters.getCheckedChipId() == android.view.View.NO_ID) {
-                ((com.google.android.material.chip.Chip) binding.cgSearchFilters.getChildAt(0)).setChecked(true);
-            }
+            selectFilterChip(initialFilter);
         });
 
         viewModel.getResults().observe(getViewLifecycleOwner(), comics -> {
@@ -88,6 +96,44 @@ public class SearchFragment extends BaseFragment {
         });
 
         viewModel.loadInitial();
+    }
+
+    private void setGridMode(boolean grid) {
+        gridMode = grid;
+        if (gridMode) {
+            binding.rcvSearchResults.setLayoutManager(new GridLayoutManager(requireContext(), 2));
+            binding.imgSearchGrid.setColorFilter(ContextCompat.getColor(requireContext(), R.color.primary));
+            binding.imgSearchList.setColorFilter(ContextCompat.getColor(requireContext(), R.color.on_surface_variant));
+        } else {
+            binding.rcvSearchResults.setLayoutManager(new LinearLayoutManager(requireContext()));
+            binding.imgSearchGrid.setColorFilter(ContextCompat.getColor(requireContext(), R.color.on_surface_variant));
+            binding.imgSearchList.setColorFilter(ContextCompat.getColor(requireContext(), R.color.primary));
+        }
+        binding.rcvSearchResults.setAdapter(adapter);
+    }
+
+    private void selectFilterChip(@Nullable String filter) {
+        String target = filter == null || filter.trim().isEmpty() ? "All" : filter.trim();
+        int childCount = binding.cgSearchFilters.getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            View child = binding.cgSearchFilters.getChildAt(i);
+            if (!(child instanceof com.google.android.material.chip.Chip)) {
+                continue;
+            }
+            com.google.android.material.chip.Chip chip = (com.google.android.material.chip.Chip) child;
+            if (target.equalsIgnoreCase(String.valueOf(chip.getText()))) {
+                chip.setChecked(true);
+                viewModel.updateFilter(String.valueOf(chip.getText()));
+                initialFilter = null;
+                return;
+            }
+        }
+        if (childCount > 0) {
+            com.google.android.material.chip.Chip first = (com.google.android.material.chip.Chip) binding.cgSearchFilters.getChildAt(0);
+            first.setChecked(true);
+            viewModel.updateFilter(String.valueOf(first.getText()));
+        }
+        initialFilter = null;
     }
 
     private void openComicDetail(Comic comic) {

@@ -64,6 +64,11 @@ public class RegisterFragment extends BaseFragment {
             viewModel.register(email, password, confirmPassword, fullName);
         });
 
+        binding.btnRegisterTabSignup.setOnClickListener(v -> {
+            // Current screen.
+        });
+        binding.btnRegisterTabLogin.setOnClickListener(v -> Navigation.findNavController(v)
+                .navigate(RegisterFragmentDirections.actionRegisterToLogin()));
         binding.tvRegisterLogin.setOnClickListener(v -> Navigation.findNavController(v).navigate(RegisterFragmentDirections.actionRegisterToLogin()));
 
         viewModel.getLoading().observe(getViewLifecycleOwner(), isLoading -> {

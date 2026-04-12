@@ -1,17 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cl_search_result_item"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/spacing_md">
+    android:layout_marginStart="@dimen/spacing_sm"
+    android:layout_marginEnd="@dimen/spacing_sm"
+    android:layout_marginBottom="@dimen/spacing_lg">
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_search_result_item"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/bg_surface"
-        app:cardCornerRadius="@dimen/radius_md"
+        android:layout_height="@dimen/search_featured_large_height"
+        app:cardBackgroundColor="@color/surface_container_highest"
+        app:cardCornerRadius="@dimen/radius_xl"
+        app:cardElevation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -23,28 +27,29 @@
             <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/img_search_result_cover"
                 android:layout_width="0dp"
-                android:layout_height="@dimen/cover_grid_height"
+                android:layout_height="@dimen/search_featured_small_height"
                 android:contentDescription="@string/content_cover"
                 android:scaleType="centerCrop"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@mipmap/ic_launcher" />
+                tools:srcCompat="@mipmap/ic_launcher" />
 
             <TextView
                 android:id="@+id/tv_search_result_new"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="@dimen/spacing_sm"
                 android:layout_marginTop="@dimen/spacing_sm"
+                android:layout_marginEnd="@dimen/spacing_sm"
                 android:background="@drawable/bg_button_primary"
-                android:paddingBottom="@dimen/spacing_xs"
-                android:paddingEnd="@dimen/spacing_sm"
                 android:paddingStart="@dimen/spacing_sm"
                 android:paddingTop="@dimen/spacing_xs"
+                android:paddingEnd="@dimen/spacing_sm"
+                android:paddingBottom="@dimen/spacing_xs"
                 android:text="NEW"
-                android:textColor="@color/text_primary"
+                android:textColor="@color/on_primary"
                 android:textSize="@dimen/text_xs"
+                android:textStyle="bold"
                 android:visibility="gone"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -53,65 +58,71 @@
                 android:id="@+id/tv_search_result_title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="@dimen/spacing_sm"
                 android:layout_marginStart="@dimen/spacing_sm"
                 android:layout_marginTop="@dimen/spacing_sm"
+                android:layout_marginEnd="@dimen/spacing_sm"
                 android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="@color/text_primary"
+                android:maxLines="2"
+                android:textColor="@color/on_surface"
                 android:textSize="@dimen/text_sm"
                 android:textStyle="bold"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/img_search_result_cover" />
+                app:layout_constraintTop_toBottomOf="@id/img_search_result_cover"
+                tools:text="Neon Vanguard" />
 
             <TextView
                 android:id="@+id/tv_search_result_author"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="@dimen/spacing_sm"
                 android:layout_marginStart="@dimen/spacing_sm"
                 android:layout_marginTop="@dimen/spacing_xs"
+                android:layout_marginEnd="@dimen/spacing_sm"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/on_surface_variant"
                 android:textSize="@dimen/text_xs"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_search_result_title" />
+                app:layout_constraintTop_toBottomOf="@id/tv_search_result_title"
+                tools:text="Kazuo Arisawa" />
 
             <TextView
                 android:id="@+id/tv_search_result_rating"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_sm"
                 android:layout_marginStart="@dimen/spacing_sm"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:layout_marginBottom="@dimen/spacing_sm"
                 android:drawableEnd="@drawable/ic_star_24"
                 android:drawablePadding="@dimen/spacing_xs"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/on_surface"
                 android:textSize="@dimen/text_xs"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_search_result_author" />
+                app:layout_constraintTop_toBottomOf="@id/tv_search_result_author"
+                tools:text="4.8" />
 
             <TextView
                 android:id="@+id/tv_search_result_genre"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_sm"
                 android:layout_marginEnd="@dimen/spacing_sm"
+                android:layout_marginBottom="@dimen/spacing_sm"
                 android:background="@drawable/bg_card_surface"
-                android:paddingBottom="@dimen/spacing_xs"
-                android:paddingEnd="@dimen/spacing_sm"
                 android:paddingStart="@dimen/spacing_sm"
                 android:paddingTop="@dimen/spacing_xs"
-                android:textColor="@color/accent_secondary"
+                android:paddingEnd="@dimen/spacing_sm"
+                android:paddingBottom="@dimen/spacing_xs"
+                android:textColor="@color/primary"
                 android:textSize="@dimen/text_xs"
+                android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_search_result_author" />
+                tools:text="Action" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
+
     </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

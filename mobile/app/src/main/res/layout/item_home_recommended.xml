@@ -2,15 +2,16 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/cl_home_recommended_item"
-    android:layout_width="match_parent"
+    android:layout_width="@dimen/home_daily_card_width"
     android:layout_height="wrap_content"
+    android:layout_marginEnd="@dimen/spacing_md"
     android:layout_marginBottom="@dimen/spacing_md">
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_home_recommended_item"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/bg_surface"
+        app:cardBackgroundColor="@color/surface_container_lowest"
         app:cardCornerRadius="@dimen/radius_md"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

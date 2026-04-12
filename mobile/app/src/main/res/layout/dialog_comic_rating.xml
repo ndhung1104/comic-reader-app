@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="@dimen/spacing_lg"
+    android:paddingTop="@dimen/spacing_lg"
+    android:paddingEnd="@dimen/spacing_lg"
+    android:paddingBottom="@dimen/spacing_sm">
+
+    <ImageView
+        android:id="@+id/img_comic_detail_rating_icon"
+        android:layout_width="@dimen/icon_xl"
+        android:layout_height="@dimen/icon_xl"
+        android:background="@drawable/bg_browse_header_icon"
+        android:contentDescription="@string/comic_rate"
+        android:padding="@dimen/spacing_sm"
+        android:src="@drawable/ic_star_24"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/primary" />
+
+    <TextView
+        android:id="@+id/tv_comic_detail_rating_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:gravity="center"
+        android:text="@string/comic_rate_title"
+        android:textColor="@color/on_surface"
+        android:textSize="@dimen/text_lg"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/img_comic_detail_rating_icon" />
+
+    <TextView
+        android:id="@+id/tv_comic_detail_rating_hint"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:gravity="center"
+        android:text="@string/comic_rate_dialog_hint"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="@dimen/text_sm"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_rating_title" />
+
+    <androidx.appcompat.widget.AppCompatRatingBar
+        android:id="@+id/rating_comic_detail"
+        style="?android:attr/ratingBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:isIndicator="false"
+        android:numStars="5"
+        android:stepSize="1"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_rating_hint" />
+
+    <TextView
+        android:id="@+id/tv_comic_detail_rating_score"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_sm"
+        android:gravity="center"
+        android:text="@string/comic_rate_default_score"
+        android:textColor="@color/primary"
+        android:textSize="@dimen/text_sm"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/rating_comic_detail" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

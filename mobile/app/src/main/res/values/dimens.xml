@@ -11,7 +11,16 @@
     <dimen name="radius_sm">8dp</dimen>
     <dimen name="radius_md">12dp</dimen>
     <dimen name="radius_lg">16dp</dimen>
+    <dimen name="radius_xl">12dp</dimen>
+    <dimen name="radius_xxl">24dp</dimen>
     <dimen name="radius_full">999dp</dimen>
+
+    <!-- Design System: Kinetic Gallery -->
+    <dimen name="header_height">64dp</dimen>
+    <dimen name="fab_size">56dp</dimen>
+    <dimen name="genre_card_height">96dp</dimen>
+    <dimen name="trending_card_width">128dp</dimen>
+    <dimen name="trending_card_height">160dp</dimen>
 
     <dimen name="text_xs">12sp</dimen>
     <dimen name="text_sm">14sp</dimen>
@@ -30,6 +39,23 @@
     <dimen name="divider_height">1dp</dimen>
     <dimen name="progress_height">8dp</dimen>
 
+    <dimen name="browse_header_elevation">8dp</dimen>
+    <dimen name="browse_content_bottom_padding">120dp</dimen>
+    <dimen name="browse_discover_title_size">40sp</dimen>
+    <dimen name="browse_filter_button_height">40dp</dimen>
+    <dimen name="browse_filter_all_min_width">72dp</dimen>
+    <dimen name="browse_filter_text_min_width">96dp</dimen>
+    <dimen name="browse_sort_min_width">132dp</dimen>
+    <dimen name="browse_sort_label_size">10sp</dimen>
+    <dimen name="browse_badge_text_size">10sp</dimen>
+    <dimen name="browse_genre_name_size">24sp</dimen>
+    <dimen name="browse_genre_large_name_size">36sp</dimen>
+    <dimen name="browse_cta_text_size">11sp</dimen>
+    <dimen name="browse_view_all_icon_size">36dp</dimen>
+    <dimen name="browse_genre_small_min_height">136dp</dimen>
+    <dimen name="browse_genre_medium_min_height">220dp</dimen>
+    <dimen name="browse_genre_large_min_height">360dp</dimen>
+
     <dimen name="button_height">52dp</dimen>
     <dimen name="input_height">52dp</dimen>
     <dimen name="bottom_nav_height">64dp</dimen>
@@ -44,4 +70,39 @@
     <dimen name="avatar_size">72dp</dimen>
     <dimen name="sheet_peek_padding">20dp</dimen>
     <dimen name="ranking_number_min_width">40dp</dimen>
+
+    <dimen name="top_bar_action_size">40dp</dimen>
+    <dimen name="top_bar_shadow">6dp</dimen>
+    <dimen name="home_hero_height">360dp</dimen>
+    <dimen name="home_daily_card_width">168dp</dimen>
+    <dimen name="home_daily_cover_height">224dp</dimen>
+    <dimen name="home_trending_rank_size">36sp</dimen>
+    <dimen name="home_trending_cover_width">128dp</dimen>
+    <dimen name="home_trending_cover_height">168dp</dimen>
+    <dimen name="home_genre_tile_height">92dp</dimen>
+    <dimen name="search_featured_large_height">296dp</dimen>
+    <dimen name="search_featured_small_height">188dp</dimen>
+    <dimen name="search_history_icon_size">20dp</dimen>
+    <dimen name="ranking_podium_cover_width">112dp</dimen>
+    <dimen name="ranking_podium_cover_height">168dp</dimen>
+    <dimen name="ranking_podium_center_height">200dp</dimen>
+    <dimen name="ranking_list_cover_size">64dp</dimen>
+    <dimen name="library_preview_cover_width">88dp</dimen>
+    <dimen name="library_preview_cover_height">124dp</dimen>
+    <dimen name="detail_backdrop_height">320dp</dimen>
+    <dimen name="detail_cover_showcase_width">168dp</dimen>
+    <dimen name="detail_cover_showcase_height">236dp</dimen>
+    <dimen name="detail_related_card_width">132dp</dimen>
+    <dimen name="detail_related_cover_height">176dp</dimen>
+    <dimen name="reader_top_hud_height">96dp</dimen>
+    <dimen name="reader_bottom_hud_height">140dp</dimen>
+    <dimen name="reader_progress_knob_size">14dp</dimen>
+    <dimen name="reader_page_gap">2dp</dimen>
+    <dimen name="profile_avatar_xl">112dp</dimen>
+    <dimen name="profile_menu_icon_tile">44dp</dimen>
+    <dimen name="auth_brand_icon_size">80dp</dimen>
+    <dimen name="auth_card_radius">24dp</dimen>
+    <dimen name="auth_collage_tile_size">44dp</dimen>
+    <dimen name="comment_sheet_handle_width">48dp</dimen>
+    <dimen name="comment_sheet_handle_height">6dp</dimen>
 </resources>

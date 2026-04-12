@@ -1,17 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cl_related_comic_item"
-    android:layout_width="120dp"
+    android:layout_width="@dimen/detail_related_card_width"
     android:layout_height="wrap_content"
     android:layout_marginEnd="@dimen/spacing_sm">
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_related_comic"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/bg_surface"
-        app:cardCornerRadius="@dimen/radius_md"
+        app:cardBackgroundColor="@color/surface_container_highest"
+        app:cardCornerRadius="@dimen/radius_lg"
+        app:cardElevation="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -20,32 +24,36 @@
 
             <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/img_related_cover"
-                android:layout_width="match_parent"
-                android:layout_height="140dp"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/detail_related_cover_height"
                 android:contentDescription="@string/content_cover"
                 android:scaleType="centerCrop"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@mipmap/ic_launcher" />
+                tools:srcCompat="@mipmap/ic_launcher" />
 
             <TextView
                 android:id="@+id/tv_related_title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="@dimen/spacing_xs"
-                android:layout_marginStart="@dimen/spacing_xs"
-                android:layout_marginTop="@dimen/spacing_xs"
-                android:layout_marginBottom="@dimen/spacing_xs"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:layout_marginEnd="@dimen/spacing_sm"
+                android:layout_marginBottom="@dimen/spacing_sm"
                 android:ellipsize="end"
                 android:maxLines="2"
-                android:textColor="@color/text_primary"
+                android:textColor="@color/on_surface"
                 android:textSize="@dimen/text_xs"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/img_related_cover" />
+                app:layout_constraintTop_toBottomOf="@id/img_related_cover"
+                tools:text="Iron Horizon" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
+
     </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

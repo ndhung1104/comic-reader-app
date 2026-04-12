@@ -1,7 +1,9 @@
 package com.group09.ComicReader.adapter;
 
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -46,9 +48,25 @@ public class HomeTrendingAdapter extends RecyclerView.Adapter<HomeTrendingAdapte
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Comic comic = items.get(position);
-        holder.binding.tvHomeTrendingRank.setText("#" + (position + 1));
+        String rankStr = String.format(Locale.US, "%02d", position + 1);
+        holder.binding.tvHomeTrendingRank.setText(rankStr);
         holder.binding.tvHomeTrendingTitle.setText(comic.getTitle());
-        holder.binding.tvHomeTrendingViews.setText(formatViewCount(comic.getViewCount()));
+        holder.binding.tvHomeTrendingDesc.setText(comic.getSynopsis() != null ? comic.getSynopsis() : "No description available.");
+        
+        List<String> genres = comic.getGenres();
+        if (!genres.isEmpty()) {
+            holder.binding.tvHomeTrendingGenre1.setText(genres.get(0).toUpperCase());
+            if (genres.size() > 1) {
+                holder.binding.tvHomeTrendingGenre2.setText(genres.get(1).toUpperCase());
+                holder.binding.tvHomeTrendingGenre2.setVisibility(android.view.View.VISIBLE);
+            } else {
+                holder.binding.tvHomeTrendingGenre2.setVisibility(android.view.View.GONE);
+            }
+        } else {
+            holder.binding.tvHomeTrendingGenre1.setText("COMIC");
+            holder.binding.tvHomeTrendingGenre2.setVisibility(android.view.View.GONE);
+        }
+        
         Glide.with(holder.binding.imgHomeTrendingCover)
                 .load(comic.getCoverUrl())
                 .into(holder.binding.imgHomeTrendingCover);

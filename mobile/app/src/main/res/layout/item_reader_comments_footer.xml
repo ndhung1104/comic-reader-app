@@ -1,42 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cl_reader_comments_footer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="@dimen/spacing_lg">
+    android:background="@color/surface_container_lowest"
+    android:paddingStart="@dimen/spacing_lg"
+    android:paddingTop="@dimen/spacing_lg"
+    android:paddingEnd="@dimen/spacing_lg"
+    android:paddingBottom="@dimen/spacing_lg">
+
+    <View
+        android:id="@+id/view_reader_comments_handle"
+        android:layout_width="@dimen/comment_sheet_handle_width"
+        android:layout_height="@dimen/comment_sheet_handle_height"
+        android:background="@color/surface_container_highest"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/tv_reader_comments_title"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/comic_comments"
-        android:textColor="@color/text_primary"
-        android:textSize="@dimen/text_lg"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:text="@string/comment_discussion_title"
+        android:textColor="@color/on_surface"
+        android:textSize="@dimen/text_xl"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/view_reader_comments_handle" />
+
+    <TextView
+        android:id="@+id/tv_reader_comments_subtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="@dimen/text_sm"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_reader_comments_title"
+        tools:text="1,284 thoughts on this chapter" />
 
     <TextView
         android:id="@+id/tv_reader_comments_empty"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/spacing_md"
+        android:gravity="center"
         android:text="@string/comment_empty"
-        android:textColor="@color/text_secondary"
+        android:textColor="@color/on_surface_variant"
         android:textSize="@dimen/text_sm"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_reader_comments_title" />
-
-    <androidx.constraintlayout.widget.Barrier
-        android:id="@+id/barrier_reader_comments_content_bottom"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:barrierDirection="bottom"
-        app:constraint_referenced_ids="rcv_reader_comments,tv_reader_comments_empty" />
+        app:layout_constraintTop_toBottomOf="@id/tv_reader_comments_subtitle" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rcv_reader_comments"
@@ -47,28 +68,38 @@
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_reader_comments_title" />
+        app:layout_constraintTop_toBottomOf="@id/tv_reader_comments_subtitle"
+        tools:listitem="@layout/item_comment" />
 
     <TextView
         android:id="@+id/tv_reader_comments_see_more"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/spacing_sm"
-        android:padding="@dimen/spacing_sm"
+        android:paddingStart="@dimen/spacing_md"
+        android:paddingTop="@dimen/spacing_xs"
+        android:paddingEnd="@dimen/spacing_md"
+        android:paddingBottom="@dimen/spacing_xs"
         android:text="@string/comment_see_more"
-        android:textColor="@color/accent_secondary"
-        android:textSize="@dimen/text_sm"
+        android:textAllCaps="true"
+        android:textColor="@color/primary"
+        android:textSize="@dimen/text_xs"
+        android:textStyle="bold"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/til_reader_comments_input"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/barrier_reader_comments_content_bottom" />
+        app:layout_constraintTop_toBottomOf="@id/rcv_reader_comments" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/cl_reader_comments_replying"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/spacing_sm"
+        android:background="@drawable/bg_comment_source_chip"
+        android:paddingStart="@dimen/spacing_sm"
+        android:paddingTop="@dimen/spacing_sm"
+        android:paddingEnd="@dimen/spacing_sm"
+        android:paddingBottom="@dimen/spacing_sm"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -78,50 +109,82 @@
             android:id="@+id/tv_reader_comments_replying_to"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textColor="@color/text_secondary"
+            android:maxLines="1"
+            android:textColor="@color/on_surface_variant"
             android:textSize="@dimen/text_sm"
             app:layout_constraintEnd_toStartOf="@id/tv_reader_comments_cancel_reply"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Replying to Kaelen_Vox" />
 
         <TextView
             android:id="@+id/tv_reader_comments_cancel_reply"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="@dimen/spacing_sm"
-            android:paddingVertical="@dimen/spacing_xs"
             android:text="@string/comment_cancel"
-            android:textColor="@color/accent_secondary"
-            android:textSize="@dimen/text_sm"
+            android:textAllCaps="true"
+            android:textColor="@color/primary"
+            android:textSize="@dimen/text_xs"
+            android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/til_reader_comments_input"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/cl_reader_comments_input_row"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/spacing_md"
-        android:hint="@string/comment_hint"
-        app:boxBackgroundColor="@color/bg_primary"
-        app:boxStrokeColor="@color/divider_color"
-        app:endIconDrawable="@drawable/ic_send_24"
-        app:endIconMode="custom"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/cl_reader_comments_replying">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/edt_reader_comments_input"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/input_height"
-            android:inputType="text"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_secondary"
-            android:textSize="@dimen/text_md" />
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/img_reader_comments_avatar"
+            android:layout_width="@dimen/top_bar_action_size"
+            android:layout_height="@dimen/top_bar_action_size"
+            android:contentDescription="@string/content_avatar"
+            android:scaleType="centerCrop"
+            app:layout_constraintBottom_toBottomOf="@id/til_reader_comments_input"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/til_reader_comments_input"
+            app:srcCompat="@drawable/ic_avatar_placeholder_24"
+            app:strokeColor="@color/primary_container"
+            app:strokeWidth="@dimen/stroke_thin" />
 
-    </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_reader_comments_input"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:hint="@string/comment_hint"
+            app:boxBackgroundColor="@color/surface_container_low"
+            app:boxCornerRadiusBottomEnd="@dimen/radius_lg"
+            app:boxCornerRadiusBottomStart="@dimen/radius_lg"
+            app:boxCornerRadiusTopEnd="@dimen/radius_lg"
+            app:boxCornerRadiusTopStart="@dimen/radius_lg"
+            app:boxStrokeColor="@color/outline_variant"
+            app:endIconDrawable="@drawable/ic_send_24"
+            app:endIconMode="custom"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/img_reader_comments_avatar"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edt_reader_comments_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textMultiLine"
+                android:maxLines="3"
+                android:minHeight="@dimen/input_height"
+                android:textColor="@color/on_surface"
+                android:textColorHint="@color/on_surface_variant"
+                android:textSize="@dimen/text_md" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

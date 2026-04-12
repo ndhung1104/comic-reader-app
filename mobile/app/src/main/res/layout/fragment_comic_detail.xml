@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cl_comic_detail_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_primary">
+    android:background="@color/surface"
+    android:fitsSystemWindows="true">
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/nsv_comic_detail_content"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -18,109 +22,139 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingBottom="@dimen/spacing_xl">
+            android:paddingBottom="@dimen/browse_content_bottom_padding">
 
             <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/img_comic_detail_background"
                 android:layout_width="0dp"
-                android:layout_height="@dimen/hero_height"
+                android:layout_height="@dimen/detail_backdrop_height"
                 android:contentDescription="@string/content_cover"
                 android:scaleType="centerCrop"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@mipmap/ic_launcher" />
+                tools:srcCompat="@mipmap/ic_launcher" />
+
+            <View
+                android:id="@+id/view_comic_detail_backdrop_overlay"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/detail_backdrop_height"
+                android:background="@drawable/bg_gradient_hero"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <ImageButton
                 android:id="@+id/btn_comic_detail_back"
-                android:layout_width="@dimen/icon_lg"
-                android:layout_height="@dimen/icon_lg"
+                android:layout_width="@dimen/top_bar_action_size"
+                android:layout_height="@dimen/top_bar_action_size"
                 android:layout_marginStart="@dimen/spacing_lg"
-                android:layout_marginTop="48dp"
-                android:background="@android:color/transparent"
+                android:layout_marginTop="@dimen/spacing_xl"
+                android:background="@drawable/bg_browse_header_icon"
                 android:contentDescription="@string/content_back"
+                android:padding="@dimen/spacing_sm"
                 android:src="@drawable/ic_arrow_back_24"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <ImageButton
-                android:id="@+id/btn_comic_detail_download"
-                android:layout_width="@dimen/icon_lg"
-                android:layout_height="@dimen/icon_lg"
-                android:layout_marginEnd="@dimen/spacing_lg"
-                android:layout_marginTop="48dp"
-                android:background="@android:color/transparent"
-                android:contentDescription="@string/content_download"
-                android:src="@drawable/ic_download_24"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                app:tint="@color/primary" />
 
             <ImageButton
                 android:id="@+id/btn_comic_detail_share"
-                android:layout_width="@dimen/icon_lg"
-                android:layout_height="@dimen/icon_lg"
-                android:layout_marginEnd="@dimen/spacing_md"
-                android:layout_marginTop="48dp"
-                android:background="@android:color/transparent"
+                android:layout_width="@dimen/top_bar_action_size"
+                android:layout_height="@dimen/top_bar_action_size"
+                android:layout_marginTop="@dimen/spacing_xl"
+                android:layout_marginEnd="@dimen/spacing_sm"
+                android:background="@drawable/bg_browse_header_icon"
                 android:contentDescription="@string/content_share"
+                android:padding="@dimen/spacing_sm"
                 android:src="@drawable/ic_share_24"
                 app:layout_constraintEnd_toStartOf="@id/btn_comic_detail_download"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent"
+                app:tint="@color/primary" />
 
-            <com.google.android.material.imageview.ShapeableImageView
-                android:id="@+id/img_comic_detail_cover"
-                android:layout_width="@dimen/cover_detail_width"
-                android:layout_height="@dimen/cover_detail_height"
-                android:layout_marginTop="@dimen/spacing_xxl"
-                android:contentDescription="@string/content_cover"
-                android:scaleType="centerCrop"
+            <ImageButton
+                android:id="@+id/btn_comic_detail_download"
+                android:layout_width="@dimen/top_bar_action_size"
+                android:layout_height="@dimen/top_bar_action_size"
+                android:layout_marginTop="@dimen/spacing_xl"
+                android:layout_marginEnd="@dimen/spacing_lg"
+                android:background="@drawable/bg_browse_header_icon"
+                android:contentDescription="@string/content_download"
+                android:padding="@dimen/spacing_sm"
+                android:src="@drawable/ic_download_24"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:tint="@color/primary" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_comic_detail_cover_wrap"
+                android:layout_width="@dimen/detail_cover_showcase_width"
+                android:layout_height="@dimen/detail_cover_showcase_height"
+                android:layout_marginTop="@dimen/spacing_xxxl"
+                app:cardCornerRadius="@dimen/radius_xl"
+                app:cardElevation="0dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/btn_comic_detail_back"
-                app:srcCompat="@mipmap/ic_launcher" />
+                app:layout_constraintTop_toTopOf="@id/img_comic_detail_background">
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/img_comic_detail_cover"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/content_cover"
+                    android:scaleType="centerCrop"
+                    tools:srcCompat="@mipmap/ic_launcher" />
+
+            </com.google.android.material.card.MaterialCardView>
 
             <TextView
                 android:id="@+id/tv_comic_detail_title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="@dimen/spacing_lg"
                 android:layout_marginStart="@dimen/spacing_lg"
                 android:layout_marginTop="@dimen/spacing_lg"
+                android:layout_marginEnd="@dimen/spacing_lg"
                 android:gravity="center"
-                android:textColor="@color/text_primary"
+                android:maxLines="2"
+                android:textColor="@color/on_surface"
                 android:textSize="@dimen/text_xl"
                 android:textStyle="bold"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/img_comic_detail_cover" />
+                app:layout_constraintTop_toBottomOf="@id/card_comic_detail_cover_wrap"
+                tools:text="Solar Sentinel: The Awakening" />
 
             <TextView
                 android:id="@+id/tv_comic_detail_author"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_lg"
                 android:layout_marginTop="@dimen/spacing_xs"
+                android:layout_marginEnd="@dimen/spacing_lg"
                 android:gravity="center"
-                android:textColor="@color/text_secondary"
+                android:textColor="@color/on_surface_variant"
                 android:textSize="@dimen/text_sm"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_title" />
+                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_title"
+                tools:text="By Kazuo Arisawa" />
 
-            <!-- Stats row: rating star | view count | genres chip | rate button -->
             <TextView
                 android:id="@+id/tv_comic_detail_rating"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_lg"
                 android:layout_marginTop="@dimen/spacing_sm"
                 android:drawableStart="@drawable/ic_star_24"
                 android:drawablePadding="@dimen/spacing_xs"
-                android:textColor="@color/text_primary"
+                android:maxLines="1"
+                android:textColor="@color/on_surface"
                 android:textSize="@dimen/text_sm"
                 android:textStyle="bold"
-                app:layout_constraintHorizontal_chainStyle="packed"
-                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/tv_comic_detail_view_count"
-                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_author" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_author"
+                tools:text="4.9" />
 
             <TextView
                 android:id="@+id/tv_comic_detail_view_count"
@@ -129,174 +163,213 @@
                 android:layout_marginStart="@dimen/spacing_md"
                 android:drawableStart="@drawable/ic_eye_24"
                 android:drawablePadding="@dimen/spacing_xs"
-                android:textColor="@color/text_secondary"
+                android:maxLines="1"
+                android:textColor="@color/on_surface_variant"
                 android:textSize="@dimen/text_sm"
                 app:layout_constraintBaseline_toBaselineOf="@id/tv_comic_detail_rating"
+                app:layout_constraintEnd_toStartOf="@id/tv_comic_detail_genres"
                 app:layout_constraintStart_toEndOf="@id/tv_comic_detail_rating"
-                app:layout_constraintEnd_toStartOf="@id/tv_comic_detail_genres" />
+                tools:text="1.2M" />
 
             <TextView
                 android:id="@+id/tv_comic_detail_genres"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/spacing_sm"
+                android:layout_marginStart="@dimen/spacing_md"
+                android:layout_marginEnd="@dimen/spacing_sm"
                 android:background="@drawable/bg_card_surface"
-                android:paddingBottom="@dimen/spacing_xs"
-                android:paddingEnd="@dimen/spacing_sm"
+                android:ellipsize="end"
+                android:maxLines="1"
                 android:paddingStart="@dimen/spacing_sm"
                 android:paddingTop="@dimen/spacing_xs"
-                android:textColor="@color/accent_secondary"
+                android:paddingEnd="@dimen/spacing_sm"
+                android:paddingBottom="@dimen/spacing_xs"
+                android:textColor="@color/primary"
                 android:textSize="@dimen/text_xs"
+                android:textStyle="bold"
                 app:layout_constraintBaseline_toBaselineOf="@id/tv_comic_detail_rating"
+                app:layout_constraintEnd_toStartOf="@id/btn_comic_detail_rate"
                 app:layout_constraintStart_toEndOf="@id/tv_comic_detail_view_count"
-                app:layout_constraintEnd_toStartOf="@id/btn_comic_detail_rate" />
+                tools:text="Action, Fantasy" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_comic_detail_rate"
                 style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/spacing_sm"
+                android:layout_marginEnd="@dimen/spacing_lg"
                 android:text="@string/comic_rate"
                 android:textSize="@dimen/text_xs"
+                app:backgroundTint="@color/surface_container"
+                app:cornerRadius="@dimen/radius_md"
                 app:icon="@drawable/ic_star_24"
-                app:iconSize="14dp"
+                app:iconTint="@color/primary"
                 app:layout_constraintBaseline_toBaselineOf="@id/tv_comic_detail_rating"
-                app:layout_constraintStart_toEndOf="@id/tv_comic_detail_genres"
                 app:layout_constraintEnd_toEndOf="parent" />
 
-
-
-            <TextView
-                android:id="@+id/tv_comic_detail_synopsis_label"
+            <LinearLayout
+                android:id="@+id/ll_comic_detail_primary_actions"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="@dimen/spacing_sm"
                 android:layout_marginStart="@dimen/spacing_lg"
-                android:layout_marginTop="@dimen/spacing_xl"
-                android:text="@string/comic_synopsis"
-                android:textColor="@color/text_primary"
-                android:textSize="@dimen/text_lg"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toStartOf="@id/btn_comic_detail_translate"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_rating" />
-
-            <ImageButton
-                android:id="@+id/btn_comic_detail_translate"
-                android:layout_width="@dimen/icon_lg"
-                android:layout_height="@dimen/icon_lg"
+                android:layout_marginTop="@dimen/spacing_lg"
                 android:layout_marginEnd="@dimen/spacing_lg"
-                android:background="@android:color/transparent"
-                android:contentDescription="@string/translate_button"
-                android:src="@drawable/ic_translate_24"
-                app:layout_constraintBottom_toBottomOf="@id/tv_comic_detail_synopsis_label"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/tv_comic_detail_synopsis_label" />
-
-            <ProgressBar
-                android:id="@+id/prg_comic_detail_translate"
-                style="?android:attr/progressBarStyleSmall"
-                android:layout_width="@dimen/icon_lg"
-                android:layout_height="@dimen/icon_lg"
-                android:layout_marginEnd="@dimen/spacing_lg"
-                android:visibility="gone"
-                app:layout_constraintBottom_toBottomOf="@id/tv_comic_detail_synopsis_label"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/tv_comic_detail_synopsis_label" />
-
-            <TextView
-                android:id="@+id/tv_comic_detail_synopsis"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="@dimen/spacing_lg"
-                android:layout_marginStart="@dimen/spacing_lg"
-                android:layout_marginTop="@dimen/spacing_sm"
-                android:maxLines="3"
-                android:textColor="@color/text_secondary"
-                android:textSize="@dimen/text_sm"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_synopsis_label" />
+                app:layout_constraintTop_toBottomOf="@id/btn_comic_detail_rate">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_comic_detail_read"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_weight="1"
+                    android:text="@string/home_read_chapter_one"
+                    android:textSize="@dimen/text_sm"
+                    app:backgroundTint="@color/primary"
+                    app:cornerRadius="@dimen/radius_lg"
+                    app:elevation="0dp" />
+
+                <ImageButton
+                    android:id="@+id/btn_comic_detail_comments"
+                    android:layout_width="@dimen/button_height"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginStart="@dimen/spacing_sm"
+                    android:background="@drawable/bg_button_secondary"
+                    android:contentDescription="@string/content_open_comments"
+                    android:padding="@dimen/spacing_sm"
+                    android:src="@drawable/ic_comment_24"
+                    app:tint="@color/primary" />
+
+            </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_comic_detail_follow"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="@dimen/button_height"
-                android:layout_marginEnd="@dimen/spacing_lg"
                 android:layout_marginStart="@dimen/spacing_lg"
-                android:layout_marginTop="@dimen/spacing_lg"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:layout_marginEnd="@dimen/spacing_lg"
                 android:text="@string/comic_follow"
                 android:textSize="@dimen/text_sm"
+                app:cornerRadius="@dimen/radius_lg"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_synopsis" />
+                app:layout_constraintTop_toBottomOf="@id/ll_comic_detail_primary_actions"
+                app:strokeColor="@color/primary"
+                app:strokeWidth="@dimen/stroke_thin" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_comic_detail_read"
-                style="@style/Widget.Material3.Button"
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_comic_detail_synopsis"
                 android:layout_width="0dp"
-                android:layout_height="@dimen/button_height"
-                android:layout_marginEnd="@dimen/spacing_sm"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/spacing_lg"
                 android:layout_marginTop="@dimen/spacing_lg"
-                android:text="@string/home_read_chapter_one"
-                android:textSize="@dimen/text_sm"
-                app:backgroundTint="@color/accent_primary"
-                app:layout_constraintEnd_toStartOf="@id/btn_comic_detail_comments"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/btn_comic_detail_follow" />
-
-            <ImageButton
-                android:id="@+id/btn_comic_detail_comments"
-                android:layout_width="@dimen/button_height"
-                android:layout_height="@dimen/button_height"
                 android:layout_marginEnd="@dimen/spacing_lg"
-                android:background="@drawable/bg_button_secondary"
-                android:contentDescription="@string/content_open_comments"
-                android:src="@drawable/ic_comment_24"
-                app:layout_constraintBottom_toBottomOf="@id/btn_comic_detail_read"
+                app:cardBackgroundColor="@color/surface_container_low"
+                app:cardCornerRadius="@dimen/radius_xl"
+                app:cardElevation="0dp"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/btn_comic_detail_read"
-                app:layout_constraintTop_toTopOf="@id/btn_comic_detail_read" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/btn_comic_detail_follow">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/spacing_lg">
+
+                    <TextView
+                        android:id="@+id/tv_comic_detail_synopsis_label"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/comic_synopsis"
+                        android:textColor="@color/on_surface"
+                        android:textSize="@dimen/text_lg"
+                        android:textStyle="bold"
+                        app:layout_constraintEnd_toStartOf="@id/btn_comic_detail_translate"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <ImageButton
+                        android:id="@+id/btn_comic_detail_translate"
+                        android:layout_width="@dimen/top_bar_action_size"
+                        android:layout_height="@dimen/top_bar_action_size"
+                        android:background="@drawable/bg_browse_header_icon"
+                        android:contentDescription="@string/translate_button"
+                        android:padding="@dimen/spacing_sm"
+                        android:src="@drawable/ic_translate_24"
+                        app:layout_constraintBottom_toBottomOf="@id/tv_comic_detail_synopsis_label"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/tv_comic_detail_synopsis_label"
+                        app:tint="@color/primary" />
+
+                    <ProgressBar
+                        android:id="@+id/prg_comic_detail_translate"
+                        style="?android:attr/progressBarStyleSmall"
+                        android:layout_width="@dimen/top_bar_action_size"
+                        android:layout_height="@dimen/top_bar_action_size"
+                        android:visibility="gone"
+                        app:layout_constraintBottom_toBottomOf="@id/tv_comic_detail_synopsis_label"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/tv_comic_detail_synopsis_label" />
+
+                    <TextView
+                        android:id="@+id/tv_comic_detail_synopsis"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:textColor="@color/on_surface_variant"
+                        android:textSize="@dimen/text_sm"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_synopsis_label"
+                        tools:text="In a world where the sun has begun to consume the atmosphere..." />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </com.google.android.material.card.MaterialCardView>
 
             <TextView
                 android:id="@+id/tv_comic_detail_chapter_label"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="@dimen/spacing_lg"
                 android:layout_marginStart="@dimen/spacing_lg"
-                android:layout_marginTop="@dimen/spacing_xl"
-                android:text="@string/comic_chapters"
-                android:textColor="@color/text_primary"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:layout_marginEnd="@dimen/spacing_lg"
+                android:text="@string/detail_recent_chapters"
+                android:textColor="@color/on_surface"
                 android:textSize="@dimen/text_lg"
                 android:textStyle="bold"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/btn_comic_detail_read" />
+                app:layout_constraintTop_toBottomOf="@id/card_comic_detail_synopsis" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rcv_comic_detail_chapters"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="@dimen/spacing_lg"
                 android:layout_marginStart="@dimen/spacing_lg"
                 android:layout_marginTop="@dimen/spacing_sm"
+                android:layout_marginEnd="@dimen/spacing_lg"
+                android:nestedScrollingEnabled="false"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_chapter_label" />
+                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_chapter_label"
+                tools:listitem="@layout/item_comic_chapter" />
 
             <TextView
                 android:id="@+id/tv_comic_detail_related_label"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="@dimen/spacing_lg"
                 android:layout_marginStart="@dimen/spacing_lg"
-                android:layout_marginTop="@dimen/spacing_xl"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:layout_marginEnd="@dimen/spacing_lg"
                 android:text="@string/comic_related"
-                android:textColor="@color/text_primary"
+                android:textColor="@color/on_surface"
                 android:textSize="@dimen/text_lg"
                 android:textStyle="bold"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -310,17 +383,21 @@
                 android:layout_marginStart="@dimen/spacing_lg"
                 android:layout_marginTop="@dimen/spacing_sm"
                 android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
                 android:paddingEnd="@dimen/spacing_lg"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_related_label" />
+                app:layout_constraintTop_toBottomOf="@id/tv_comic_detail_related_label"
+                tools:listitem="@layout/item_related_comic" />
 
             <include
                 android:id="@+id/inc_comic_detail_comments_footer"
                 layout="@layout/item_reader_comments_footer"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_xl"
+                android:layout_marginStart="@dimen/spacing_lg"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:layout_marginEnd="@dimen/spacing_lg"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
