@@ -17,6 +17,7 @@ public class ApiClient {
     public static final String PUBLIC_BASE_URL = normalizeBaseUrl(BuildConfig.PUBLIC_BASE_URL);
 
     private final Retrofit retrofit;
+    private final OkHttpClient okHttpClient;
 
     public ApiClient(Context context) {
         SessionManager sessionManager = new SessionManager(context);
@@ -24,7 +25,7 @@ public class ApiClient {
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
         logging.setLevel(HttpLoggingInterceptor.Level.BODY);
 
-        OkHttpClient okHttpClient = new OkHttpClient.Builder()
+        okHttpClient = new OkHttpClient.Builder()
                 .addInterceptor(new AuthInterceptor(sessionManager))
                 .addInterceptor(logging)
                 .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
@@ -37,6 +38,10 @@ public class ApiClient {
                 .addConverterFactory(GsonConverterFactory.create())
                 .client(okHttpClient)
                 .build();
+    }
+
+    public OkHttpClient okHttpClient() {
+        return okHttpClient;
     }
 
     public AuthApi authApi() {
