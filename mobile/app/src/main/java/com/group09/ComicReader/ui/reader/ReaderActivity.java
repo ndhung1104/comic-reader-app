@@ -452,16 +452,21 @@ public class ReaderActivity extends AppCompatActivity {
         if (comicId <= 0 || chapterId <= 0 || chapterNumber <= 0) {
             return;
         }
-        if (layoutManager == null) {
+        if (layoutManager == null || pageAdapter == null) {
             return;
         }
-        int position = layoutManager.findFirstVisibleItemPosition();
-        if (position == RecyclerView.NO_POSITION) {
+        int pageCount = pageAdapter.getItemCount();
+        if (pageCount <= 0) {
             return;
         }
-        View firstVisibleView = layoutManager.findViewByPosition(position);
-        int offset = firstVisibleView == null ? 0 : firstVisibleView.getTop();
-        readerProgressStore.saveProgress(comicId, chapterId, chapterNumber, position, offset);
+        int firstVisibleAdapterPosition = layoutManager.findFirstVisibleItemPosition();
+        int pagePosition = ReaderProgressPositionResolver.resolvePagePosition(firstVisibleAdapterPosition, pageCount);
+        if (pagePosition < 0) {
+            return;
+        }
+        View firstVisiblePageView = layoutManager.findViewByPosition(pagePosition);
+        int offset = firstVisiblePageView == null ? 0 : firstVisiblePageView.getTop();
+        readerProgressStore.saveProgress(comicId, chapterId, chapterNumber, pagePosition, offset);
     }
 
     private void shareCurrentChapter() {
