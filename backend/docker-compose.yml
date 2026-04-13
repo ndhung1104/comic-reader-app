@@ -36,11 +36,11 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       DB_URL: jdbc:postgresql://postgres:5432/comic_reader
-      TRANSLATION_WORKER_ENABLED: ${TRANSLATION_WORKER_ENABLED:false}
+      TRANSLATION_WORKER_ENABLED: ${TRANSLATION_WORKER_ENABLED:-false}
       TRANSLATION_WORKER_BASE_URL: http://comic-translate-worker:8090
-      TTS_WORKER_ENABLED: ${TTS_WORKER_ENABLED:false}
+      TTS_WORKER_ENABLED: ${TTS_WORKER_ENABLED:-false}
       TTS_WORKER_BASE_URL: http://piper-tts-worker:8091
-      LOCAL_LLM_BASE_URL: ${LOCAL_LLM_BASE_URL:http://ollama:11434}
+      LOCAL_LLM_BASE_URL: ${LOCAL_LLM_BASE_URL:-http://ollama:11434}
     ports:
       - "8080:8080"
     volumes:

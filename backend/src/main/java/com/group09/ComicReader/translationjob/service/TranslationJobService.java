@@ -7,21 +7,30 @@ import com.group09.ComicReader.chapter.service.ChapterService;
 import com.group09.ComicReader.common.exception.BadRequestException;
 import com.group09.ComicReader.common.exception.NotFoundException;
 import com.group09.ComicReader.common.exception.ServiceUnavailableException;
+import com.group09.ComicReader.common.storage.FileStorageService;
 import com.group09.ComicReader.config.properties.TranslationWorkerProperties;
+import com.group09.ComicReader.config.properties.TtsWorkerProperties;
 import com.group09.ComicReader.translationjob.client.TranslationWorkerClient;
+import com.group09.ComicReader.translationjob.client.TtsWorkerClient;
 import com.group09.ComicReader.translationjob.client.dto.WorkerJobStatusResponse;
 import com.group09.ComicReader.translationjob.client.dto.WorkerOcrPageText;
 import com.group09.ComicReader.translationjob.client.dto.WorkerPageInput;
 import com.group09.ComicReader.translationjob.client.dto.WorkerSubmitJobRequest;
 import com.group09.ComicReader.translationjob.client.dto.WorkerSubmitJobResponse;
+import com.group09.ComicReader.translationjob.client.dto.TtsWorkerAudioPage;
+import com.group09.ComicReader.translationjob.client.dto.TtsWorkerPageInput;
+import com.group09.ComicReader.translationjob.client.dto.TtsWorkerSynthesizeBatchRequest;
+import com.group09.ComicReader.translationjob.client.dto.TtsWorkerSynthesizeBatchResponse;
 import com.group09.ComicReader.translationjob.dto.CreateTranslationJobRequest;
 import com.group09.ComicReader.translationjob.dto.OcrPageTextResponse;
 import com.group09.ComicReader.translationjob.dto.TranslationJobArtifactResponse;
 import com.group09.ComicReader.translationjob.dto.TranslationJobResponse;
 import com.group09.ComicReader.translationjob.entity.ChapterPageOcrTextEntity;
+import com.group09.ComicReader.translationjob.entity.ChapterPageTtsAudioEntity;
 import com.group09.ComicReader.translationjob.entity.TranslationJobEntity;
 import com.group09.ComicReader.translationjob.entity.TranslationJobStatus;
 import com.group09.ComicReader.translationjob.repository.ChapterPageOcrTextRepository;
+import com.group09.ComicReader.translationjob.repository.ChapterPageTtsAudioRepository;
 import com.group09.ComicReader.translationjob.repository.TranslationJobRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +42,14 @@ import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Supplier;
 
 @Service
@@ -51,22 +65,34 @@ public class TranslationJobService {
     private final TranslationJobRepository translationJobRepository;
     private final ChapterPageRepository chapterPageRepository;
     private final ChapterPageOcrTextRepository chapterPageOcrTextRepository;
+    private final ChapterPageTtsAudioRepository chapterPageTtsAudioRepository;
     private final ChapterService chapterService;
     private final TranslationWorkerClient translationWorkerClient;
+    private final TtsWorkerClient ttsWorkerClient;
     private final TranslationWorkerProperties translationWorkerProperties;
+    private final TtsWorkerProperties ttsWorkerProperties;
+    private final FileStorageService fileStorageService;
 
     public TranslationJobService(TranslationJobRepository translationJobRepository,
             ChapterPageRepository chapterPageRepository,
             ChapterPageOcrTextRepository chapterPageOcrTextRepository,
+            ChapterPageTtsAudioRepository chapterPageTtsAudioRepository,
             ChapterService chapterService,
             TranslationWorkerClient translationWorkerClient,
-            TranslationWorkerProperties translationWorkerProperties) {
+            TtsWorkerClient ttsWorkerClient,
+            TranslationWorkerProperties translationWorkerProperties,
+            TtsWorkerProperties ttsWorkerProperties,
+            FileStorageService fileStorageService) {
         this.translationJobRepository = translationJobRepository;
         this.chapterPageRepository = chapterPageRepository;
         this.chapterPageOcrTextRepository = chapterPageOcrTextRepository;
+        this.chapterPageTtsAudioRepository = chapterPageTtsAudioRepository;
         this.chapterService = chapterService;
         this.translationWorkerClient = translationWorkerClient;
+        this.ttsWorkerClient = ttsWorkerClient;
         this.translationWorkerProperties = translationWorkerProperties;
+        this.ttsWorkerProperties = ttsWorkerProperties;
+        this.fileStorageService = fileStorageService;
     }
 
     @Transactional
@@ -300,7 +326,8 @@ public class TranslationJobService {
             entity.setOcrText(workerPage.getOcrText() == null ? "" : workerPage.getOcrText());
             entity.setOcrJob(job);
             entity.setUpdatedAt(LocalDateTime.now());
-            chapterPageOcrTextRepository.save(entity);
+            ChapterPageOcrTextEntity savedOcr = chapterPageOcrTextRepository.save(entity);
+            maybeGeneratePageAudio(savedOcr);
             persistedAny = true;
         }
 
@@ -432,5 +459,144 @@ public class TranslationJobService {
 
     private ServiceUnavailableException workerUnavailable(RuntimeException exception) {
         return new ServiceUnavailableException("OCR service is temporarily unavailable.");
+    }
+
+    private void maybeGeneratePageAudio(ChapterPageOcrTextEntity ocrPage) {
+        if (!ttsWorkerProperties.isEnabled()) {
+            return;
+        }
+        if (ocrPage == null || ocrPage.getPageNumber() == null || ocrPage.getPageNumber() <= 0) {
+            return;
+        }
+        if (ocrPage.getOcrText() == null || ocrPage.getOcrText().isBlank()) {
+            return;
+        }
+
+        String lang = normalizeLanguage(ocrPage.getSourceLang(), normalizeLanguage(ttsWorkerProperties.getDefaultLang(), "auto"))
+                .toLowerCase(Locale.ROOT);
+        String voice = resolveVoice(null, lang);
+        Double speed = ttsWorkerProperties.getDefaultSpeed();
+        String textHash = hashText(ocrPage.getOcrText());
+        Long chapterId = ocrPage.getChapter().getId();
+        Integer pageNumber = ocrPage.getPageNumber();
+
+        Optional<ChapterPageTtsAudioEntity> existingOpt = chapterPageTtsAudioRepository
+                .findByChapterIdAndPageNumberAndLangAndVoiceAndSpeed(chapterId, pageNumber, lang, voice, speed);
+        if (existingOpt.isPresent()) {
+            ChapterPageTtsAudioEntity existing = existingOpt.get();
+            if (existing.getAudioPath() != null
+                    && !existing.getAudioPath().isBlank()
+                    && textHash.equals(existing.getSourceTextHash())) {
+                return;
+            }
+        }
+
+        TtsWorkerSynthesizeBatchRequest request = new TtsWorkerSynthesizeBatchRequest();
+        request.setChapterId(String.valueOf(chapterId));
+        request.setLang(lang);
+        request.setVoice(voice);
+        request.setSpeed(speed);
+        TtsWorkerPageInput pageInput = new TtsWorkerPageInput();
+        pageInput.setPageNumber(pageNumber);
+        pageInput.setText(ocrPage.getOcrText());
+        request.setPages(List.of(pageInput));
+
+        try {
+            TtsWorkerSynthesizeBatchResponse response = ttsWorkerClient.synthesizeBatch(request);
+            if (!"SUCCEEDED".equalsIgnoreCase(response.getStatus())
+                    || response.getAudioPages() == null
+                    || response.getAudioPages().isEmpty()) {
+                return;
+            }
+
+            TtsWorkerAudioPage generated = response.getAudioPages().get(0);
+            if (generated.getAudioBase64() == null || generated.getAudioBase64().isBlank()) {
+                return;
+            }
+
+            byte[] audioBytes = Base64.getDecoder().decode(generated.getAudioBase64());
+            String audioPath = fileStorageService.storeChapterPageAudio(
+                    chapterId,
+                    pageNumber,
+                    lang,
+                    voice,
+                    speed,
+                    audioBytes
+            );
+
+            ChapterPageTtsAudioEntity target = existingOpt.orElseGet(() -> {
+                ChapterPageTtsAudioEntity created = new ChapterPageTtsAudioEntity();
+                created.setChapter(ocrPage.getChapter());
+                created.setPageNumber(pageNumber);
+                created.setLang(lang);
+                created.setVoice(voice);
+                created.setSpeed(speed);
+                created.setCreatedAt(LocalDateTime.now());
+                return created;
+            });
+            target.setAudioPath(audioPath);
+            target.setDurationMs(generated.getDurationMs());
+            target.setSourceTextHash(textHash);
+            target.setSourceOcrJob(ocrPage.getOcrJob());
+            target.setUpdatedAt(LocalDateTime.now());
+            chapterPageTtsAudioRepository.save(target);
+            LOGGER.info("Auto TTS generated for chapter={} page={} lang={} voice={}", chapterId, pageNumber, lang, voice);
+        } catch (RuntimeException exception) {
+            LOGGER.debug(
+                    "Skip auto TTS for chapter={} page={} due to worker/storage error: {}",
+                    chapterId,
+                    pageNumber,
+                    exception.getMessage()
+            );
+        }
+    }
+
+    private String resolveVoice(String requestedVoice, String lang) {
+        if (requestedVoice != null && !requestedVoice.isBlank() && !"auto".equalsIgnoreCase(requestedVoice.trim())) {
+            return requestedVoice.trim();
+        }
+
+        String normalizedLang = lang == null ? "" : lang.trim().toLowerCase(Locale.ROOT);
+        if (isLang(normalizedLang, "vi", "vietnamese")) {
+            return fallbackVoice(ttsWorkerProperties.getVoiceVi());
+        }
+        if (isLang(normalizedLang, "ko", "korean")) {
+            return fallbackVoice(ttsWorkerProperties.getVoiceKo());
+        }
+        if (isLang(normalizedLang, "ja", "japanese")) {
+            return fallbackVoice(ttsWorkerProperties.getVoiceJa());
+        }
+        if (isLang(normalizedLang, "en", "english")) {
+            return fallbackVoice(ttsWorkerProperties.getVoiceEn());
+        }
+
+        return fallbackVoice(ttsWorkerProperties.getDefaultVoice());
+    }
+
+    private boolean isLang(String normalizedLang, String shortCode, String longName) {
+        return normalizedLang.equals(shortCode)
+                || normalizedLang.startsWith(shortCode + "-")
+                || normalizedLang.startsWith(shortCode + "_")
+                || normalizedLang.equals(longName);
+    }
+
+    private String fallbackVoice(String value) {
+        if (value != null && !value.isBlank()) {
+            return value.trim();
+        }
+        if (ttsWorkerProperties.getFallbackVoice() != null && !ttsWorkerProperties.getFallbackVoice().isBlank()) {
+            return ttsWorkerProperties.getFallbackVoice().trim();
+        }
+        return "en_US-lessac-medium";
+    }
+
+    private String hashText(String text) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is not available");
+        }
     }
 }
