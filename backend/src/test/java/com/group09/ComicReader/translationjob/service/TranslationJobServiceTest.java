@@ -31,6 +31,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -206,5 +207,73 @@ class TranslationJobServiceTest {
         assertThat(captor.getValue().getOcrText()).isEqualTo("text page 1");
         assertThat(captor.getValue().getPageNumber()).isEqualTo(1);
         assertThat(captor.getValue().getSourceLang()).isEqualTo("ja");
+    }
+
+    @Test
+    void ensureChapterOcrTextShouldCreateJobAndReturnImmediatelyWhenOcrMissing() {
+        when(chapterService.getChapterEntity(5L)).thenReturn(chapter);
+
+        ChapterPageEntity page1 = new ChapterPageEntity();
+        page1.setPageNumber(1);
+        page1.setImageUrl("/uploads/ch1_p1.jpg");
+
+        ChapterPageEntity page2 = new ChapterPageEntity();
+        page2.setPageNumber(2);
+        page2.setImageUrl("/uploads/ch1_p2.jpg");
+
+        when(chapterPageRepository.findByChapterIdOrderByPageNumberAsc(5L)).thenReturn(List.of(page1, page2));
+        when(chapterPageOcrTextRepository.findByChapterIdAndSourceLangOrderByPageNumberAsc(5L, "ja"))
+                .thenReturn(List.of(), List.of());
+
+        when(translationJobRepository.findFirstByChapterIdAndSourceLangAndStatusInOrderByCreatedAtDesc(
+                5L,
+                "ja",
+                List.of(TranslationJobStatus.QUEUED, TranslationJobStatus.RUNNING)
+        )).thenReturn(Optional.empty());
+
+        WorkerSubmitJobResponse workerResponse = new WorkerSubmitJobResponse();
+        workerResponse.setJobId("worker-enqueue");
+        workerResponse.setStatus("RUNNING");
+        when(translationWorkerClient.submitJob(any())).thenReturn(workerResponse);
+        when(translationJobRepository.findById(101L)).thenReturn(Optional.empty());
+
+        List<ChapterPageOcrTextEntity> result = translationJobService.ensureChapterOcrText(5L, "ja");
+
+        assertThat(result).isEmpty();
+        verify(translationWorkerClient).submitJob(any());
+        verify(translationJobRepository, never()).findTop50ByStatusInOrderByUpdatedAtAsc(anyList());
+    }
+
+    @Test
+    void syncActiveJobsShouldPersistIncrementalOcrPages() {
+        TranslationJobEntity job = new TranslationJobEntity();
+        job.setId(101L);
+        job.setChapter(chapter);
+        job.setExternalJobId("worker-1");
+        job.setStatus(TranslationJobStatus.RUNNING);
+        job.setSourceLang("ja");
+        job.setTargetLang("vi");
+
+        when(translationJobRepository.findTop50ByStatusInOrderByUpdatedAtAsc(
+                List.of(TranslationJobStatus.QUEUED, TranslationJobStatus.RUNNING)
+        )).thenReturn(List.of(job));
+
+        WorkerOcrPageText page1 = new WorkerOcrPageText();
+        page1.setChapterId(5L);
+        page1.setPageNumber(1);
+        page1.setSourceLang("ja");
+        page1.setOcrText("partial page");
+
+        WorkerJobStatusResponse statusResponse = new WorkerJobStatusResponse();
+        statusResponse.setStatus("RUNNING");
+        statusResponse.setOcrPages(List.of(page1));
+        when(translationWorkerClient.fetchJobStatus("worker-1")).thenReturn(statusResponse);
+        when(chapterPageOcrTextRepository.findByChapterIdAndPageNumberAndSourceLang(5L, 1, "ja"))
+                .thenReturn(Optional.empty());
+
+        translationJobService.syncActiveJobs();
+
+        verify(chapterPageOcrTextRepository).save(any(ChapterPageOcrTextEntity.class));
+        verify(translationJobRepository).save(job);
     }
 }

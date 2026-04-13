@@ -154,13 +154,12 @@ def _process_job(job_id: str, request: SubmitJobRequest) -> None:
     with _job_slots:
         source_lang = request.sourceLang or "auto"
         start_time = datetime.now(timezone.utc)
+        sorted_pages = sorted(request.pages, key=lambda page: page.pageNumber)
+        ocr_pages: List[OcrPageText] = []
+        fallback_page_count = 0
+        total_pages = len(sorted_pages)
 
         try:
-            sorted_pages = sorted(request.pages, key=lambda page: page.pageNumber)
-            ocr_pages: List[OcrPageText] = []
-            fallback_page_count = 0
-
-            total_pages = len(sorted_pages)
             for index, page in enumerate(sorted_pages, start=1):
                 logger.info("Processing OCR page %d/%d (job=%s, chapter=%s)", index, total_pages, job_id, request.chapterId)
                 image_bytes = _download_image_bytes(page.imageUrl)
@@ -175,14 +174,26 @@ def _process_job(job_id: str, request: SubmitJobRequest) -> None:
                         job_id,
                         request.chapterId,
                     )
-                ocr_pages.append(
-                    OcrPageText(
-                        chapterId=request.chapterId,
-                        pageNumber=page.pageNumber,
-                        sourceLang=source_lang,
-                        ocrText=ocr_text,
-                    )
+                ocr_page = OcrPageText(
+                    chapterId=request.chapterId,
+                    pageNumber=page.pageNumber,
+                    sourceLang=source_lang,
+                    ocrText=ocr_text,
                 )
+                ocr_pages.append(ocr_page)
+                with _lock:
+                    current = _jobs.get(job_id)
+                    if current is not None:
+                        current.status = "RUNNING"
+                        current.error = None
+                        current.ocrPages = list(ocr_pages)
+                        current.artifacts = {
+                            "worker": "comic-translate-worker-ogkalu-headless",
+                            "ocrProvider": "ogkalu-rtdetr+manga-ocr",
+                            "pagesProcessed": len(ocr_pages),
+                            "totalPages": total_pages,
+                            "fallbackPages": fallback_page_count,
+                        }
                 logger.info("Completed OCR page %d/%d (job=%s)", index, total_pages, job_id)
 
             duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
@@ -193,6 +204,7 @@ def _process_job(job_id: str, request: SubmitJobRequest) -> None:
                 "worker": "comic-translate-worker-ogkalu-headless",
                 "ocrProvider": "ogkalu-rtdetr+manga-ocr",
                 "pagesProcessed": len(ocr_pages),
+                "totalPages": total_pages,
                 "fallbackPages": fallback_page_count,
                 "processingMs": duration_ms,
             }
@@ -204,12 +216,20 @@ def _process_job(job_id: str, request: SubmitJobRequest) -> None:
                 artifacts=artifacts,
             )
         except Exception as exception:
+            duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
             result = JobStatusResponse(
                 jobId=job_id,
                 status="FAILED",
                 error=str(exception),
-                ocrPages=[],
-                artifacts={"worker": "comic-translate-worker-ogkalu-headless"},
+                ocrPages=ocr_pages,
+                artifacts={
+                    "worker": "comic-translate-worker-ogkalu-headless",
+                    "ocrProvider": "ogkalu-rtdetr+manga-ocr",
+                    "pagesProcessed": len(ocr_pages),
+                    "totalPages": total_pages,
+                    "fallbackPages": fallback_page_count,
+                    "processingMs": duration_ms,
+                },
             )
 
         with _lock:
@@ -253,7 +273,13 @@ def submit_job(request: SubmitJobRequest) -> SubmitJobResponse:
             status="RUNNING",
             error=None,
             ocrPages=[],
-            artifacts={"worker": "comic-translate-worker-ogkalu-headless"},
+            artifacts={
+                "worker": "comic-translate-worker-ogkalu-headless",
+                "ocrProvider": "ogkalu-rtdetr+manga-ocr",
+                "pagesProcessed": 0,
+                "totalPages": len(request.pages),
+                "fallbackPages": 0,
+            },
         )
 
         if request.idempotencyKey:
