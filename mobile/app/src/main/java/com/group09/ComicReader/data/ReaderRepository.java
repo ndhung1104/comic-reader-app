@@ -1,7 +1,18 @@
 package com.group09.ComicReader.data;
 
-import androidx.annotation.NonNull;
+import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.group09.ComicReader.R;
+import com.group09.ComicReader.data.download.ReaderContentSourceResolver;
+import com.group09.ComicReader.data.local.download.ChapterDownloadEntity;
+import com.group09.ComicReader.data.local.download.ChapterPageFileEntity;
+import com.group09.ComicReader.data.local.download.DownloadDao;
+import com.group09.ComicReader.data.local.download.ReaderLocalDatabase;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.model.Chapter;
 import com.group09.ComicReader.model.ChapterAudioPageResponse;
@@ -21,6 +32,8 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -65,9 +78,36 @@ public class ReaderRepository {
     }
 
     private final ApiClient apiClient;
+    @Nullable
+    private final Context appContext;
+    @Nullable
+    private final DownloadDao downloadDao;
+    private final ReaderContentSourceResolver contentSourceResolver;
+    private final ExecutorService ioExecutor;
+    private final Handler mainHandler;
+
+    public ReaderRepository(@NonNull Context context, @NonNull ApiClient apiClient) {
+        this(
+                apiClient,
+                context.getApplicationContext(),
+                ReaderLocalDatabase.getInstance(context.getApplicationContext()).downloadDao(),
+                new ReaderContentSourceResolver()
+        );
+    }
 
     public ReaderRepository(@NonNull ApiClient apiClient) {
+        this(apiClient, null, null, new ReaderContentSourceResolver());
+    }
+
+    private ReaderRepository(@NonNull ApiClient apiClient, @Nullable Context appContext,
+            @Nullable DownloadDao downloadDao,
+            @NonNull ReaderContentSourceResolver contentSourceResolver) {
         this.apiClient = apiClient;
+        this.appContext = appContext;
+        this.downloadDao = downloadDao;
+        this.contentSourceResolver = contentSourceResolver;
+        this.ioExecutor = Executors.newSingleThreadExecutor();
+        this.mainHandler = new Handler(Looper.getMainLooper());
     }
 
     public void getChapterById(long chapterId, @NonNull ChapterCallback callback) {
@@ -120,6 +160,24 @@ public class ReaderRepository {
     }
 
     public void getChapterPages(long chapterId, @NonNull PagesCallback callback) {
+        if (downloadDao == null) {
+            fetchChapterPagesRemote(chapterId, callback, false);
+            return;
+        }
+
+        ioExecutor.execute(() -> {
+            ChapterDownloadEntity chapterDownload = downloadDao.getChapterDownload(chapterId);
+            List<ChapterPageFileEntity> pageFiles = downloadDao.getChapterPageFiles(chapterId);
+            List<ReaderPage> offlinePages = contentSourceResolver.resolveOfflinePages(chapterDownload, pageFiles);
+            if (!offlinePages.isEmpty()) {
+                mainHandler.post(() -> callback.onSuccess(offlinePages));
+                return;
+            }
+            fetchChapterPagesRemote(chapterId, callback, true);
+        });
+    }
+
+    private void fetchChapterPagesRemote(long chapterId, @NonNull PagesCallback callback, boolean localFallbackAttempted) {
         apiClient.chapterApi().getChapterPages(chapterId).enqueue(new Callback<List<ReaderPageResponse>>() {
             @Override
             public void onResponse(@NonNull Call<List<ReaderPageResponse>> call,
@@ -136,7 +194,7 @@ public class ReaderRepository {
 
                 List<ReaderPage> pages = new ArrayList<>();
                 for (ReaderPageResponse item : body) {
-                    int pageNumber = item.getPageNumber() == null ? 0 : item.getPageNumber();
+                    int pageNumber = item.getPageNumber() == null ? 1 : Math.max(1, item.getPageNumber());
                     int imageWidth = item.getImageWidth() == null ? 0 : item.getImageWidth();
                     int imageHeight = item.getImageHeight() == null ? 0 : item.getImageHeight();
                     pages.add(new ReaderPage(
@@ -151,6 +209,11 @@ public class ReaderRepository {
 
             @Override
             public void onFailure(@NonNull Call<List<ReaderPageResponse>> call, @NonNull Throwable throwable) {
+                if (localFallbackAttempted && isNetworkUnavailable(throwable)) {
+                    callback.onError(getStringOrDefault(R.string.reader_offline_download_required,
+                            "No offline copy for this chapter. Please download it first."));
+                    return;
+                }
                 callback.onError(getNetworkMessage(throwable));
             }
         });
@@ -175,6 +238,12 @@ public class ReaderRepository {
                 callback.onError(getNetworkMessage(throwable));
             }
         });
+    }
+
+    private boolean isNetworkUnavailable(@NonNull Throwable throwable) {
+        return throwable instanceof java.net.UnknownHostException
+                || throwable instanceof java.net.ConnectException
+                || throwable instanceof java.net.SocketTimeoutException;
     }
 
     public void recordReadingHistory(int comicId, int chapterId, int pageNumber, @NonNull HistoryCallback callback) {
@@ -208,7 +277,7 @@ public class ReaderRepository {
             public void onResponse(@NonNull Call<ChapterAudioPlaylistResponse> call,
                     @NonNull Response<ChapterAudioPlaylistResponse> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    callback.onError("Failed to generate audio (" + response.code() + ")");
+                    callback.onError(resolveAudioPlaylistError(response));
                     return;
                 }
 
@@ -238,9 +307,18 @@ public class ReaderRepository {
 
             @Override
             public void onFailure(@NonNull Call<ChapterAudioPlaylistResponse> call, @NonNull Throwable throwable) {
-                callback.onError(throwable.getMessage() == null ? "Network error" : throwable.getMessage());
+                callback.onError(getNetworkMessage(throwable));
             }
         });
+    }
+
+    @NonNull
+    private String resolveAudioPlaylistError(@NonNull Response<?> response) {
+        if (response.code() == 503) {
+            return getStringOrDefault(R.string.reader_audio_service_maintenance,
+                    "Audio service is temporarily under maintenance.");
+        }
+        return extractErrorMessage(response, "Failed to generate audio (" + response.code() + ")");
     }
 
     private Chapter mapChapter(ComicChapterResponse response) {
@@ -281,6 +359,19 @@ public class ReaderRepository {
             JSONObject json = new JSONObject(raw);
             String message = json.optString("error", json.optString("message", fallback));
             return message == null || message.trim().isEmpty() ? fallback : message;
+        } catch (Exception ignored) {
+            return fallback;
+        }
+    }
+
+    @NonNull
+    private String getStringOrDefault(int stringRes, @NonNull String fallback) {
+        if (appContext == null) {
+            return fallback;
+        }
+        try {
+            String value = appContext.getString(stringRes);
+            return value == null || value.trim().isEmpty() ? fallback : value;
         } catch (Exception ignored) {
             return fallback;
         }

@@ -2,8 +2,6 @@ package com.group09.ComicReader.ui.reader;
 
 import android.content.Context;
 import android.content.Intent;
-import android.media.AudioAttributes;
-import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -35,6 +33,9 @@ import com.group09.ComicReader.model.Comic;
 import com.group09.ComicReader.model.ComicChapterResponse;
 import com.group09.ComicReader.model.ReaderAudioPage;
 import com.group09.ComicReader.model.ReaderPage;
+import com.group09.ComicReader.ui.reader.audio.MediaPlayerReaderAudioPlayer;
+import com.group09.ComicReader.ui.reader.audio.ReaderAudioController;
+import com.group09.ComicReader.ui.reader.audio.ReaderAudioError;
 import com.group09.ComicReader.viewmodel.CommentsViewModel;
 import com.group09.ComicReader.viewmodel.ReaderViewModel;
 
@@ -49,6 +50,9 @@ public class ReaderActivity extends AppCompatActivity {
     public static final String EXTRA_CHAPTER = "extra_chapter";
     private static final long SAVE_PROGRESS_DEBOUNCE_MS = 1500L;
     private static final boolean ENABLE_ZOOM_CONTAINER = true;
+    private static final float AUDIO_SPEED_075 = 0.75f;
+    private static final float AUDIO_SPEED_100 = 1.0f;
+    private static final float AUDIO_SPEED_125 = 1.25f;
 
     public static Intent createIntent(@NonNull Context context, int comicId, int chapterId, int chapterNumber) {
         Intent intent = new Intent(context, ReaderActivity.class);
@@ -89,9 +93,7 @@ public class ReaderActivity extends AppCompatActivity {
     private boolean readerZoomed;
     private boolean paywallDialogVisible;
     private ComicChapterResponse currentChapterMeta;
-    private final List<ReaderAudioPage> audioPlaylist = new ArrayList<>();
-    private MediaPlayer mediaPlayer;
-    private int currentAudioIndex = -1;
+    private ReaderAudioController audioController;
 
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private final Runnable saveProgressRunnable = this::saveCurrentReadingProgress;
@@ -131,9 +133,25 @@ public class ReaderActivity extends AppCompatActivity {
         readerProgressStore = new ReaderProgressStore(this);
 
         ApiClient apiClient = new ApiClient(this);
-        readerRepository = new ReaderRepository(apiClient);
+        readerRepository = new ReaderRepository(this, apiClient);
         ReaderViewModel.Factory factory = new ReaderViewModel.Factory(readerRepository);
         viewModel = new ViewModelProvider(this, factory).get(ReaderViewModel.class);
+
+        audioController = new ReaderAudioController(new ReaderAudioController.Listener() {
+            @Override
+            public void onPlaybackStateChanged() {
+                updateAudioButtonState();
+            }
+
+            @Override
+            public void onPlaybackError(@NonNull ReaderAudioError error) {
+                if (error == ReaderAudioError.MISSING_AUDIO_URL) {
+                    Toast.makeText(ReaderActivity.this, R.string.reader_audio_missing_url, Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(ReaderActivity.this, R.string.reader_audio_playback_failed, Toast.LENGTH_SHORT).show();
+                }
+            }
+        }, MediaPlayerReaderAudioPlayer::new);
 
         pageAdapter = new ReaderPageAdapter();
         commentsFooterAdapter = new ReaderCommentsFooterAdapter(new ReaderCommentsFooterAdapter.Listener() {
@@ -179,6 +197,8 @@ public class ReaderActivity extends AppCompatActivity {
             preloadAroundCurrentViewport();
         });
 
+        setupAudioSpeedControls();
+
         binding.tvReaderTitle.setText(getString(R.string.app_name));
         if (chapterNumber > 0) {
             binding.tvReaderChapter.setText(getString(R.string.reader_chapter, chapterNumber));
@@ -195,7 +215,7 @@ public class ReaderActivity extends AppCompatActivity {
         binding.btnReaderBack.setOnClickListener(v -> {
             resetZoomToBaseState();
             saveCurrentReadingProgress();
-            releaseMediaPlayer();
+            audioController.release();
             finish();
         });
         updateReaderProgressUi();
@@ -386,7 +406,7 @@ public class ReaderActivity extends AppCompatActivity {
     protected void onPause() {
         resetZoomToBaseState();
         saveCurrentReadingProgress();
-        pauseMediaIfPlaying();
+        audioController.pause();
         super.onPause();
     }
 
@@ -396,7 +416,7 @@ public class ReaderActivity extends AppCompatActivity {
         if (binding != null) {
             binding.rcvReaderPages.removeOnScrollListener(progressScrollListener);
         }
-        releaseMediaPlayer();
+        audioController.release();
         super.onDestroy();
     }
 
@@ -470,119 +490,31 @@ public class ReaderActivity extends AppCompatActivity {
             return;
         }
 
-        if (audioPlaylist.isEmpty()) {
+        if (!audioController.hasPlaylist()) {
             viewModel.createOrGetChapterAudioPlaylist(chapterId);
             updateAudioButtonState();
             return;
         }
 
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-            mediaPlayer.pause();
-            updateAudioButtonState();
+        if (audioController.isPlaying()) {
+            audioController.pause();
             return;
         }
 
-        if (mediaPlayer != null) {
-            mediaPlayer.start();
-            updateAudioButtonState();
-            return;
-        }
-
-        if (currentAudioIndex < 0 || currentAudioIndex >= audioPlaylist.size()) {
-            currentAudioIndex = 0;
-        }
-        playAudioAtIndex(currentAudioIndex);
+        audioController.playOrResume();
     }
 
     private void onAudioPlaylistReady(List<ReaderAudioPage> pages) {
-        audioPlaylist.clear();
-        if (pages != null) {
-            audioPlaylist.addAll(pages);
-        }
+        List<ReaderAudioPage> safePages = pages == null ? Collections.emptyList() : new ArrayList<>(pages);
+        audioController.setPlaylist(safePages);
 
-        if (audioPlaylist.isEmpty()) {
+        if (safePages.isEmpty()) {
             Toast.makeText(this, R.string.reader_audio_no_content, Toast.LENGTH_SHORT).show();
-            currentAudioIndex = -1;
             updateAudioButtonState();
             return;
         }
 
-        currentAudioIndex = 0;
-        playAudioAtIndex(currentAudioIndex);
-    }
-
-    private void playAudioAtIndex(int index) {
-        if (index < 0 || index >= audioPlaylist.size()) {
-            releaseMediaPlayer();
-            updateAudioButtonState();
-            return;
-        }
-
-        ReaderAudioPage page = audioPlaylist.get(index);
-        if (page.getAudioUrl() == null || page.getAudioUrl().trim().isEmpty()) {
-            Toast.makeText(this, R.string.reader_audio_missing_url, Toast.LENGTH_SHORT).show();
-            updateAudioButtonState();
-            return;
-        }
-
-        releaseMediaPlayer();
-
-        try {
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setAudioAttributes(
-                    new AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                            .build()
-            );
-            mediaPlayer.setDataSource(page.getAudioUrl());
-            mediaPlayer.setOnPreparedListener(player -> {
-                player.start();
-                updateAudioButtonState();
-            });
-            mediaPlayer.setOnCompletionListener(player -> {
-                int nextIndex = currentAudioIndex + 1;
-                if (nextIndex < audioPlaylist.size()) {
-                    currentAudioIndex = nextIndex;
-                    playAudioAtIndex(nextIndex);
-                    return;
-                }
-                currentAudioIndex = 0;
-                releaseMediaPlayer();
-                updateAudioButtonState();
-            });
-            mediaPlayer.setOnErrorListener((player, what, extra) -> {
-                Toast.makeText(this, R.string.reader_audio_playback_failed, Toast.LENGTH_SHORT).show();
-                releaseMediaPlayer();
-                updateAudioButtonState();
-                return true;
-            });
-            mediaPlayer.prepareAsync();
-            updateAudioButtonState();
-        } catch (Exception exception) {
-            releaseMediaPlayer();
-            Toast.makeText(this, R.string.reader_audio_playback_failed, Toast.LENGTH_SHORT).show();
-            updateAudioButtonState();
-        }
-    }
-
-    private void pauseMediaIfPlaying() {
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-            mediaPlayer.pause();
-            updateAudioButtonState();
-        }
-    }
-
-    private void releaseMediaPlayer() {
-        if (mediaPlayer == null) {
-            return;
-        }
-        try {
-            mediaPlayer.reset();
-            mediaPlayer.release();
-        } catch (Exception ignored) {
-        }
-        mediaPlayer = null;
+        audioController.playOrResume();
     }
 
     private void updateAudioButtonState() {
@@ -598,17 +530,37 @@ public class ReaderActivity extends AppCompatActivity {
         }
 
         binding.btnReaderAudio.setEnabled(true);
-        if (audioPlaylist.isEmpty()) {
+        if (!audioController.hasPlaylist()) {
             binding.btnReaderAudio.setText(R.string.reader_audio_request);
             return;
         }
 
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+        if (audioController.isPlaying()) {
             binding.btnReaderAudio.setText(R.string.reader_audio_pause);
             return;
         }
 
         binding.btnReaderAudio.setText(R.string.reader_audio_play);
+    }
+
+    private void setupAudioSpeedControls() {
+        binding.toggleReaderAudioSpeed.check(R.id.btn_reader_audio_speed_100);
+        binding.toggleReaderAudioSpeed.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (!isChecked) {
+                return;
+            }
+            audioController.setPlaybackSpeed(resolveSpeedByButtonId(checkedId));
+        });
+    }
+
+    private float resolveSpeedByButtonId(int buttonId) {
+        if (buttonId == R.id.btn_reader_audio_speed_075) {
+            return AUDIO_SPEED_075;
+        }
+        if (buttonId == R.id.btn_reader_audio_speed_125) {
+            return AUDIO_SPEED_125;
+        }
+        return AUDIO_SPEED_100;
     }
 
     private void preloadAroundCurrentViewport() {

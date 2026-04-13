@@ -2,7 +2,9 @@ package com.group09.ComicReader.data;
 
 import android.content.Context;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
+import com.group09.ComicReader.R;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.data.remote.TranslateApi;
 import com.group09.ComicReader.model.CategoryPreview;
@@ -80,8 +82,11 @@ public class ComicRepository {
 
     private static ComicRepository instance;
     private final ApiClient apiClient;
+    @Nullable
+    private final Context appContext;
 
     private ComicRepository(Context context) {
+        this.appContext = context == null ? null : context.getApplicationContext();
         if (context != null) {
             this.apiClient = new ApiClient(context);
         } else {
@@ -497,6 +502,11 @@ public class ComicRepository {
                                     translatedTitle,
                                     translatedSynopsis);
                         } else {
+                            if (response.code() == 503) {
+                                callback.onError(getStringOrDefault(R.string.reader_translate_service_maintenance,
+                                        "Translation service is temporarily under maintenance."));
+                                return;
+                            }
                             callback.onError(extractErrorMessage(response));
                         }
                     }
@@ -540,8 +550,21 @@ public class ComicRepository {
                     callback.onSuccess(response.body());
                 } else {
                     callback.onError("Error: " + response.code());
-                }
-            }
+        }
+    }
+
+    @NonNull
+    private String getStringOrDefault(int stringRes, @NonNull String fallback) {
+        if (appContext == null) {
+            return fallback;
+        }
+        try {
+            String value = appContext.getString(stringRes);
+            return value == null || value.trim().isEmpty() ? fallback : value;
+        } catch (Exception ignored) {
+            return fallback;
+        }
+    }
 
             @Override
             public void onFailure(@NonNull Call<List<String>> call, @NonNull Throwable t) {

@@ -103,6 +103,12 @@
     <string name="reader_audio_no_content">Không tạo được audio</string>
     <string name="reader_audio_missing_url">Thiếu URL audio</string>
     <string name="reader_audio_playback_failed">Phát audio thất bại</string>
+    <string name="reader_audio_speed_075">0.75x</string>
+    <string name="reader_audio_speed_100">1.0x</string>
+    <string name="reader_audio_speed_125">1.25x</string>
+    <string name="reader_offline_download_required">Chưa có bản offline của chương này. Hãy tải trước.</string>
+    <string name="reader_audio_service_maintenance">Dịch vụ audio đang bảo trì tạm thời.</string>
+    <string name="reader_translate_service_maintenance">Dịch vụ dịch đang bảo trì tạm thời.</string>
 
     <string name="comment_hint">Viết bình luận...</string>
     <string name="comment_send">Gửi</string>
@@ -119,6 +125,9 @@
     <string name="content_avatar">Ảnh đại diện</string>
     <string name="content_back">Quay lại</string>
     <string name="content_download">Tải xuống</string>
+    <string name="content_pause_download">Tạm dừng tải</string>
+    <string name="content_resume_download">Tiếp tục tải</string>
+    <string name="content_delete_download">Xóa bản tải</string>
     <string name="content_open_comments">Mở bình luận</string>
     <string name="content_close_comments">Đóng bình luận</string>
     <string name="content_filter">Lọc</string>
@@ -228,6 +237,13 @@
     <string name="comic_rate_success">Đã gửi đánh giá!</string>
     <string name="comic_rate_login_required">Đăng nhập để đánh giá truyện</string>
     <string name="comic_your_rating">Đánh giá của bạn: %1$d/5</string>
+    <string name="download_no_chapter">Không có chương mở khóa để tải</string>
+    <string name="download_queued">Đã thêm hàng đợi tải chương %1$d</string>
+    <string name="download_paused">Đã tạm dừng tải chương %1$d</string>
+    <string name="download_resumed">Đã tiếp tục tải chương %1$d</string>
+    <string name="download_deleted">Đã xóa bản tải chương %1$d</string>
+    <string name="download_completed_suffix">Đã tải</string>
+    <string name="download_failed_suffix">Tải thất bại</string>
     <string name="admin_revenue_title">Bảng doanh thu</string>
     <string name="admin_revenue_total">Tổng doanh thu</string>
     <string name="admin_revenue_topup">Nạp xu</string>
