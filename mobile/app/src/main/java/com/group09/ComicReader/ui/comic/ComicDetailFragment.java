@@ -41,6 +41,7 @@ import com.group09.ComicReader.viewmodel.ComicDetailViewModel;
 import com.group09.ComicReader.viewmodel.CommentsViewModel;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -252,7 +253,7 @@ public class ComicDetailFragment extends BaseFragment {
         });
         viewModel.getChapters().observe(getViewLifecycleOwner(), chapters -> {
             currentChapters = chapters == null ? new ArrayList<>() : chapters;
-            chapterAdapter.submitList(chapters);
+            chapterAdapter.submitList(sortChaptersForDisplay(chapters));
             chapterAdapter.setDownloadedChapterIds(downloadedChapterIds);
             refreshActiveDownloadChapter();
         });
@@ -625,6 +626,13 @@ public class ComicDetailFragment extends BaseFragment {
             View footer = binding.incComicDetailCommentsFooter.getRoot();
             binding.nsvComicDetailContent.smoothScrollTo(0, footer.getTop());
         });
+    }
+
+    @NonNull
+    private List<Chapter> sortChaptersForDisplay(@Nullable List<Chapter> chapters) {
+        List<Chapter> sorted = chapters == null ? new ArrayList<>() : new ArrayList<>(chapters);
+        sorted.sort(Comparator.comparingInt(Chapter::getNumber).reversed());
+        return sorted;
     }
 
     @Override
