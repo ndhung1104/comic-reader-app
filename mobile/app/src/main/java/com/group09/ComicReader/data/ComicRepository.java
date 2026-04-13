@@ -550,7 +550,14 @@ public class ComicRepository {
                     callback.onSuccess(response.body());
                 } else {
                     callback.onError("Error: " + response.code());
-        }
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<List<String>> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage());
+            }
+        });
     }
 
     @NonNull
@@ -564,13 +571,6 @@ public class ComicRepository {
         } catch (Exception ignored) {
             return fallback;
         }
-    }
-
-            @Override
-            public void onFailure(@NonNull Call<List<String>> call, @NonNull Throwable t) {
-                callback.onError(t.getMessage());
-            }
-        });
     }
 
     public void searchComics(String query, String filter, @NonNull ComicListCallback callback) {
