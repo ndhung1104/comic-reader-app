@@ -80,6 +80,7 @@ docker compose -f docker-compose.yml --profile local-llm up --build
 - `POST /api/v1/translation-jobs` creates `translation_jobs` row immediately.
 - Worker returns incremental `ocrPages` while job is `RUNNING`.
 - Backend scheduler syncs worker status every `TRANSLATION_WORKER_SYNC_INTERVAL_MS` (default `3000` ms) and upserts each OCR page into `chapter_page_ocr_texts`.
+- When `tts-worker.enabled=true`, each newly persisted OCR page also triggers TTS generation for that page immediately (no need to wait full chapter OCR done).
 - Audio playlist generation returns `503` while OCR pages are still incomplete for the chapter; retry later.
 
 ## Run local (without Docker)

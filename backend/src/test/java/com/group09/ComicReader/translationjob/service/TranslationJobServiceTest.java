@@ -2,22 +2,29 @@ package com.group09.ComicReader.translationjob.service;
 
 import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.chapter.entity.ChapterPageEntity;
+import com.group09.ComicReader.chapter.repository.ChapterPageRepository;
 import com.group09.ComicReader.chapter.service.ChapterService;
 import com.group09.ComicReader.comic.entity.ComicEntity;
 import com.group09.ComicReader.common.exception.ServiceUnavailableException;
+import com.group09.ComicReader.common.storage.FileStorageService;
 import com.group09.ComicReader.config.properties.TranslationWorkerProperties;
+import com.group09.ComicReader.config.properties.TtsWorkerProperties;
 import com.group09.ComicReader.translationjob.client.TranslationWorkerClient;
+import com.group09.ComicReader.translationjob.client.TtsWorkerClient;
+import com.group09.ComicReader.translationjob.client.dto.TtsWorkerAudioPage;
+import com.group09.ComicReader.translationjob.client.dto.TtsWorkerSynthesizeBatchResponse;
 import com.group09.ComicReader.translationjob.client.dto.WorkerJobStatusResponse;
 import com.group09.ComicReader.translationjob.client.dto.WorkerOcrPageText;
 import com.group09.ComicReader.translationjob.client.dto.WorkerSubmitJobRequest;
 import com.group09.ComicReader.translationjob.client.dto.WorkerSubmitJobResponse;
 import com.group09.ComicReader.translationjob.dto.CreateTranslationJobRequest;
 import com.group09.ComicReader.translationjob.entity.ChapterPageOcrTextEntity;
+import com.group09.ComicReader.translationjob.entity.ChapterPageTtsAudioEntity;
 import com.group09.ComicReader.translationjob.entity.TranslationJobEntity;
 import com.group09.ComicReader.translationjob.entity.TranslationJobStatus;
 import com.group09.ComicReader.translationjob.repository.ChapterPageOcrTextRepository;
+import com.group09.ComicReader.translationjob.repository.ChapterPageTtsAudioRepository;
 import com.group09.ComicReader.translationjob.repository.TranslationJobRepository;
-import com.group09.ComicReader.chapter.repository.ChapterPageRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,11 +34,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -50,13 +59,23 @@ class TranslationJobServiceTest {
     private ChapterPageOcrTextRepository chapterPageOcrTextRepository;
 
     @Mock
+    private ChapterPageTtsAudioRepository chapterPageTtsAudioRepository;
+
+    @Mock
     private ChapterService chapterService;
 
     @Mock
     private TranslationWorkerClient translationWorkerClient;
 
+    @Mock
+    private TtsWorkerClient ttsWorkerClient;
+
+    @Mock
+    private FileStorageService fileStorageService;
+
     private TranslationJobService translationJobService;
     private TranslationWorkerProperties translationWorkerProperties;
+    private TtsWorkerProperties ttsWorkerProperties;
 
     private ChapterEntity chapter;
 
@@ -64,14 +83,20 @@ class TranslationJobServiceTest {
     void setUp() {
         translationWorkerProperties = new TranslationWorkerProperties();
         translationWorkerProperties.setEnabled(true);
+        ttsWorkerProperties = new TtsWorkerProperties();
+        ttsWorkerProperties.setEnabled(false);
 
         translationJobService = new TranslationJobService(
                 translationJobRepository,
                 chapterPageRepository,
                 chapterPageOcrTextRepository,
+                chapterPageTtsAudioRepository,
                 chapterService,
                 translationWorkerClient,
-                translationWorkerProperties
+                ttsWorkerClient,
+                translationWorkerProperties,
+                ttsWorkerProperties,
+                fileStorageService
         );
 
         ComicEntity comic = new ComicEntity();
@@ -88,6 +113,8 @@ class TranslationJobServiceTest {
             }
             return entity;
         });
+        lenient().when(chapterPageOcrTextRepository.save(any(ChapterPageOcrTextEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -275,5 +302,60 @@ class TranslationJobServiceTest {
 
         verify(chapterPageOcrTextRepository).save(any(ChapterPageOcrTextEntity.class));
         verify(translationJobRepository).save(job);
+    }
+
+    @Test
+    void syncActiveJobsShouldGenerateTtsForNewOcrPage() {
+        ttsWorkerProperties.setEnabled(true);
+        ttsWorkerProperties.setDefaultSpeed(1.0);
+        ttsWorkerProperties.setVoiceJa("ja_JP-kokoro-medium");
+
+        TranslationJobEntity job = new TranslationJobEntity();
+        job.setId(101L);
+        job.setChapter(chapter);
+        job.setExternalJobId("worker-1");
+        job.setStatus(TranslationJobStatus.RUNNING);
+        job.setSourceLang("ja");
+        job.setTargetLang("vi");
+
+        when(translationJobRepository.findTop50ByStatusInOrderByUpdatedAtAsc(
+                List.of(TranslationJobStatus.QUEUED, TranslationJobStatus.RUNNING)
+        )).thenReturn(List.of(job));
+
+        WorkerOcrPageText page1 = new WorkerOcrPageText();
+        page1.setChapterId(5L);
+        page1.setPageNumber(1);
+        page1.setSourceLang("ja");
+        page1.setOcrText("konnichiwa");
+
+        WorkerJobStatusResponse statusResponse = new WorkerJobStatusResponse();
+        statusResponse.setStatus("RUNNING");
+        statusResponse.setOcrPages(List.of(page1));
+        when(translationWorkerClient.fetchJobStatus("worker-1")).thenReturn(statusResponse);
+        when(chapterPageOcrTextRepository.findByChapterIdAndPageNumberAndSourceLang(5L, 1, "ja"))
+                .thenReturn(Optional.empty());
+        when(chapterPageTtsAudioRepository.findByChapterIdAndPageNumberAndLangAndVoiceAndSpeed(
+                5L, 1, "ja", "ja_JP-kokoro-medium", 1.0
+        )).thenReturn(Optional.empty());
+
+        TtsWorkerAudioPage audioPage = new TtsWorkerAudioPage();
+        audioPage.setPageNumber(1);
+        audioPage.setAudioBase64(Base64.getEncoder().encodeToString("audio".getBytes()));
+        audioPage.setDurationMs(300);
+
+        TtsWorkerSynthesizeBatchResponse ttsResponse = new TtsWorkerSynthesizeBatchResponse();
+        ttsResponse.setStatus("SUCCEEDED");
+        ttsResponse.setAudioPages(List.of(audioPage));
+        when(ttsWorkerClient.synthesizeBatch(any())).thenReturn(ttsResponse);
+        when(fileStorageService.storeChapterPageAudio(
+                eq(5L), eq(1), eq("ja"), eq("ja_JP-kokoro-medium"), eq(1.0), any()))
+                .thenReturn("/uploads/chapter-5/tts/ja/ja_jp-kokoro-medium-1_0/page-1.wav");
+        when(chapterPageTtsAudioRepository.save(any(ChapterPageTtsAudioEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        translationJobService.syncActiveJobs();
+
+        verify(ttsWorkerClient).synthesizeBatch(any());
+        verify(chapterPageTtsAudioRepository).save(any(ChapterPageTtsAudioEntity.class));
     }
 }
