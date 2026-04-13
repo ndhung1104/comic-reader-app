@@ -274,6 +274,34 @@ class ChapterAudioPlaylistServiceTest {
         verify(ttsWorkerClient, never()).synthesizeBatch(any());
     }
 
+    @Test
+    void createOrGetPlaylistShouldReturn503WhenOcrIsStillProcessing() {
+        long chapterId = 88L;
+        List<ChapterPageEntity> chapterPages = buildChapterPages(chapterId, 2);
+        ChapterEntity chapter = buildChapter(chapterId, "vi");
+        when(chapterService.getChapterEntity(chapterId)).thenReturn(chapter);
+        when(chapterService.getPages(chapterId)).thenReturn(List.of(new ChapterPageResponse(), new ChapterPageResponse()));
+        when(chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapterId)).thenReturn(chapterPages);
+        when(chapterPageTtsAudioRepository.findByChapterIdAndLangAndVoiceAndSpeedOrderByPageNumberAsc(
+                chapterId, "vi", "vi_VN-vais1000-medium", 1.0
+        )).thenReturn(List.of());
+        when(chapterPageOcrTextRepository.findByChapterIdAndSourceLangOrderByPageNumberAsc(chapterId, "vi"))
+                .thenReturn(List.of());
+
+        ChapterPageOcrTextEntity ocr1 = new ChapterPageOcrTextEntity();
+        ocr1.setPageNumber(1);
+        ocr1.setSourceLang("vi");
+        ocr1.setOcrText("partial");
+        when(translationJobService.ensureChapterOcrText(chapterId, "vi"))
+                .thenReturn(List.of(ocr1));
+
+        assertThatThrownBy(() -> chapterAudioPlaylistService.createOrGetPlaylist(chapterId, new ChapterAudioPlaylistRequest()))
+                .isInstanceOf(ServiceUnavailableException.class)
+                .hasMessageContaining("OCR is still processing");
+
+        verify(ttsWorkerClient, never()).synthesizeBatch(any());
+    }
+
     private List<ChapterPageEntity> buildChapterPages(long chapterId, int count) {
         ComicEntity comic = new ComicEntity();
         comic.setId(300L);

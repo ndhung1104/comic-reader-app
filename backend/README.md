@@ -43,6 +43,45 @@ Optional local LLM sidecar (`ollama`) can be enabled with profile:
 docker compose -f docker-compose.low-ram.yml --profile local-llm up --build
 ```
 
+### Basic compose profiles (docker-compose.yml)
+Use runtime flags/env vars instead of editing YAML each time.
+
+- Core only (postgres + backend):
+```bash
+docker compose -f docker-compose.yml up --build
+```
+
+- OCR worker:
+```bash
+TRANSLATION_WORKER_ENABLED=true docker compose -f docker-compose.yml --profile ocr up --build
+```
+
+- TTS worker:
+```bash
+TTS_WORKER_ENABLED=true docker compose -f docker-compose.yml --profile tts up --build
+```
+
+- OCR + TTS:
+```bash
+TRANSLATION_WORKER_ENABLED=true TTS_WORKER_ENABLED=true docker compose -f docker-compose.yml --profile ocr --profile tts up --build
+```
+
+- Local LLM sidecar:
+```bash
+docker compose -f docker-compose.yml --profile local-llm up --build
+```
+
+#### What Local LLM is used for
+- `local-llm` starts `ollama` for local translation provider flow.
+- Use it when backend translate provider is set to local (or fallback to local).
+- It is not required for OCR/TTS pipelines unless your translation config points to local model.
+
+### OCR job persistence flow (current)
+- `POST /api/v1/translation-jobs` creates `translation_jobs` row immediately.
+- Worker returns incremental `ocrPages` while job is `RUNNING`.
+- Backend scheduler syncs worker status every `TRANSLATION_WORKER_SYNC_INTERVAL_MS` (default `3000` ms) and upserts each OCR page into `chapter_page_ocr_texts`.
+- Audio playlist generation returns `503` while OCR pages are still incomplete for the chapter; retry later.
+
 ## Run local (without Docker)
 1. Copy env file:
 ```bash

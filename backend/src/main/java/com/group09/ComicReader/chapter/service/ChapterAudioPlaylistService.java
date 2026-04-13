@@ -96,6 +96,9 @@ public class ChapterAudioPlaylistService {
         if (ocrPages.size() < chapterPages.size()) {
             ocrPages = translationJobService.ensureChapterOcrText(chapterId, sourceLang);
         }
+        if (ocrPages.size() < chapterPages.size()) {
+            throw new ServiceUnavailableException("OCR is still processing for this chapter. Please retry shortly.");
+        }
 
         Map<Integer, ChapterPageOcrTextEntity> ocrByPage = indexOcrByPage(ocrPages);
         List<TtsWorkerPageInput> pagesToGenerate = new ArrayList<>();

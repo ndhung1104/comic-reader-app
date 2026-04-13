@@ -23,14 +23,18 @@ import com.group09.ComicReader.translationjob.entity.TranslationJobEntity;
 import com.group09.ComicReader.translationjob.entity.TranslationJobStatus;
 import com.group09.ComicReader.translationjob.repository.ChapterPageOcrTextRepository;
 import com.group09.ComicReader.translationjob.repository.TranslationJobRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -38,8 +42,11 @@ import java.util.function.Supplier;
 public class TranslationJobService {
 
     private static final int MAX_RETRY_ATTEMPTS = 2;
-    private static final int OCR_POLL_INTERVAL_MS = 3000;
-    private static final int OCR_MAX_POLL_ATTEMPTS = 80;
+    private static final Logger LOGGER = LoggerFactory.getLogger(TranslationJobService.class);
+    private static final List<TranslationJobStatus> ACTIVE_SYNC_STATUSES = List.of(
+            TranslationJobStatus.QUEUED,
+            TranslationJobStatus.RUNNING
+    );
 
     private final TranslationJobRepository translationJobRepository;
     private final ChapterPageRepository chapterPageRepository;
@@ -148,7 +155,7 @@ public class TranslationJobService {
         return response;
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public List<ChapterPageOcrTextEntity> ensureChapterOcrText(Long chapterId, String sourceLang) {
         ensureWorkerEnabled();
 
@@ -165,41 +172,24 @@ public class TranslationJobService {
             return existing;
         }
 
-        CreateTranslationJobRequest request = new CreateTranslationJobRequest();
-        request.setChapterId(chapter.getId());
-        request.setSourceLang(normalizedSource);
-        request.setTargetLang("vi");
+        Optional<TranslationJobEntity> activeJob = translationJobRepository
+                .findFirstByChapterIdAndSourceLangAndStatusInOrderByCreatedAtDesc(
+                        chapterId,
+                        normalizedSource,
+                        ACTIVE_SYNC_STATUSES
+                );
 
-        TranslationJobResponse created = createJob(request);
-        if (created.getStatus() == TranslationJobStatus.FAILED || created.getStatus() == TranslationJobStatus.CANCELLED) {
-            throw new BadRequestException("OCR job failed to start: " + created.getErrorMessage());
+        if (activeJob.isEmpty()) {
+            CreateTranslationJobRequest request = new CreateTranslationJobRequest();
+            request.setChapterId(chapter.getId());
+            request.setSourceLang(normalizedSource);
+            request.setTargetLang("vi");
+            TranslationJobResponse created = createJob(request);
+            activeJob = translationJobRepository.findById(created.getId());
         }
 
-        TranslationJobResponse latest = created;
-        for (int attempt = 1; attempt <= OCR_MAX_POLL_ATTEMPTS; attempt++) {
-            latest = getJob(created.getId());
-            if (isTerminal(latest.getStatus())) {
-                break;
-            }
-            sleepQuietly(OCR_POLL_INTERVAL_MS);
-        }
-
-        if (!isTerminal(latest.getStatus())) {
-            throw new BadRequestException("OCR job timed out before completion");
-        }
-
-        if (latest.getStatus() != TranslationJobStatus.SUCCEEDED) {
-            throw new BadRequestException("OCR job failed: " + latest.getErrorMessage());
-        }
-
-        getArtifacts(created.getId());
-
-        List<ChapterPageOcrTextEntity> refreshed = chapterPageOcrTextRepository
-                .findByChapterIdAndSourceLangOrderByPageNumberAsc(chapterId, normalizedSource);
-        if (refreshed.size() < pages.size()) {
-            throw new BadRequestException("OCR completed but OCR text is missing for some pages");
-        }
-        return refreshed;
+        activeJob.ifPresent(this::refreshJobFromWorkerSafely);
+        return chapterPageOcrTextRepository.findByChapterIdAndSourceLangOrderByPageNumberAsc(chapterId, normalizedSource);
     }
 
     @Transactional(readOnly = true)
@@ -208,6 +198,29 @@ public class TranslationJobService {
                 chapterId,
                 normalizeLanguage(sourceLang, "auto")
         );
+    }
+
+    @Scheduled(fixedDelayString = "${translation-worker.sync-interval-ms:3000}")
+    public void syncActiveJobs() {
+        if (!translationWorkerProperties.isEnabled()) {
+            return;
+        }
+
+        List<TranslationJobEntity> activeJobs = translationJobRepository
+                .findTop50ByStatusInOrderByUpdatedAtAsc(ACTIVE_SYNC_STATUSES);
+        for (TranslationJobEntity activeJob : activeJobs) {
+            refreshJobFromWorkerSafely(activeJob);
+        }
+    }
+
+    private void refreshJobFromWorkerSafely(TranslationJobEntity job) {
+        try {
+            refreshJobFromWorker(job);
+        } catch (ServiceUnavailableException exception) {
+            LOGGER.debug("Skip translation job sync due to worker unavailable (jobId={})", job.getId());
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Unexpected translation job sync error (jobId={}): {}", job.getId(), exception.getMessage());
+        }
     }
 
     private void refreshJobFromWorker(TranslationJobEntity job) {
@@ -224,6 +237,9 @@ public class TranslationJobService {
             statusResponse = withRetry(
                     () -> translationWorkerClient.fetchJobStatus(job.getExternalJobId())
             );
+        } catch (HttpClientErrorException.NotFound exception) {
+            markJobFailed(job, "OCR worker job was not found.");
+            return;
         } catch (RuntimeException exception) {
             throw workerUnavailable(exception);
         }
@@ -238,6 +254,16 @@ public class TranslationJobService {
         }
 
         persistOcrPages(job, statusResponse.getOcrPages());
+        translationJobRepository.save(job);
+    }
+
+    private void markJobFailed(TranslationJobEntity job, String errorMessage) {
+        job.setStatus(TranslationJobStatus.FAILED);
+        job.setErrorMessage(truncateMessage(errorMessage));
+        job.setUpdatedAt(LocalDateTime.now());
+        if (job.getCompletedAt() == null) {
+            job.setCompletedAt(LocalDateTime.now());
+        }
         translationJobRepository.save(job);
     }
 
@@ -396,15 +422,6 @@ public class TranslationJobService {
         }
 
         throw lastException == null ? new BadRequestException("Unknown worker error") : lastException;
-    }
-
-    private void sleepQuietly(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new BadRequestException("OCR polling interrupted");
-        }
     }
 
     private void ensureWorkerEnabled() {

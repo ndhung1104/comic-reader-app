@@ -48,6 +48,7 @@ translation-worker:
   enabled: ${TRANSLATION_WORKER_ENABLED:true}
   base-url: ${TRANSLATION_WORKER_BASE_URL:http://localhost:8090}
   timeout-ms: ${TRANSLATION_WORKER_TIMEOUT_MS:15000}
+  sync-interval-ms: ${TRANSLATION_WORKER_SYNC_INTERVAL_MS:3000}
 
 tts-worker:
   enabled: ${TTS_WORKER_ENABLED:true}
