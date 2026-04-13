@@ -45,10 +45,12 @@ translate:
     timeout-ms: ${LOCAL_LLM_TIMEOUT_MS:30000}
 
 translation-worker:
+  enabled: ${TRANSLATION_WORKER_ENABLED:true}
   base-url: ${TRANSLATION_WORKER_BASE_URL:http://localhost:8090}
   timeout-ms: ${TRANSLATION_WORKER_TIMEOUT_MS:15000}
 
 tts-worker:
+  enabled: ${TTS_WORKER_ENABLED:true}
   base-url: ${TTS_WORKER_BASE_URL:http://localhost:8091}
   timeout-ms: ${TTS_WORKER_TIMEOUT_MS:300000}
   poll-interval-ms: ${TTS_WORKER_POLL_INTERVAL_MS:3000}

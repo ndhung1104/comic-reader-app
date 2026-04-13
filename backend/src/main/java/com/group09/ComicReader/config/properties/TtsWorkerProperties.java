@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "tts-worker")
 public class TtsWorkerProperties {
 
+    private boolean enabled = true;
     private String baseUrl = "http://localhost:8091";
     private int timeoutMs = 300000;
     private int pollIntervalMs = 3000;
@@ -19,6 +20,14 @@ public class TtsWorkerProperties {
     private String fallbackVoice = "en_US-lessac-medium";
     private double defaultSpeed = 1.0;
     private String defaultLang = "auto";
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 
     public String getBaseUrl() {
         return baseUrl;

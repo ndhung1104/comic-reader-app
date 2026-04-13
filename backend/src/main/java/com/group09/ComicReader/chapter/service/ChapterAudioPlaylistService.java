@@ -7,6 +7,7 @@ import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.chapter.entity.ChapterPageEntity;
 import com.group09.ComicReader.chapter.repository.ChapterPageRepository;
 import com.group09.ComicReader.common.exception.BadRequestException;
+import com.group09.ComicReader.common.exception.ServiceUnavailableException;
 import com.group09.ComicReader.common.storage.FileStorageService;
 import com.group09.ComicReader.config.properties.TtsWorkerProperties;
 import com.group09.ComicReader.translationjob.client.TtsWorkerClient;
@@ -124,6 +125,8 @@ public class ChapterAudioPlaylistService {
         }
 
         if (!pagesToGenerate.isEmpty()) {
+            ensureTtsWorkerEnabled();
+
             TtsWorkerSynthesizeBatchRequest workerRequest = new TtsWorkerSynthesizeBatchRequest();
             workerRequest.setChapterId(String.valueOf(chapterId));
             workerRequest.setLang(lang);
@@ -131,9 +134,14 @@ public class ChapterAudioPlaylistService {
             workerRequest.setSpeed(speed);
             workerRequest.setPages(pagesToGenerate);
 
-            TtsWorkerSynthesizeBatchResponse workerResponse = ttsWorkerClient.synthesizeBatch(workerRequest);
+            TtsWorkerSynthesizeBatchResponse workerResponse;
+            try {
+                workerResponse = ttsWorkerClient.synthesizeBatch(workerRequest);
+            } catch (RuntimeException exception) {
+                throw ttsUnavailable();
+            }
             if (!"SUCCEEDED".equalsIgnoreCase(workerResponse.getStatus())) {
-                throw new BadRequestException("TTS worker failed: " + workerResponse.getError());
+                throw ttsUnavailable();
             }
 
             Map<Integer, TtsWorkerAudioPage> generatedByPage = indexGeneratedByPage(workerResponse.getAudioPages());
@@ -357,5 +365,15 @@ public class ChapterAudioPlaylistService {
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-256 is not available");
         }
+    }
+
+    private void ensureTtsWorkerEnabled() {
+        if (!ttsWorkerProperties.isEnabled()) {
+            throw ttsUnavailable();
+        }
+    }
+
+    private ServiceUnavailableException ttsUnavailable() {
+        return new ServiceUnavailableException("TTS service is temporarily unavailable.");
     }
 }

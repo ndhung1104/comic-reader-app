@@ -6,6 +6,7 @@ import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.chapter.entity.ChapterPageEntity;
 import com.group09.ComicReader.chapter.repository.ChapterPageRepository;
 import com.group09.ComicReader.comic.entity.ComicEntity;
+import com.group09.ComicReader.common.exception.ServiceUnavailableException;
 import com.group09.ComicReader.common.storage.FileStorageService;
 import com.group09.ComicReader.config.properties.TtsWorkerProperties;
 import com.group09.ComicReader.translationjob.client.TtsWorkerClient;
@@ -27,6 +28,7 @@ import java.util.Base64;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -58,18 +60,20 @@ class ChapterAudioPlaylistServiceTest {
     private FileStorageService fileStorageService;
 
     private ChapterAudioPlaylistService chapterAudioPlaylistService;
+    private TtsWorkerProperties ttsWorkerProperties;
 
     @BeforeEach
     void setUp() {
-        TtsWorkerProperties properties = new TtsWorkerProperties();
-        properties.setDefaultLang("vi");
-        properties.setDefaultVoice("vi_VN-vais1000-medium");
-        properties.setVoiceVi("vi_VN-vais1000-medium");
-        properties.setVoiceEn("en_US-lessac-medium");
-        properties.setVoiceJa("ja_JP-kokoro-medium");
-        properties.setVoiceKo("ko_KR-kss-medium");
-        properties.setFallbackVoice("en_US-lessac-medium");
-        properties.setDefaultSpeed(1.0);
+        ttsWorkerProperties = new TtsWorkerProperties();
+        ttsWorkerProperties.setEnabled(true);
+        ttsWorkerProperties.setDefaultLang("vi");
+        ttsWorkerProperties.setDefaultVoice("vi_VN-vais1000-medium");
+        ttsWorkerProperties.setVoiceVi("vi_VN-vais1000-medium");
+        ttsWorkerProperties.setVoiceEn("en_US-lessac-medium");
+        ttsWorkerProperties.setVoiceJa("ja_JP-kokoro-medium");
+        ttsWorkerProperties.setVoiceKo("ko_KR-kss-medium");
+        ttsWorkerProperties.setFallbackVoice("en_US-lessac-medium");
+        ttsWorkerProperties.setDefaultSpeed(1.0);
 
         chapterAudioPlaylistService = new ChapterAudioPlaylistService(
                 chapterService,
@@ -78,7 +82,7 @@ class ChapterAudioPlaylistServiceTest {
                 chapterPageTtsAudioRepository,
                 translationJobService,
                 ttsWorkerClient,
-                properties,
+                ttsWorkerProperties,
                 fileStorageService
         );
     }
@@ -238,6 +242,36 @@ class ChapterAudioPlaylistServiceTest {
         assertThat(captor.getValue().getVoice()).isEqualTo("ja_JP-kokoro-medium");
         assertThat(response.getVoice()).isEqualTo("ja_JP-kokoro-medium");
         assertThat(response.getStatus()).isEqualTo("READY");
+    }
+
+    @Test
+    void createOrGetPlaylistShouldReturn503WhenTtsWorkerDisabled() {
+        long chapterId = 77L;
+        ttsWorkerProperties.setEnabled(false);
+
+        List<ChapterPageEntity> chapterPages = buildChapterPages(chapterId, 1);
+        ChapterEntity chapter = buildChapter(chapterId, "vi");
+        when(chapterService.getChapterEntity(chapterId)).thenReturn(chapter);
+        when(chapterService.getPages(chapterId)).thenReturn(List.of(new ChapterPageResponse()));
+        when(chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapterId)).thenReturn(chapterPages);
+        when(chapterPageTtsAudioRepository.findByChapterIdAndLangAndVoiceAndSpeedOrderByPageNumberAsc(
+                chapterId, "vi", "vi_VN-vais1000-medium", 1.0
+        )).thenReturn(List.of());
+        when(chapterPageOcrTextRepository.findByChapterIdAndSourceLangOrderByPageNumberAsc(chapterId, "vi"))
+                .thenReturn(List.of());
+
+        ChapterPageOcrTextEntity ocr1 = new ChapterPageOcrTextEntity();
+        ocr1.setPageNumber(1);
+        ocr1.setSourceLang("vi");
+        ocr1.setOcrText("hello");
+        when(translationJobService.ensureChapterOcrText(chapterId, "vi"))
+                .thenReturn(List.of(ocr1));
+
+        assertThatThrownBy(() -> chapterAudioPlaylistService.createOrGetPlaylist(chapterId, new ChapterAudioPlaylistRequest()))
+                .isInstanceOf(ServiceUnavailableException.class)
+                .hasMessageContaining("temporarily unavailable");
+
+        verify(ttsWorkerClient, never()).synthesizeBatch(any());
     }
 
     private List<ChapterPageEntity> buildChapterPages(long chapterId, int count) {

@@ -4,6 +4,8 @@ import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.chapter.entity.ChapterPageEntity;
 import com.group09.ComicReader.chapter.service.ChapterService;
 import com.group09.ComicReader.comic.entity.ComicEntity;
+import com.group09.ComicReader.common.exception.ServiceUnavailableException;
+import com.group09.ComicReader.config.properties.TranslationWorkerProperties;
 import com.group09.ComicReader.translationjob.client.TranslationWorkerClient;
 import com.group09.ComicReader.translationjob.client.dto.WorkerJobStatusResponse;
 import com.group09.ComicReader.translationjob.client.dto.WorkerOcrPageText;
@@ -27,7 +29,10 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,17 +55,22 @@ class TranslationJobServiceTest {
     private TranslationWorkerClient translationWorkerClient;
 
     private TranslationJobService translationJobService;
+    private TranslationWorkerProperties translationWorkerProperties;
 
     private ChapterEntity chapter;
 
     @BeforeEach
     void setUp() {
+        translationWorkerProperties = new TranslationWorkerProperties();
+        translationWorkerProperties.setEnabled(true);
+
         translationJobService = new TranslationJobService(
                 translationJobRepository,
                 chapterPageRepository,
                 chapterPageOcrTextRepository,
                 chapterService,
-                translationWorkerClient
+                translationWorkerClient,
+                translationWorkerProperties
         );
 
         ComicEntity comic = new ComicEntity();
@@ -70,13 +80,29 @@ class TranslationJobServiceTest {
         chapter.setId(5L);
         chapter.setComic(comic);
 
-        when(translationJobRepository.save(any(TranslationJobEntity.class))).thenAnswer(invocation -> {
+        lenient().when(translationJobRepository.save(any(TranslationJobEntity.class))).thenAnswer(invocation -> {
             TranslationJobEntity entity = invocation.getArgument(0);
             if (entity.getId() == null) {
                 entity.setId(101L);
             }
             return entity;
         });
+    }
+
+    @Test
+    void createJobShouldReturn503WhenWorkerDisabled() {
+        translationWorkerProperties.setEnabled(false);
+
+        CreateTranslationJobRequest request = new CreateTranslationJobRequest();
+        request.setChapterId(5L);
+        request.setSourceLang("ja");
+        request.setTargetLang("vi");
+
+        assertThatThrownBy(() -> translationJobService.createJob(request))
+                .isInstanceOf(ServiceUnavailableException.class)
+                .hasMessageContaining("temporarily unavailable");
+
+        verify(translationJobRepository, never()).save(any(TranslationJobEntity.class));
     }
 
     @Test

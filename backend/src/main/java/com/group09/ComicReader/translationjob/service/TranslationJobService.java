@@ -6,6 +6,8 @@ import com.group09.ComicReader.chapter.repository.ChapterPageRepository;
 import com.group09.ComicReader.chapter.service.ChapterService;
 import com.group09.ComicReader.common.exception.BadRequestException;
 import com.group09.ComicReader.common.exception.NotFoundException;
+import com.group09.ComicReader.common.exception.ServiceUnavailableException;
+import com.group09.ComicReader.config.properties.TranslationWorkerProperties;
 import com.group09.ComicReader.translationjob.client.TranslationWorkerClient;
 import com.group09.ComicReader.translationjob.client.dto.WorkerJobStatusResponse;
 import com.group09.ComicReader.translationjob.client.dto.WorkerOcrPageText;
@@ -44,21 +46,26 @@ public class TranslationJobService {
     private final ChapterPageOcrTextRepository chapterPageOcrTextRepository;
     private final ChapterService chapterService;
     private final TranslationWorkerClient translationWorkerClient;
+    private final TranslationWorkerProperties translationWorkerProperties;
 
     public TranslationJobService(TranslationJobRepository translationJobRepository,
             ChapterPageRepository chapterPageRepository,
             ChapterPageOcrTextRepository chapterPageOcrTextRepository,
             ChapterService chapterService,
-            TranslationWorkerClient translationWorkerClient) {
+            TranslationWorkerClient translationWorkerClient,
+            TranslationWorkerProperties translationWorkerProperties) {
         this.translationJobRepository = translationJobRepository;
         this.chapterPageRepository = chapterPageRepository;
         this.chapterPageOcrTextRepository = chapterPageOcrTextRepository;
         this.chapterService = chapterService;
         this.translationWorkerClient = translationWorkerClient;
+        this.translationWorkerProperties = translationWorkerProperties;
     }
 
     @Transactional
     public TranslationJobResponse createJob(CreateTranslationJobRequest request) {
+        ensureWorkerEnabled();
+
         ChapterEntity chapter = chapterService.getChapterEntity(request.getChapterId());
         List<ChapterPageEntity> pages = chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapter.getId());
         if (pages.isEmpty()) {
@@ -79,19 +86,18 @@ public class TranslationJobService {
 
         WorkerSubmitJobRequest workerRequest = buildWorkerSubmitRequest(job, pages);
 
+        WorkerSubmitJobResponse submitResponse;
         try {
-            WorkerSubmitJobResponse submitResponse = withRetry(() -> translationWorkerClient.submitJob(workerRequest));
-            job.setExternalJobId(submitResponse.getJobId());
-            job.setStatus(mapWorkerStatus(submitResponse.getStatus(), TranslationJobStatus.RUNNING));
-            job.setErrorMessage(null);
-            job.setUpdatedAt(LocalDateTime.now());
-            if (isTerminal(job.getStatus())) {
-                job.setCompletedAt(LocalDateTime.now());
-            }
-        } catch (Exception exception) {
-            job.setStatus(TranslationJobStatus.FAILED);
-            job.setErrorMessage(truncateMessage(exception.getMessage()));
-            job.setUpdatedAt(LocalDateTime.now());
+            submitResponse = withRetry(() -> translationWorkerClient.submitJob(workerRequest));
+        } catch (RuntimeException exception) {
+            throw workerUnavailable(exception);
+        }
+
+        job.setExternalJobId(submitResponse.getJobId());
+        job.setStatus(mapWorkerStatus(submitResponse.getStatus(), TranslationJobStatus.RUNNING));
+        job.setErrorMessage(null);
+        job.setUpdatedAt(LocalDateTime.now());
+        if (isTerminal(job.getStatus())) {
             job.setCompletedAt(LocalDateTime.now());
         }
 
@@ -100,6 +106,8 @@ public class TranslationJobService {
 
     @Transactional
     public TranslationJobResponse getJob(Long jobId) {
+        ensureWorkerEnabled();
+
         TranslationJobEntity job = translationJobRepository.findById(jobId)
                 .orElseThrow(() -> new NotFoundException("Translation job not found: " + jobId));
 
@@ -109,6 +117,8 @@ public class TranslationJobService {
 
     @Transactional
     public TranslationJobArtifactResponse getArtifacts(Long jobId) {
+        ensureWorkerEnabled();
+
         TranslationJobEntity job = translationJobRepository.findById(jobId)
                 .orElseThrow(() -> new NotFoundException("Translation job not found: " + jobId));
 
@@ -118,9 +128,14 @@ public class TranslationJobService {
             throw new BadRequestException("Translation job does not have an external worker id yet");
         }
 
-        WorkerJobStatusResponse artifactsResponse = withRetry(
-                () -> translationWorkerClient.fetchArtifacts(job.getExternalJobId())
-        );
+        WorkerJobStatusResponse artifactsResponse;
+        try {
+            artifactsResponse = withRetry(
+                    () -> translationWorkerClient.fetchArtifacts(job.getExternalJobId())
+            );
+        } catch (RuntimeException exception) {
+            throw workerUnavailable(exception);
+        }
 
         persistOcrPages(job, artifactsResponse.getOcrPages());
 
@@ -135,6 +150,8 @@ public class TranslationJobService {
 
     @Transactional
     public List<ChapterPageOcrTextEntity> ensureChapterOcrText(Long chapterId, String sourceLang) {
+        ensureWorkerEnabled();
+
         ChapterEntity chapter = chapterService.getChapterEntity(chapterId);
         List<ChapterPageEntity> pages = chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapterId);
         if (pages.isEmpty()) {
@@ -202,29 +219,26 @@ public class TranslationJobService {
             return;
         }
 
+        WorkerJobStatusResponse statusResponse;
         try {
-            WorkerJobStatusResponse statusResponse = withRetry(
+            statusResponse = withRetry(
                     () -> translationWorkerClient.fetchJobStatus(job.getExternalJobId())
             );
-
-            TranslationJobStatus newStatus = mapWorkerStatus(statusResponse.getStatus(), job.getStatus());
-            job.setStatus(newStatus);
-            job.setErrorMessage(truncateMessage(statusResponse.getError()));
-            job.setUpdatedAt(LocalDateTime.now());
-
-            if (isTerminal(newStatus) && job.getCompletedAt() == null) {
-                job.setCompletedAt(LocalDateTime.now());
-            }
-
-            persistOcrPages(job, statusResponse.getOcrPages());
-            translationJobRepository.save(job);
-        } catch (Exception exception) {
-            job.setUpdatedAt(LocalDateTime.now());
-            if (job.getErrorMessage() == null || job.getErrorMessage().isBlank()) {
-                job.setErrorMessage(truncateMessage("Worker sync failed: " + exception.getMessage()));
-            }
-            translationJobRepository.save(job);
+        } catch (RuntimeException exception) {
+            throw workerUnavailable(exception);
         }
+
+        TranslationJobStatus newStatus = mapWorkerStatus(statusResponse.getStatus(), job.getStatus());
+        job.setStatus(newStatus);
+        job.setErrorMessage(truncateMessage(statusResponse.getError()));
+        job.setUpdatedAt(LocalDateTime.now());
+
+        if (isTerminal(newStatus) && job.getCompletedAt() == null) {
+            job.setCompletedAt(LocalDateTime.now());
+        }
+
+        persistOcrPages(job, statusResponse.getOcrPages());
+        translationJobRepository.save(job);
     }
 
     private void persistOcrPages(TranslationJobEntity job, List<WorkerOcrPageText> ocrPages) {
@@ -391,5 +405,15 @@ public class TranslationJobService {
             Thread.currentThread().interrupt();
             throw new BadRequestException("OCR polling interrupted");
         }
+    }
+
+    private void ensureWorkerEnabled() {
+        if (!translationWorkerProperties.isEnabled()) {
+            throw new ServiceUnavailableException("OCR service is temporarily unavailable.");
+        }
+    }
+
+    private ServiceUnavailableException workerUnavailable(RuntimeException exception) {
+        return new ServiceUnavailableException("OCR service is temporarily unavailable.");
     }
 }

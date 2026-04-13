@@ -26,19 +26,28 @@ services:
         condition: service_healthy
       comic-translate-worker:
         condition: service_started
+        required: false
       piper-tts-worker:
         condition: service_started
+        required: false
+      ollama:
+        condition: service_started
+        required: false
     environment:
       SPRING_PROFILES_ACTIVE: docker
       DB_URL: jdbc:postgresql://postgres:5432/comic_reader
+      TRANSLATION_WORKER_ENABLED: ${TRANSLATION_WORKER_ENABLED:false}
       TRANSLATION_WORKER_BASE_URL: http://comic-translate-worker:8090
+      TTS_WORKER_ENABLED: ${TTS_WORKER_ENABLED:false}
       TTS_WORKER_BASE_URL: http://piper-tts-worker:8091
+      LOCAL_LLM_BASE_URL: ${LOCAL_LLM_BASE_URL:http://ollama:11434}
     ports:
       - "8080:8080"
     volumes:
       - uploads_data:/app/uploads
 
   comic-translate-worker:
+    profiles: ["ocr"]
     build:
       context: ./worker/comic-translate-worker
       dockerfile: Dockerfile
@@ -68,6 +77,7 @@ services:
     restart: unless-stopped
 
   piper-tts-worker:
+    profiles: ["tts"]
     build:
       context: ./worker/piper-tts-worker
       dockerfile: Dockerfile
@@ -95,8 +105,18 @@ services:
     volumes:
       - piper_models:/var/lib/piper/models
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: comicreader-ollama
+    profiles: ["local-llm"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
 volumes:
   pg_data:
   uploads_data:
   worker_models:
   piper_models:
+  ollama_data:

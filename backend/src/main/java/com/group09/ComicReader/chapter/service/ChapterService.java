@@ -8,6 +8,7 @@ import com.group09.ComicReader.chapter.entity.ChapterPageEntity;
 import com.group09.ComicReader.chapter.repository.ChapterPageRepository;
 import com.group09.ComicReader.chapter.repository.ChapterRepository;
 import com.group09.ComicReader.common.exception.BadRequestException;
+import com.group09.ComicReader.common.exception.ForbiddenException;
 import com.group09.ComicReader.common.exception.NotFoundException;
 import com.group09.ComicReader.common.storage.FileStorageService;
 import com.group09.ComicReader.auth.entity.UserEntity;
@@ -68,13 +69,13 @@ public class ChapterService {
         if (chapter.isPremium()) {
             Optional<UserEntity> userOptional = getCurrentUserOptional();
             if (userOptional.isEmpty()) {
-                throw new BadRequestException("Chapter is locked. Purchase it to read.");
+                throw new ForbiddenException("Chapter is locked. Purchase it to read.");
             }
 
             UserEntity user = userOptional.get();
             boolean isVip = vipRepository.findActiveByUserId(user.getId(), LocalDateTime.now()).isPresent();
             if (!isVip && !purchaseRepository.existsByUserIdAndChapterId(user.getId(), chapter.getId())) {
-                throw new BadRequestException("Chapter is locked. Purchase it to read.");
+                throw new ForbiddenException("Chapter is locked. Purchase it to read.");
             }
         }
 

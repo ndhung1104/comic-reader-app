@@ -7,8 +7,17 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "translation-worker")
 public class TranslationWorkerProperties {
 
+    private boolean enabled = true;
     private String baseUrl = "http://localhost:8090";
     private int timeoutMs = 15000;
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
 
     public String getBaseUrl() {
         return baseUrl;
