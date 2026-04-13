@@ -57,7 +57,7 @@ public class LibraryFragment extends BaseFragment {
         binding.rcvLibraryComics.setAdapter(adapter);
         binding.imgLibrarySearch.setOnClickListener(v ->
                 Navigation.findNavController(v).navigate(R.id.searchFragment));
-        binding.btnLibraryContinueMock.setOnClickListener(v -> openFirstRecentIfPossible());
+        binding.btnLibraryContinue.setOnClickListener(v -> openFirstRecentIfPossible());
 
         binding.tabLibraryFilter.addTab(binding.tabLibraryFilter.newTab().setText(R.string.library_tab_recent));
         binding.tabLibraryFilter.addTab(binding.tabLibraryFilter.newTab().setText(R.string.library_tab_followed));

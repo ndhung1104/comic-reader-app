@@ -32,8 +32,6 @@
     <string name="library_following_subtitle">Your handpicked favorites</string>
     <string name="library_downloads_title">Downloads</string>
     <string name="library_downloads_subtitle">Available for offline reading</string>
-    <string name="library_highlight_progress">Chapter 42/120</string>
-    <string name="library_highlight_title">The Crimson Blade: Origins</string>
     <string name="library_continue_reading">Continue Reading</string>
     <string name="profile_membership">Premium Collector</string>
     <string name="profile_account_info_title">Account Info</string>

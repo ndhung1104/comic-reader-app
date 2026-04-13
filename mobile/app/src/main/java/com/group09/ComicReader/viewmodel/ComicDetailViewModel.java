@@ -93,7 +93,7 @@ public class ComicDetailViewModel extends ViewModel {
                 relatedComics.postValue(new ArrayList<>());
             }
         });
-        loadChapters(comicId, true);
+        loadChapters(comicId);
 
         /* Increment view count */
         comicRepository.incrementViewCount(comicId);
@@ -108,7 +108,7 @@ public class ComicDetailViewModel extends ViewModel {
             public void onSuccess(int newBalance) {
                 purchaseLoading.postValue(false);
                 purchasedChapter.postValue(chapter);
-                loadChapters(comicId, false);
+                loadChapters(comicId);
             }
 
             @Override
@@ -119,7 +119,7 @@ public class ComicDetailViewModel extends ViewModel {
         });
     }
 
-    private void loadChapters(int comicId, boolean fallbackToLocal) {
+    private void loadChapters(int comicId) {
         chapterLoading.setValue(true);
         readerRepository.getComicChapters(comicId, new ReaderRepository.ChaptersCallback() {
             @Override
@@ -132,9 +132,6 @@ public class ComicDetailViewModel extends ViewModel {
             public void onError(String message) {
                 chapterLoading.postValue(false);
                 errorMessage.postValue(message);
-                if (fallbackToLocal) {
-                    chapters.postValue(comicRepository.getChaptersForComic(comicId));
-                }
             }
         });
     }

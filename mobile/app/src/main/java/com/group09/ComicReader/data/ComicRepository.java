@@ -5,7 +5,6 @@ import androidx.annotation.NonNull;
 
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.data.remote.TranslateApi;
-import com.group09.ComicReader.model.Chapter;
 import com.group09.ComicReader.model.CategoryPreview;
 import com.group09.ComicReader.model.Comic;
 import com.group09.ComicReader.model.ComicResponse;
@@ -82,15 +81,12 @@ public class ComicRepository {
     private static ComicRepository instance;
     private final ApiClient apiClient;
 
-    private final List<Chapter> mockedChapters;
-
     private ComicRepository(Context context) {
         if (context != null) {
             this.apiClient = new ApiClient(context);
         } else {
             this.apiClient = null;
         }
-        mockedChapters = buildChapters();
     }
 
     public static void init(Context context) {
@@ -378,13 +374,7 @@ public class ComicRepository {
         getComics(0, 50, new ComicListCallback() {
             @Override
             public void onSuccess(List<Comic> comics) {
-                List<Comic> result = new ArrayList<>();
-                for (Comic c : comics) {
-                    if (c.getId() % 2 == 0) {
-                        result.add(c);
-                    }
-                }
-                callback.onSuccess(result);
+                callback.onSuccess(comics);
             }
 
             @Override
@@ -590,10 +580,6 @@ public class ComicRepository {
         });
     }
 
-    public List<Chapter> getChaptersForComic(int comicId) {
-        return new ArrayList<>(mockedChapters);
-    }
-
     /* ========== Comments ========== */
 
     public void getCommentsForComic(int comicId, @NonNull CommentListCallback callback) {
@@ -719,12 +705,4 @@ public class ComicRepository {
         });
     }
 
-    private List<Chapter> buildChapters() {
-        List<Chapter> list = new ArrayList<>();
-        for (int i = 1; i <= 25; i++) {
-            boolean premium = i >= 15;
-            list.add(new Chapter(i, i, "Chapter " + i, premium, "Mar " + (i < 10 ? "0" + i : i) + ", 2026"));
-        }
-        return list;
-    }
 }

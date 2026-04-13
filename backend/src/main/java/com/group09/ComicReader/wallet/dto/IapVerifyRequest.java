@@ -8,7 +8,7 @@ public class IapVerifyRequest {
     private String store;         // GOOGLE or APPLE
     @NotBlank(message = "purchaseToken is required")
     private String purchaseToken; // token from the store
-    private Long packageId;       // top_up_packages.id in mock flow
+    private Long packageId;       // top_up_packages.id
     private String productId;     // product identifier (e.g. "coins_500")
     private String orderId;       // order / transaction id from store
 

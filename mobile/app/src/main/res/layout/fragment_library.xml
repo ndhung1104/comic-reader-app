@@ -137,11 +137,12 @@
                 android:paddingTop="@dimen/spacing_xs"
                 android:paddingEnd="@dimen/spacing_sm"
                 android:paddingBottom="@dimen/spacing_xs"
-                    android:text="@string/library_highlight_progress"
+                    android:text=""
                 android:textColor="@color/on_primary_container"
                 android:textSize="@dimen/text_xs"
                 android:textStyle="bold"
                 app:layout_constraintStart_toEndOf="@id/img_library_highlight_cover"
+                tools:text="Chapter 3/20"
                 app:layout_constraintTop_toTopOf="@id/img_library_highlight_cover" />
 
                 <TextView
@@ -152,12 +153,13 @@
                 android:layout_marginTop="@dimen/spacing_sm"
                 android:layout_marginEnd="@dimen/spacing_sm"
                 android:maxLines="2"
-                    android:text="@string/library_highlight_title"
+                    android:text=""
                 android:textColor="@color/on_surface"
                 android:textSize="@dimen/text_lg"
                 android:textStyle="bold"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toEndOf="@id/img_library_highlight_cover"
+                tools:text="Recent comic title"
                 app:layout_constraintTop_toBottomOf="@id/tv_library_highlight_badge" />
 
             <TextView
@@ -189,7 +191,7 @@
                 app:trackColor="@color/surface_container" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_library_continue_mock"
+                    android:id="@+id/btn_library_continue"
                 style="@style/Widget.Material3.Button"
                 android:layout_width="0dp"
                 android:layout_height="@dimen/button_height"

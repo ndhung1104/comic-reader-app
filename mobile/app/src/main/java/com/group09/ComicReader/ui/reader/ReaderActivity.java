@@ -183,8 +183,8 @@ public class ReaderActivity extends AppCompatActivity {
         binding.btnReaderShare.setOnClickListener(v -> shareCurrentChapter());
 
         binding.btnReaderSettings.setOnClickListener(this::showReaderSettingsMenu);
-        binding.btnReaderPreviousMock.setOnClickListener(v -> scrollReaderByPage(-1));
-        binding.btnReaderNextMock.setOnClickListener(v -> scrollReaderByPage(1));
+        binding.btnReaderPrevious.setOnClickListener(v -> scrollReaderByPage(-1));
+        binding.btnReaderNext.setOnClickListener(v -> scrollReaderByPage(1));
 
         binding.btnReaderBack.setOnClickListener(v -> {
             resetZoomToBaseState();
@@ -534,15 +534,15 @@ public class ReaderActivity extends AppCompatActivity {
 
         binding.tvReaderProgressStart.setText(String.valueOf(currentPage));
         binding.tvReaderProgressEnd.setText(String.valueOf(pageCount));
-        binding.pbReaderMockProgress.setMax(Math.max(1, pageCount));
-        binding.pbReaderMockProgress.setProgressCompat(currentPage, true);
+        binding.pbReaderProgress.setMax(Math.max(1, pageCount));
+        binding.pbReaderProgress.setProgressCompat(currentPage, true);
 
         boolean canGoPrevious = pageCount > 0 && currentPage > 1;
         boolean canGoNext = pageCount > 0 && currentPage < pageCount;
-        binding.btnReaderPreviousMock.setEnabled(canGoPrevious);
-        binding.btnReaderNextMock.setEnabled(canGoNext);
-        binding.btnReaderPreviousMock.setAlpha(canGoPrevious ? 1f : 0.5f);
-        binding.btnReaderNextMock.setAlpha(canGoNext ? 1f : 0.5f);
+        binding.btnReaderPrevious.setEnabled(canGoPrevious);
+        binding.btnReaderNext.setEnabled(canGoNext);
+        binding.btnReaderPrevious.setAlpha(canGoPrevious ? 1f : 0.5f);
+        binding.btnReaderNext.setAlpha(canGoNext ? 1f : 0.5f);
     }
 
     private void updateLoadingIndicator() {

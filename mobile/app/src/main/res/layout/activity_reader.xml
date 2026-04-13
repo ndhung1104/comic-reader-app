@@ -141,7 +141,7 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
             <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/pb_reader_mock_progress"
+                android:id="@+id/pb_reader_progress"
                 android:layout_width="0dp"
                 android:layout_height="@dimen/progress_height"
                 android:layout_marginStart="@dimen/spacing_sm"
@@ -196,7 +196,7 @@
                 </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_reader_previous_mock"
+                    android:id="@+id/btn_reader_previous"
                     style="@style/Widget.Material3.Button.TonalButton"
                     android:layout_width="wrap_content"
                     android:layout_height="@dimen/button_height"
@@ -210,7 +210,7 @@
                     app:iconTint="@color/on_secondary_container" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_reader_next_mock"
+                    android:id="@+id/btn_reader_next"
                     style="@style/Widget.Material3.Button"
                     android:layout_width="wrap_content"
                     android:layout_height="@dimen/button_height"

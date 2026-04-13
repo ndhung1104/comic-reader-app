@@ -22,8 +22,9 @@ public class DatabaseInitializer {
 
     @EventListener(ApplicationReadyEvent.class)
     public void init() {
-        if (comicRepository.count() <= 24) {
-            log.info("Only Mock data detected post-initialization. Triggering automatic OTruyen synchronization...");
+        long comicCount = comicRepository.count();
+        if (comicCount == 0) {
+            log.info("No comics found post-initialization. Triggering automatic OTruyen synchronization...");
             new Thread(() -> {
                 try {
                     oTruyenService.syncComicsFromOTruyen();
@@ -33,7 +34,7 @@ public class DatabaseInitializer {
             }).start();
         } else {
             log.info("Database already populated with {} comics. Skipping automatic OTruyen synchronization.",
-                    comicRepository.count());
+                    comicCount);
         }
     }
 }
