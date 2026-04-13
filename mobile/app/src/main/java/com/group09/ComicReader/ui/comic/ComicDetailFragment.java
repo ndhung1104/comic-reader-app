@@ -11,6 +11,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatRatingBar;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -25,6 +26,10 @@ import com.group09.ComicReader.base.BaseFragment;
 import com.group09.ComicReader.data.ComicRepository;
 import com.group09.ComicReader.data.LibraryRepository;
 import com.group09.ComicReader.data.ReaderRepository;
+import com.group09.ComicReader.data.download.ChapterDownloadState;
+import com.group09.ComicReader.data.download.DownloadRepository;
+import com.group09.ComicReader.data.download.DownloadStateMachine;
+import com.group09.ComicReader.data.download.DownloadStatus;
 import com.group09.ComicReader.data.local.ReaderProgressStore;
 import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
@@ -36,8 +41,10 @@ import com.group09.ComicReader.viewmodel.ComicDetailViewModel;
 import com.group09.ComicReader.viewmodel.CommentsViewModel;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class ComicDetailFragment extends BaseFragment {
 
@@ -49,6 +56,11 @@ public class ComicDetailFragment extends BaseFragment {
     private CommentsViewModel commentsViewModel;
     private SessionManager sessionManager;
     private ReaderProgressStore readerProgressStore;
+    private DownloadRepository downloadRepository;
+    private LiveData<ChapterDownloadState> observedDownloadState;
+    private ChapterDownloadState currentDownloadState;
+    private Chapter activeDownloadChapter;
+    private final Set<Long> downloadedChapterIds = new HashSet<>();
     private int comicId;
     private int pendingPurchaseChapterId = -1;
     private Comic currentComic;
@@ -61,12 +73,13 @@ public class ComicDetailFragment extends BaseFragment {
         binding = FragmentComicDetailBinding.inflate(inflater, container, false);
         ApiClient apiClient = new ApiClient(requireContext());
         ComicRepository comicRepository = ComicRepository.getInstance();
-        ReaderRepository readerRepository = new ReaderRepository(apiClient);
+        ReaderRepository readerRepository = new ReaderRepository(requireContext(), apiClient);
         LibraryRepository libraryRepository = new LibraryRepository(apiClient);
         ComicDetailViewModel.Factory factory =
                 new ComicDetailViewModel.Factory(comicRepository, readerRepository, libraryRepository);
         viewModel = new ViewModelProvider(this, factory).get(ComicDetailViewModel.class);
         readerProgressStore = new ReaderProgressStore(requireContext());
+        downloadRepository = new DownloadRepository(requireContext());
         return binding.getRoot();
     }
 
@@ -86,9 +99,16 @@ public class ComicDetailFragment extends BaseFragment {
         binding.rcvComicDetailRelated.setLayoutManager(
                 new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
         binding.rcvComicDetailRelated.setAdapter(relatedComicAdapter);
+        downloadRepository.observeCompletedChapterIds().observe(getViewLifecycleOwner(), chapterIds -> {
+            downloadedChapterIds.clear();
+            if (chapterIds != null) {
+                downloadedChapterIds.addAll(chapterIds);
+            }
+            chapterAdapter.setDownloadedChapterIds(downloadedChapterIds);
+        });
 
         binding.btnComicDetailBack.setOnClickListener(v -> Navigation.findNavController(v).popBackStack());
-        binding.btnComicDetailDownload.setOnClickListener(v -> showToast("Download is not implemented"));
+        binding.btnComicDetailDownload.setOnClickListener(v -> handleDownloadAction());
         binding.btnComicDetailShare.setOnClickListener(v -> shareComicDeepLink());
         binding.btnComicDetailRead.setOnClickListener(v -> openFirstAvailableChapter());
         binding.btnComicDetailComments.setOnClickListener(v -> scrollToCommentsFooter());
@@ -100,6 +120,7 @@ public class ComicDetailFragment extends BaseFragment {
         commentsViewModel.init(comicId, null);
 
         observeData();
+        updateDownloadButtonUi();
         viewModel.loadData(comicId);
         if (sessionManager.hasToken()) {
             viewModel.loadFollowStatus(comicId);
@@ -113,6 +134,7 @@ public class ComicDetailFragment extends BaseFragment {
         if (comicId > 0) {
             viewModel.loadData(comicId);
         }
+        refreshActiveDownloadChapter();
     }
 
     private void setupCommentsFooter() {
@@ -231,6 +253,8 @@ public class ComicDetailFragment extends BaseFragment {
         viewModel.getChapters().observe(getViewLifecycleOwner(), chapters -> {
             currentChapters = chapters == null ? new ArrayList<>() : chapters;
             chapterAdapter.submitList(chapters);
+            chapterAdapter.setDownloadedChapterIds(downloadedChapterIds);
+            refreshActiveDownloadChapter();
         });
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
             if (message != null && !message.trim().isEmpty()) {
@@ -452,6 +476,127 @@ public class ComicDetailFragment extends BaseFragment {
         return null;
     }
 
+    private Chapter findFirstUnlockedChapter() {
+        if (currentChapters == null || currentChapters.isEmpty()) {
+            return null;
+        }
+        for (Chapter chapter : currentChapters) {
+            if (chapter != null && chapter.isUnlocked()) {
+                return chapter;
+            }
+        }
+        return null;
+    }
+
+    private void refreshActiveDownloadChapter() {
+        Chapter candidate = findResumableChapter();
+        if (candidate == null) {
+            candidate = findFirstUnlockedChapter();
+        }
+
+        if (isSameChapter(activeDownloadChapter, candidate)) {
+            updateDownloadButtonUi();
+            return;
+        }
+
+        activeDownloadChapter = candidate;
+        currentDownloadState = null;
+        if (observedDownloadState != null) {
+            observedDownloadState.removeObservers(getViewLifecycleOwner());
+            observedDownloadState = null;
+        }
+
+        if (activeDownloadChapter != null) {
+            observedDownloadState = downloadRepository.observe(activeDownloadChapter.getId());
+            observedDownloadState.observe(getViewLifecycleOwner(), state -> {
+                currentDownloadState = state;
+                updateDownloadButtonUi();
+            });
+        }
+
+        updateDownloadButtonUi();
+    }
+
+    private boolean isSameChapter(@Nullable Chapter first, @Nullable Chapter second) {
+        if (first == null && second == null) {
+            return true;
+        }
+        if (first == null || second == null) {
+            return false;
+        }
+        return first.getId() == second.getId();
+    }
+
+    private void handleDownloadAction() {
+        refreshActiveDownloadChapter();
+        if (activeDownloadChapter == null) {
+            showToast(getString(R.string.download_no_chapter));
+            return;
+        }
+
+        int chapterId = activeDownloadChapter.getId();
+        int chapterNumber = activeDownloadChapter.getNumber();
+        DownloadStatus status = currentDownloadState == null ? null : currentDownloadState.getStatus();
+        DownloadStateMachine.Action action = DownloadStateMachine.resolveAction(status);
+
+        switch (action) {
+            case PAUSE:
+                downloadRepository.pause(chapterId);
+                showToast(getString(R.string.download_paused, chapterNumber));
+                return;
+            case RESUME:
+                downloadRepository.resume(chapterId);
+                showToast(getString(R.string.download_resumed, chapterNumber));
+                return;
+            case DELETE:
+                downloadRepository.delete(chapterId);
+                showToast(getString(R.string.download_deleted, chapterNumber));
+                return;
+            case ENQUEUE:
+            default:
+                downloadRepository.enqueue(chapterId);
+                showToast(getString(R.string.download_queued, chapterNumber));
+        }
+    }
+
+    private void updateDownloadButtonUi() {
+        if (binding == null) {
+            return;
+        }
+
+        binding.tvComicDetailChapterLabel.setText(R.string.comic_chapters);
+        if (activeDownloadChapter == null) {
+            binding.btnComicDetailDownload.setEnabled(false);
+            binding.btnComicDetailDownload.setImageResource(R.drawable.ic_download_24);
+            binding.btnComicDetailDownload.setContentDescription(getString(R.string.content_download));
+            return;
+        }
+
+        binding.btnComicDetailDownload.setEnabled(true);
+        DownloadStatus status = currentDownloadState == null ? null : currentDownloadState.getStatus();
+        int progress = currentDownloadState == null ? 0 : Math.max(0, currentDownloadState.getProgress());
+
+        if (status == DownloadStatus.DOWNLOADING || status == DownloadStatus.QUEUED) {
+            binding.btnComicDetailDownload.setImageResource(android.R.drawable.ic_media_pause);
+            binding.btnComicDetailDownload.setContentDescription(getString(R.string.content_pause_download));
+            binding.tvComicDetailChapterLabel.setText(getString(R.string.comic_chapters) + " (" + progress + "%)");
+            return;
+        }
+        if (status == DownloadStatus.PAUSED || status == DownloadStatus.FAILED) {
+            binding.btnComicDetailDownload.setImageResource(android.R.drawable.ic_media_play);
+            binding.btnComicDetailDownload.setContentDescription(getString(R.string.content_resume_download));
+            return;
+        }
+        if (status == DownloadStatus.COMPLETED) {
+            binding.btnComicDetailDownload.setImageResource(android.R.drawable.ic_menu_delete);
+            binding.btnComicDetailDownload.setContentDescription(getString(R.string.content_delete_download));
+            return;
+        }
+
+        binding.btnComicDetailDownload.setImageResource(R.drawable.ic_download_24);
+        binding.btnComicDetailDownload.setContentDescription(getString(R.string.content_download));
+    }
+
     private void openReader(int chapterId, int chapterNumber) {
         if (currentComic == null) {
             return;
@@ -484,7 +629,11 @@ public class ComicDetailFragment extends BaseFragment {
 
     @Override
     public void onDestroyView() {
-        super.onDestroyView();
+        if (observedDownloadState != null) {
+            observedDownloadState.removeObservers(getViewLifecycleOwner());
+            observedDownloadState = null;
+        }
         binding = null;
+        super.onDestroyView();
     }
 }
