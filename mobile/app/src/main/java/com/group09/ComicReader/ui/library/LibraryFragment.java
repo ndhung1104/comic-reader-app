@@ -11,6 +11,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.tabs.TabLayout;
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.LibraryComicAdapter;
@@ -54,6 +55,9 @@ public class LibraryFragment extends BaseFragment {
         adapter = new LibraryComicAdapter(this::openComicDetail);
         binding.rcvLibraryComics.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.rcvLibraryComics.setAdapter(adapter);
+        binding.imgLibrarySearch.setOnClickListener(v ->
+                Navigation.findNavController(v).navigate(R.id.searchFragment));
+        binding.btnLibraryContinueMock.setOnClickListener(v -> openFirstRecentIfPossible());
 
         binding.tabLibraryFilter.addTab(binding.tabLibraryFilter.newTab().setText(R.string.library_tab_recent));
         binding.tabLibraryFilter.addTab(binding.tabLibraryFilter.newTab().setText(R.string.library_tab_followed));
@@ -73,8 +77,9 @@ public class LibraryFragment extends BaseFragment {
         });
 
         if (!sessionManager.hasToken()) {
-            binding.tvLibraryEmpty.setText(R.string.library_login_required);
-            binding.tvLibraryEmpty.setVisibility(View.VISIBLE);
+            showEmptyState(R.string.library_login_required, R.string.library_empty_subtitle);
+            binding.cardLibraryRecentHighlight.setVisibility(View.GONE);
+            adapter.submitList(new ArrayList<>());
             return;
         }
 
@@ -90,8 +95,8 @@ public class LibraryFragment extends BaseFragment {
             if (message != null && !message.trim().isEmpty()) {
                 if ("Session expired. Please log in again.".equals(message)) {
                     sessionManager.clear();
-                    binding.tvLibraryEmpty.setText(R.string.library_login_required);
-                    binding.tvLibraryEmpty.setVisibility(View.VISIBLE);
+                    showEmptyState(R.string.library_login_required, R.string.library_empty_subtitle);
+                    binding.cardLibraryRecentHighlight.setVisibility(View.GONE);
                     adapter.submitList(new ArrayList<>());
                     return;
                 }
@@ -105,10 +110,17 @@ public class LibraryFragment extends BaseFragment {
     private void applyFilter(int position) {
         List<LibraryItem> filtered = position == 1 ? followedItems : recentItems;
         adapter.submitList(filtered);
-        binding.tvLibraryEmpty.setVisibility(filtered.isEmpty() ? View.VISIBLE : View.GONE);
-        binding.tvLibraryEmpty.setText(position == 1
-                ? R.string.library_empty_followed
-                : R.string.library_empty_recent);
+        boolean isRecentTab = position == 0;
+        binding.cardLibraryRecentHighlight.setVisibility(isRecentTab && !recentItems.isEmpty() ? View.VISIBLE : View.GONE);
+        if (isRecentTab && !recentItems.isEmpty()) {
+            bindHighlight(recentItems.get(0));
+        }
+        if (filtered.isEmpty()) {
+            showEmptyState(position == 1 ? R.string.library_empty_followed : R.string.library_empty_recent,
+                    R.string.library_empty_subtitle);
+        } else {
+            hideEmptyState();
+        }
     }
 
     private void openComicDetail(LibraryItem item) {
@@ -130,6 +142,41 @@ public class LibraryFragment extends BaseFragment {
         LibraryFragmentDirections.ActionLibraryToComicDetail action =
                 LibraryFragmentDirections.actionLibraryToComicDetail(item.getComicId());
         Navigation.findNavController(getView()).navigate(action);
+    }
+
+    private void openFirstRecentIfPossible() {
+        if (recentItems == null || recentItems.isEmpty()) {
+            return;
+        }
+        openComicDetail(recentItems.get(0));
+    }
+
+    private void bindHighlight(@NonNull LibraryItem item) {
+        binding.tvLibraryHighlightTitle.setText(item.getTitle());
+        String progress = item.getProgressLabel() == null || item.getProgressLabel().trim().isEmpty()
+                ? getString(R.string.library_recent_history_subtitle)
+                : item.getProgressLabel();
+        binding.tvLibraryHighlightBadge.setText(progress);
+        binding.tvLibraryHighlightSubtitle.setText(getString(R.string.library_recent_history_subtitle));
+
+        int progressValue = 0;
+        if (item.getProgressChapter() != null && item.getTotalChapters() > 0) {
+            progressValue = Math.max(0, Math.min(100, (item.getProgressChapter() * 100) / item.getTotalChapters()));
+        }
+        binding.pbLibraryHighlightProgress.setProgress(progressValue);
+        Glide.with(binding.imgLibraryHighlightCover)
+                .load(item.getCoverUrl())
+                .into(binding.imgLibraryHighlightCover);
+    }
+
+    private void showEmptyState(int titleRes, int subtitleRes) {
+        binding.llLibraryEmptyState.setVisibility(View.VISIBLE);
+        binding.tvLibraryEmpty.setText(titleRes);
+        binding.tvLibraryEmptySubtitle.setText(subtitleRes);
+    }
+
+    private void hideEmptyState() {
+        binding.llLibraryEmptyState.setVisibility(View.GONE);
     }
 
     @Override

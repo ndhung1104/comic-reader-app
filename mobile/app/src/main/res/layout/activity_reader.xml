@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black">
@@ -19,45 +20,51 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingTop="@dimen/spacing_xxl"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+            android:paddingTop="@dimen/reader_top_hud_height"
+            android:paddingBottom="@dimen/reader_bottom_hud_height"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_reader_page" />
 
     </com.group09.ComicReader.ui.widget.ZoomContainer>
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/cl_reader_top_bar"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:background="@color/transparent_black_80"
-        android:paddingBottom="@dimen/spacing_md"
-        android:paddingEnd="@dimen/spacing_lg"
+        android:layout_height="@dimen/reader_top_hud_height"
+        android:background="@drawable/bg_top_bar_glass"
         android:paddingStart="@dimen/spacing_lg"
-        android:paddingTop="@dimen/spacing_xxl"
+        android:paddingTop="@dimen/spacing_lg"
+        android:paddingEnd="@dimen/spacing_lg"
+        android:paddingBottom="@dimen/spacing_sm"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
             android:id="@+id/btn_reader_back"
-            android:layout_width="@dimen/icon_lg"
-            android:layout_height="@dimen/icon_lg"
-            android:background="@android:color/transparent"
+            android:layout_width="@dimen/top_bar_action_size"
+            android:layout_height="@dimen/top_bar_action_size"
+            android:background="@drawable/bg_browse_header_icon"
             android:contentDescription="@string/content_back"
+            android:padding="@dimen/spacing_sm"
             android:src="@drawable/ic_arrow_back_24"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/primary" />
 
         <ImageButton
             android:id="@+id/btn_reader_share"
-            android:layout_width="@dimen/icon_lg"
-            android:layout_height="@dimen/icon_lg"
-            android:background="@android:color/transparent"
+            android:layout_width="@dimen/top_bar_action_size"
+            android:layout_height="@dimen/top_bar_action_size"
+            android:background="@drawable/bg_browse_header_icon"
             android:contentDescription="@string/content_share"
+            android:padding="@dimen/spacing_sm"
             android:src="@drawable/ic_share_24"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/primary" />
 
         <TextView
             android:id="@+id/tv_reader_title"
@@ -66,26 +73,160 @@
             android:ellipsize="end"
             android:gravity="center"
             android:maxLines="1"
-            android:textColor="@color/text_primary"
-            android:textSize="@dimen/text_md"
+            android:textColor="@color/on_surface"
+            android:textSize="@dimen/text_sm"
+            android:textStyle="bold"
             app:layout_constraintBottom_toTopOf="@id/tv_reader_chapter"
             app:layout_constraintEnd_toStartOf="@id/btn_reader_share"
             app:layout_constraintStart_toEndOf="@id/btn_reader_back"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Kinetic Gallery" />
 
         <TextView
             android:id="@+id/tv_reader_chapter"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:textColor="@color/text_secondary"
-            android:textSize="@dimen/text_sm"
+            android:textColor="@color/on_surface_variant"
+            android:textSize="@dimen/text_xs"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/btn_reader_share"
             app:layout_constraintStart_toEndOf="@id/btn_reader_back"
-            app:layout_constraintTop_toBottomOf="@id/tv_reader_title" />
+            app:layout_constraintTop_toBottomOf="@id/tv_reader_title"
+            tools:text="Chapter 42: The Solar Threshold" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_reader_bottom_hud"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_lg"
+        android:layout_marginEnd="@dimen/spacing_lg"
+        android:layout_marginBottom="@dimen/spacing_lg"
+        app:cardBackgroundColor="@color/glass_overlay"
+        app:cardCornerRadius="@dimen/radius_xl"
+        app:cardElevation="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:strokeColor="@color/outline_variant"
+        app:strokeWidth="@dimen/stroke_thin">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/spacing_md">
+
+            <TextView
+                android:id="@+id/tv_reader_progress_start"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="@dimen/text_xs"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/tv_reader_progress_end"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="@dimen/text_xs"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/pb_reader_mock_progress"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/progress_height"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:layout_marginEnd="@dimen/spacing_sm"
+                app:indicatorColor="@color/primary_fixed"
+                app:layout_constraintBottom_toBottomOf="@id/tv_reader_progress_start"
+                app:layout_constraintEnd_toStartOf="@id/tv_reader_progress_end"
+                app:layout_constraintStart_toEndOf="@id/tv_reader_progress_start"
+                app:layout_constraintTop_toTopOf="@id/tv_reader_progress_start"
+                app:trackColor="@color/surface_container"
+                app:trackThickness="@dimen/progress_height" />
+
+            <LinearLayout
+                android:id="@+id/ll_reader_controls"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_reader_progress_start">
+
+                <LinearLayout
+                    android:id="@+id/btn_reader_settings"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:contentDescription="@string/reader_settings"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_md"
+                        android:layout_height="@dimen/icon_md"
+                        android:contentDescription="@string/reader_settings"
+                        android:src="@drawable/ic_filter_24"
+                        app:tint="@color/on_surface_variant" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_xs"
+                        android:text="@string/reader_settings"
+                        android:textColor="@color/on_surface_variant"
+                        android:textSize="@dimen/text_xs"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_reader_previous_mock"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginEnd="@dimen/spacing_sm"
+                    android:text="@string/reader_previous"
+                    android:textSize="@dimen/text_xs"
+                    app:backgroundTint="@color/secondary_container"
+                    app:cornerRadius="@dimen/radius_lg"
+                    app:icon="@drawable/ic_chevron_left_24"
+                    app:iconGravity="textStart"
+                    app:iconTint="@color/on_secondary_container" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_reader_next_mock"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/button_height"
+                    android:text="@string/reader_next"
+                    android:textSize="@dimen/text_xs"
+                    app:backgroundTint="@color/primary"
+                    app:cornerRadius="@dimen/radius_lg"
+                    app:icon="@drawable/ic_chevron_right_24"
+                    app:iconGravity="textEnd"
+                    app:iconTint="@color/on_primary" />
+
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </com.google.android.material.card.MaterialCardView>
 
     <ProgressBar
         android:id="@+id/prg_reader_loading"
@@ -104,7 +245,7 @@
         android:gravity="center"
         android:padding="@dimen/spacing_lg"
         android:text="@string/reader_no_pages"
-        android:textColor="@color/text_secondary"
+        android:textColor="@color/white"
         android:textSize="@dimen/text_sm"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"

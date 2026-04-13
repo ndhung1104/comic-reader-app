@@ -267,6 +267,17 @@ public class ProfileFragment extends BaseFragment {
             }, currentLang);
             return;
         }
+        if ("DARK_MODE".equals(item.getType())) {
+            AppSettingsStore settings = new AppSettingsStore(requireContext());
+            boolean nextDarkMode = !settings.isDarkModeEnabled();
+            settings.setDarkModeEnabled(nextDarkMode);
+            AppCompatDelegate.setDefaultNightMode(nextDarkMode
+                    ? AppCompatDelegate.MODE_NIGHT_YES
+                    : AppCompatDelegate.MODE_NIGHT_NO);
+            boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
+            viewModel.loadData(isAdmin, requireContext());
+            return;
+        }
         showToast(item.getLabel());
     }
 

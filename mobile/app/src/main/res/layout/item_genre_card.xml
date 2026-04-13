@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_genre"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="@dimen/spacing_sm"
+    android:layout_marginEnd="@dimen/spacing_sm"
+    android:layout_marginBottom="@dimen/spacing_lg"
+    app:cardBackgroundColor="@color/surface_container_highest"
+    app:cardCornerRadius="@dimen/radius_xl"
+    app:cardElevation="0dp"
+    app:strokeWidth="0dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/img_genre_cover"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:contentDescription="@string/content_cover"
+            android:scaleType="centerCrop"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:src="@mipmap/ic_launcher" />
+
+        <View
+            android:id="@+id/view_genre_gradient"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@drawable/bg_gradient_genre_action"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_genre_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_lg"
+            android:layout_marginTop="@dimen/spacing_lg"
+            android:background="@drawable/bg_genre_badge"
+            android:paddingStart="@dimen/spacing_sm"
+            android:paddingTop="@dimen/spacing_xs"
+            android:paddingEnd="@dimen/spacing_sm"
+            android:paddingBottom="@dimen/spacing_xs"
+            android:textAllCaps="true"
+            android:textColor="@color/on_primary_container"
+            android:textSize="@dimen/browse_badge_text_size"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="TRENDING NOW"
+            tools:visibility="visible" />
+
+        <LinearLayout
+            android:id="@+id/ll_genre_bottom_content"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_lg"
+            android:layout_marginEnd="@dimen/spacing_lg"
+            android:layout_marginBottom="@dimen/spacing_lg"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <TextView
+                android:id="@+id/tv_genre_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white"
+                android:textSize="@dimen/browse_genre_name_size"
+                android:textStyle="bold"
+                tools:text="Action" />
+
+            <TextView
+                android:id="@+id/tv_genre_desc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:maxLines="2"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_sm"
+                android:alpha="0.85"
+                android:visibility="gone"
+                tools:text="High-octane battles, supernatural powers, and breathtaking choreography."
+                tools:visibility="visible" />
+
+            <TextView
+                android:id="@+id/tv_genre_count"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:textColor="@color/white"
+                android:textSize="@dimen/text_xs"
+                android:alpha="0.9"
+                tools:text="1,500 Titles" />
+
+            <LinearLayout
+                android:id="@+id/ll_genre_cta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/tv_genre_cta"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/browse_explore_gallery"
+                    android:textAllCaps="true"
+                    android:textColor="@color/white"
+                    android:textSize="@dimen/browse_cta_text_size"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:id="@+id/img_genre_cta_icon"
+                    android:layout_width="@dimen/icon_sm"
+                    android:layout_height="@dimen/icon_sm"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_arrow_forward_24"
+                    app:tint="@color/white" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_genre_view_all"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginStart="@dimen/spacing_lg"
+            android:layout_marginTop="@dimen/spacing_lg"
+            android:layout_marginEnd="@dimen/spacing_lg"
+            android:layout_marginBottom="@dimen/spacing_lg"
+            android:background="@drawable/bg_genre_view_all_dashed"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingStart="@dimen/spacing_lg"
+            android:paddingTop="@dimen/spacing_md"
+            android:paddingEnd="@dimen/spacing_lg"
+            android:paddingBottom="@dimen/spacing_md"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:visibility="visible">
+
+            <ImageView
+                android:id="@+id/img_genre_view_all"
+                android:layout_width="@dimen/browse_view_all_icon_size"
+                android:layout_height="@dimen/browse_view_all_icon_size"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_more_horiz_24"
+                app:tint="@color/primary" />
+
+            <TextView
+                android:id="@+id/tv_genre_view_all_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:text="@string/browse_view_all_title"
+                android:textColor="@color/on_surface"
+                android:textSize="@dimen/text_md"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_genre_view_all_desc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:gravity="center"
+                android:text="@string/browse_view_all_subtitle"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="@dimen/text_xs" />
+
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

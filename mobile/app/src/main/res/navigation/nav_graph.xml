@@ -19,6 +19,10 @@
         <action
             android:id="@+id/action_login_to_register"
             app:destination="@id/registerFragment" />
+
+        <action
+            android:id="@+id/action_login_to_forgot_password"
+            app:destination="@id/forgotPasswordFragment" />
     </fragment>
 
     <fragment
@@ -39,6 +43,12 @@
     </fragment>
 
     <fragment
+        android:id="@+id/forgotPasswordFragment"
+        android:name="com.group09.ComicReader.ui.login.ForgotPasswordFragment"
+        android:label="forgot_password"
+        tools:layout="@layout/fragment_forgot_password" />
+
+    <fragment
         android:id="@+id/homeFragment"
         android:name="com.group09.ComicReader.ui.home.HomeFragment"
         android:label="home"
@@ -53,8 +63,26 @@
         android:name="com.group09.ComicReader.ui.search.SearchFragment"
         android:label="search"
         tools:layout="@layout/fragment_search">
+        <argument
+            android:name="initialFilter"
+            app:argType="string"
+            app:nullable="true"
+            android:defaultValue="@null" />
         <action
             android:id="@+id/action_search_to_comic_detail"
+            app:destination="@id/comicDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/browseFragment"
+        android:name="com.group09.ComicReader.ui.browse.BrowseFragment"
+        android:label="browse"
+        tools:layout="@layout/fragment_browse">
+        <action
+            android:id="@+id/action_browse_to_search"
+            app:destination="@id/searchFragment" />
+        <action
+            android:id="@+id/action_browse_to_comic_detail"
             app:destination="@id/comicDetailFragment" />
     </fragment>
 

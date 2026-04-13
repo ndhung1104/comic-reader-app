@@ -8,15 +8,20 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
+import com.group09.ComicReader.R;
+import com.group09.ComicReader.adapter.GenreAdapter;
 import com.group09.ComicReader.adapter.HomeDailyAdapter;
 import com.group09.ComicReader.adapter.HomeRecommendedAdapter;
 import com.group09.ComicReader.adapter.HomeTrendingAdapter;
 import com.group09.ComicReader.base.BaseFragment;
+import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.databinding.FragmentHomeBinding;
+import com.group09.ComicReader.model.CategoryPreview;
 import com.group09.ComicReader.model.Comic;
 import com.group09.ComicReader.viewmodel.HomeViewModel;
 
@@ -29,7 +34,9 @@ public class HomeFragment extends BaseFragment {
     private HomeDailyAdapter dailyAdapter;
     private HomeRecommendedAdapter recommendedAdapter;
     private HomeTrendingAdapter topTrendingAdapter;
+    private GenreAdapter genreAdapter;
     private Comic heroComic;
+    private SessionManager sessionManager;
 
     @Nullable
     @Override
@@ -47,21 +54,36 @@ public class HomeFragment extends BaseFragment {
         dailyAdapter = new HomeDailyAdapter(this::openComicDetail);
         recommendedAdapter = new HomeRecommendedAdapter(this::openComicDetail);
         topTrendingAdapter = new HomeTrendingAdapter(this::openComicDetail);
+        genreAdapter = new GenreAdapter(this::openGenre);
+        sessionManager = new SessionManager(requireContext());
 
         binding.rcvHomeDailyList.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
         binding.rcvHomeDailyList.setAdapter(dailyAdapter);
 
-        binding.rcvHomeTrendingList.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
+        binding.rcvHomeTrendingList.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false));
         binding.rcvHomeTrendingList.setNestedScrollingEnabled(false);
         binding.rcvHomeTrendingList.setAdapter(topTrendingAdapter);
 
-        binding.rcvHomeRecommendedGrid.setLayoutManager(new GridLayoutManager(requireContext(), 2));
-        binding.rcvHomeRecommendedGrid.setAdapter(recommendedAdapter);
+        binding.rcvHomeRecommendedList.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
+        binding.rcvHomeRecommendedList.setAdapter(recommendedAdapter);
+
+        binding.rcvHomeGenres.setLayoutManager(new GridLayoutManager(requireContext(), 2));
+        binding.rcvHomeGenres.setAdapter(genreAdapter);
 
         binding.btnHomeHeroRead.setOnClickListener(v -> {
             if (heroComic != null) {
                 openComicDetail(heroComic);
             }
+        });
+        binding.btnHomeHeroDetails.setOnClickListener(v -> {
+            if (heroComic != null) {
+                openComicDetail(heroComic);
+            }
+        });
+        binding.tvHomeDailySeeAll.setOnClickListener(v -> Navigation.findNavController(v).navigate(R.id.searchFragment));
+
+        binding.btnHomeSearch.setOnClickListener(v -> {
+            Navigation.findNavController(v).navigate(R.id.searchFragment);
         });
 
         observeData();
@@ -89,7 +111,27 @@ public class HomeFragment extends BaseFragment {
             binding.rcvHomeTrendingList.setVisibility(hasTrending ? View.VISIBLE : View.GONE);
             topTrendingAdapter.submitList(comics);
         });
-        viewModel.getRecommended().observe(getViewLifecycleOwner(), recommendedAdapter::submitList);
+        viewModel.getRecommended().observe(getViewLifecycleOwner(), comics -> {
+            boolean canShowRecommended = sessionManager.hasToken() && comics != null && !comics.isEmpty();
+            binding.tvHomeRecommendedTitle.setVisibility(canShowRecommended ? View.VISIBLE : View.GONE);
+            binding.rcvHomeRecommendedList.setVisibility(canShowRecommended ? View.VISIBLE : View.GONE);
+            recommendedAdapter.submitList(canShowRecommended ? comics : java.util.Collections.emptyList());
+        });
+        viewModel.getCuratedGenres().observe(getViewLifecycleOwner(), previews -> {
+            boolean hasGenres = previews != null && !previews.isEmpty();
+            binding.tvHomeGenresTitle.setVisibility(hasGenres ? View.VISIBLE : View.GONE);
+            binding.rcvHomeGenres.setVisibility(hasGenres ? View.VISIBLE : View.GONE);
+            genreAdapter.submitList(previews);
+        });
+    }
+
+    private void openGenre(CategoryPreview preview) {
+        if (preview == null || getView() == null) {
+            return;
+        }
+        Bundle args = new Bundle();
+        args.putString("initialFilter", preview.getCategoryId());
+        Navigation.findNavController(getView()).navigate(R.id.searchFragment, args);
     }
 
     private void openComicDetail(Comic comic) {

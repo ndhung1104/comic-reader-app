@@ -45,7 +45,8 @@ public class HomeDailyAdapter extends RecyclerView.Adapter<HomeDailyAdapter.View
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Comic comic = items.get(position);
         holder.binding.tvHomeDailyTitle.setText(comic.getTitle());
-        holder.binding.tvHomeDailyRating.setText(String.valueOf(comic.getRating()));
+        String info = "Ch. " + comic.getTotalChapters() + " - " + (comic.getGenres().isEmpty() ? "Comedy" : comic.getGenres().get(0));
+        holder.binding.tvHomeDailyInfo.setText(info);
         Glide.with(holder.binding.imgHomeDailyCover)
                 .load(comic.getCoverUrl())
                 .into(holder.binding.imgHomeDailyCover);

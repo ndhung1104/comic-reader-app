@@ -8,9 +8,12 @@ import android.os.Looper;
 import android.view.View;
 import android.widget.Toast;
 import android.app.AlertDialog;
+import android.view.Menu;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.ConcatAdapter;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -21,6 +24,7 @@ import com.group09.ComicReader.adapter.ReaderCommentsFooterAdapter;
 import com.group09.ComicReader.adapter.ReaderPageAdapter;
 import com.group09.ComicReader.data.ComicRepository;
 import com.group09.ComicReader.data.ReaderRepository;
+import com.group09.ComicReader.data.local.AppSettingsStore;
 import com.group09.ComicReader.data.local.ReaderProgressStore;
 import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
@@ -89,6 +93,7 @@ public class ReaderActivity extends AppCompatActivity {
         @Override
         public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
             preloadAroundCurrentViewport();
+            updateReaderProgressUi();
             if (dy != 0) {
                 scheduleSaveReadingProgress();
             }
@@ -99,6 +104,7 @@ public class ReaderActivity extends AppCompatActivity {
             if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                 preloadAroundCurrentViewport();
                 scheduleSaveReadingProgress();
+                updateReaderProgressUi();
             }
         }
     };
@@ -106,6 +112,10 @@ public class ReaderActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppSettingsStore settingsStore = new AppSettingsStore(this);
+        AppCompatDelegate.setDefaultNightMode(settingsStore.isDarkModeEnabled()
+                ? AppCompatDelegate.MODE_NIGHT_YES
+                : AppCompatDelegate.MODE_NIGHT_NO);
         binding = ActivityReaderBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
@@ -172,11 +182,16 @@ public class ReaderActivity extends AppCompatActivity {
 
         binding.btnReaderShare.setOnClickListener(v -> shareCurrentChapter());
 
+        binding.btnReaderSettings.setOnClickListener(this::showReaderSettingsMenu);
+        binding.btnReaderPreviousMock.setOnClickListener(v -> scrollReaderByPage(-1));
+        binding.btnReaderNextMock.setOnClickListener(v -> scrollReaderByPage(1));
+
         binding.btnReaderBack.setOnClickListener(v -> {
             resetZoomToBaseState();
             saveCurrentReadingProgress();
             finish();
         });
+        updateReaderProgressUi();
 
         commentsViewModel = new ViewModelProvider(this).get(CommentsViewModel.class);
         commentsViewModel.getComments().observe(this, comments -> commentsFooterAdapter.setComments(comments));
@@ -210,12 +225,14 @@ public class ReaderActivity extends AppCompatActivity {
             pageAdapter.submitList(safePages, () -> {
                 restoreReadingPositionIfNeeded();
                 binding.rcvReaderPages.post(this::preloadAroundCurrentViewport);
+                binding.rcvReaderPages.post(this::updateReaderProgressUi);
             });
             boolean hasPages = !safePages.isEmpty();
             if (hasPages) {
                 paywallDialogVisible = false;
             }
             binding.tvReaderEmpty.setVisibility(hasPages ? android.view.View.GONE : android.view.View.VISIBLE);
+            updateReaderProgressUi();
             if (hasPages && comicId > 0 && sessionManager.hasToken() && !historyRecorded) {
                 historyRecorded = true;
                 viewModel.recordReadingHistory(comicId, chapterId, 1);
@@ -233,6 +250,7 @@ public class ReaderActivity extends AppCompatActivity {
                     showPurchaseDialogForLockedChapter();
                 }
             }
+            updateReaderProgressUi();
         });
         viewModel.getPurchaseSuccessBalance().observe(this, balance -> {
             if (balance == null) {
@@ -378,7 +396,10 @@ public class ReaderActivity extends AppCompatActivity {
 
         binding.rcvReaderPages.post(() -> {
             layoutManager.scrollToPositionWithOffset(targetPosition, targetOffset);
-            binding.rcvReaderPages.post(this::preloadAroundCurrentViewport);
+            binding.rcvReaderPages.post(() -> {
+                preloadAroundCurrentViewport();
+                updateReaderProgressUi();
+            });
         });
     }
 
@@ -430,6 +451,98 @@ public class ReaderActivity extends AppCompatActivity {
         int firstVisible = layoutManager.findFirstVisibleItemPosition();
         int lastVisible = layoutManager.findLastVisibleItemPosition();
         pageAdapter.preloadAroundVisibleRange(firstVisible, lastVisible, readerZoomed);
+    }
+
+    private void showReaderSettingsMenu(@NonNull View anchorView) {
+        PopupMenu menu = new PopupMenu(this, anchorView);
+        menu.getMenu().add(Menu.NONE, 1, 1, getString(R.string.reader_action_reset_zoom));
+        menu.getMenu().add(Menu.NONE, 2, 2, getString(R.string.reader_action_scroll_top));
+        menu.getMenu().add(Menu.NONE, 3, 3, getString(R.string.reader_action_jump_to_comments));
+        menu.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == 1) {
+                resetZoomToBaseState();
+                return true;
+            }
+            if (item.getItemId() == 2) {
+                if (layoutManager != null) {
+                    binding.rcvReaderPages.smoothScrollToPosition(0);
+                }
+                return true;
+            }
+            if (item.getItemId() == 3) {
+                scrollToCommentsSection();
+                return true;
+            }
+            return false;
+        });
+        menu.show();
+    }
+
+    private void scrollReaderByPage(int delta) {
+        if (layoutManager == null || pageAdapter == null) {
+            return;
+        }
+        int pageCount = pageAdapter.getItemCount();
+        if (pageCount <= 0) {
+            return;
+        }
+        int currentIndex = getCurrentReaderPageIndex();
+        int targetIndex = Math.max(0, Math.min(pageCount - 1, currentIndex + delta));
+        if (targetIndex == currentIndex) {
+            return;
+        }
+        resetZoomToBaseState();
+        // scrollToPositionWithOffset on the LayoutManager snaps target item to screen top (offset=0).
+        // smoothScrollToPosition only scrolls until item is barely visible — insufficient
+        // when page images are taller than the screen, causing the "partial scroll then stuck" bug.
+        layoutManager.scrollToPositionWithOffset(targetIndex, 0);
+        binding.rcvReaderPages.post(() -> {
+            updateReaderProgressUi();
+            preloadAroundCurrentViewport();
+        });
+    }
+
+    private void scrollToCommentsSection() {
+        if (pageAdapter == null) {
+            return;
+        }
+        int footerPosition = pageAdapter.getItemCount();
+        if (footerPosition < 0) {
+            return;
+        }
+        binding.rcvReaderPages.smoothScrollToPosition(footerPosition);
+    }
+
+    private int getCurrentReaderPageIndex() {
+        if (layoutManager == null || pageAdapter == null || pageAdapter.getItemCount() <= 0) {
+            return 0;
+        }
+        int firstVisible = layoutManager.findFirstVisibleItemPosition();
+        if (firstVisible == RecyclerView.NO_POSITION) {
+            return 0;
+        }
+        int lastPageIndex = pageAdapter.getItemCount() - 1;
+        return Math.max(0, Math.min(firstVisible, lastPageIndex));
+    }
+
+    private void updateReaderProgressUi() {
+        if (binding == null || pageAdapter == null) {
+            return;
+        }
+        int pageCount = pageAdapter.getItemCount();
+        int currentPage = pageCount > 0 ? getCurrentReaderPageIndex() + 1 : 0;
+
+        binding.tvReaderProgressStart.setText(String.valueOf(currentPage));
+        binding.tvReaderProgressEnd.setText(String.valueOf(pageCount));
+        binding.pbReaderMockProgress.setMax(Math.max(1, pageCount));
+        binding.pbReaderMockProgress.setProgressCompat(currentPage, true);
+
+        boolean canGoPrevious = pageCount > 0 && currentPage > 1;
+        boolean canGoNext = pageCount > 0 && currentPage < pageCount;
+        binding.btnReaderPreviousMock.setEnabled(canGoPrevious);
+        binding.btnReaderNextMock.setEnabled(canGoNext);
+        binding.btnReaderPreviousMock.setAlpha(canGoPrevious ? 1f : 0.5f);
+        binding.btnReaderNextMock.setAlpha(canGoNext ? 1f : 0.5f);
     }
 
     private void updateLoadingIndicator() {

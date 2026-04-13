@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
             int destinationId = destination.getId();
             boolean showBottomNav = destinationId == R.id.homeFragment
                     || destinationId == R.id.searchFragment
+                    || destinationId == R.id.browseFragment
                     || destinationId == R.id.rankingFragment
                     || destinationId == R.id.libraryFragment
                     || destinationId == R.id.profileFragment;

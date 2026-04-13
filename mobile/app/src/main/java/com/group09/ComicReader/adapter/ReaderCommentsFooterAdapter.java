@@ -104,6 +104,9 @@ public class ReaderCommentsFooterAdapter extends RecyclerView.Adapter<ReaderComm
             this.isLoggedIn = isLoggedIn;
 
             commentAdapter.submitList(comments);
+            int commentCount = comments == null ? 0 : comments.size();
+            binding.tvReaderCommentsSubtitle.setText(
+                    binding.getRoot().getContext().getString(R.string.comment_discussion_subtitle, commentCount));
 
             boolean hasComments = comments != null && !comments.isEmpty();
             binding.rcvReaderComments.setVisibility(hasComments ? View.VISIBLE : View.GONE);

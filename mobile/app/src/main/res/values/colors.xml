@@ -1,22 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_primary">#121212</color>
-    <color name="bg_surface">#1E1E1E</color>
-    <color name="accent_primary">#BB86FC</color>
-    <color name="accent_secondary">#03DAC6</color>
-    <color name="text_primary">#FFFFFF</color>
-    <color name="text_secondary">#B0B0B0</color>
-    <color name="text_muted">#8A8A8A</color>
-    <color name="divider_color">#2A2A2A</color>
-    <color name="reader_placeholder_bg">#2B2B2B</color>
-    <color name="reader_placeholder_line">#383838</color>
+    <color name="bg_primary">#fff4ef</color>
+    <color name="bg_surface">#ffffff</color>
+    <color name="accent_primary">#9b3f00</color>
+    <color name="accent_secondary">#515d64</color>
+    <color name="text_primary">#4a2506</color>
+    <color name="text_secondary">#7f512e</color>
+    <color name="text_muted">#9e6b46</color>
+    <color name="divider_color">#dba177</color>
+    <color name="reader_placeholder_bg">#ffe3d1</color>
+    <color name="reader_placeholder_line">#ffd4b9</color>
     <color name="rating_color">#FBC02D</color>
-    <color name="chip_bg">#26363E</color>
-    <color name="positive_color">#03DAC6</color>
-    <color name="danger_color">#CF6679</color>
+    <color name="chip_bg">#ffe3d1</color>
+    <color name="positive_color">#6b4900</color>
+    <color name="danger_color">#b02500</color>
     <color name="transparent_black_60">#99000000</color>
     <color name="transparent_black_80">#CC000000</color>
     <color name="transparent_black_90">#E6000000</color>
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
+
+    <!-- Design System: Kinetic Gallery -->
+    <color name="surface">#fff4ef</color>
+    <color name="on_surface">#4a2506</color>
+    <color name="primary">#9b3f00</color>
+    <color name="primary_dim">#883700</color>
+    <color name="primary_fixed">#ff7a2c</color>
+    <color name="primary_fixed_dim">#f46800</color>
+    <color name="primary_container">#ff7a2c</color>
+    <color name="on_primary">#fff0ea</color>
+    <color name="on_primary_container">#401600</color>
+    <color name="secondary">#515d64</color>
+    <color name="secondary_dim">#455158</color>
+    <color name="secondary_container">#d7e4ec</color>
+    <color name="on_secondary">#354147</color>
+    <color name="on_secondary_container">#47545a</color>
+    <color name="tertiary">#7a5400</color>
+    <color name="tertiary_dim">#6b4900</color>
+    <color name="tertiary_container">#f7b21f</color>
+    <color name="on_tertiary">#342200</color>
+    <color name="on_tertiary_container">#4f3600</color>
+    <color name="error">#b02500</color>
+    <color name="error_dim">#b92902</color>
+    <color name="error_container">#f95630</color>
+    <color name="on_error">#ffefec</color>
+    <color name="on_error_container">#520c00</color>
+    <color name="surface_container_lowest">#ffffff</color>
+    <color name="surface_container_low">#ffede4</color>
+    <color name="surface_container">#ffe3d1</color>
+    <color name="surface_container_high">#ffdcc5</color>
+    <color name="surface_container_highest">#ffd4b9</color>
+    <color name="surface_dim">#ffcaa5</color>
+    <color name="surface_variant">#ffd4b9</color>
+    <color name="outline">#9e6b46</color>
+    <color name="outline_variant">#dba177</color>
+    <color name="inverse_surface">#1c0900</color>
+    <color name="inverse_primary">#fd6c00</color>
+    <color name="on_surface_variant">#7f512e</color>
+
+    <!-- Glassmorphism overlay -->
+    <color name="glass_overlay">#B3FFFFFF</color>
 </resources>

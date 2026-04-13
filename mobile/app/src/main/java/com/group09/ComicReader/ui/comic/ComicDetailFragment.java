@@ -3,11 +3,9 @@ package com.group09.ComicReader.ui.comic;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.RatingBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -18,6 +16,7 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.ChapterAdapter;
 import com.group09.ComicReader.adapter.CommentAdapter;
@@ -305,47 +304,37 @@ public class ComicDetailFragment extends BaseFragment {
             return;
         }
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle(getString(R.string.comic_rate_title));
+        View dialogView = LayoutInflater.from(requireContext())
+                .inflate(R.layout.dialog_comic_rating, null, false);
+        TextView tvScore = dialogView.findViewById(R.id.tv_comic_detail_rating_score);
+        AppCompatRatingBar ratingBar = dialogView.findViewById(R.id.rating_comic_detail);
 
-        // Create layout programmatically: label + RatingBar
-        android.widget.LinearLayout layout = new android.widget.LinearLayout(requireContext());
-        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
-        layout.setGravity(Gravity.CENTER_HORIZONTAL);
-        int pad = (int) (16 * getResources().getDisplayMetrics().density);
-        layout.setPadding(pad, pad, pad, 0);
+        int initialScore = 3;
+        if (currentComic != null) {
+            int rounded = (int) Math.round(currentComic.getRating());
+            if (rounded > 0) {
+                initialScore = Math.max(1, Math.min(5, rounded));
+            }
+        }
 
-        final TextView tvScore = new TextView(requireContext());
-        tvScore.setTextSize(14);
-        tvScore.setText(getString(R.string.comic_your_rating, 3));
-        tvScore.setGravity(Gravity.CENTER_HORIZONTAL);
-
-        final RatingBar ratingBar = new AppCompatRatingBar(requireContext(), null, android.R.attr.ratingBarStyle);
-        android.widget.LinearLayout.LayoutParams ratingParams =
-                new android.widget.LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT);
-        ratingParams.gravity = Gravity.CENTER_HORIZONTAL;
-        ratingBar.setLayoutParams(ratingParams);
         ratingBar.setNumStars(5);
         ratingBar.setMax(5);
         ratingBar.setStepSize(1f);
-        ratingBar.setRating(3f);
+        ratingBar.setRating(initialScore);
+        tvScore.setText(getString(R.string.comic_your_rating, initialScore));
         ratingBar.setOnRatingBarChangeListener((rb, rating, fromUser) -> {
-            int score = Math.max(1, Math.round(rating));
+            int score = Math.max(1, Math.min(5, Math.round(rating)));
             tvScore.setText(getString(R.string.comic_your_rating, score));
         });
 
-        layout.addView(ratingBar);
-        layout.addView(tvScore);
-        builder.setView(layout);
-
-        builder.setPositiveButton(getString(R.string.comic_rate_submit), (dialog, which) -> {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setView(dialogView)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(getString(R.string.comic_rate_submit), (dialog, which) -> {
             int score = Math.max(1, Math.round(ratingBar.getRating()));
             viewModel.rateComic(comicId, score);
-        });
-        builder.setNegativeButton(android.R.string.cancel, null);
-        builder.show();
+                })
+                .show();
     }
 
     private String formatViewCount(int viewCount) {

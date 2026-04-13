@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel;
 import com.group09.ComicReader.data.ComicRepository;
 import com.group09.ComicReader.model.Comic;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class SearchViewModel extends ViewModel {
@@ -21,7 +22,12 @@ public class SearchViewModel extends ViewModel {
         comicRepository.getFilters(new ComicRepository.CategoryListCallback() {
             @Override
             public void onSuccess(List<String> categories) {
-                filters.postValue(categories);
+                List<String> merged = new ArrayList<>();
+                merged.add("All");
+                if (categories != null) {
+                    merged.addAll(categories);
+                }
+                filters.postValue(merged);
             }
             @Override
             public void onError(String error) {

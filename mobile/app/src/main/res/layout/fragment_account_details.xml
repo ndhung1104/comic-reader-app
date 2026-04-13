@@ -1,223 +1,275 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/cl_account_details_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_primary">
+    android:background="@color/surface"
+    android:fitsSystemWindows="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/cl_account_details_header"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/header_height"
+        android:background="@drawable/bg_top_bar_glass"
+        android:paddingStart="@dimen/spacing_lg"
+        android:paddingEnd="@dimen/spacing_lg"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/btn_account_details_back"
+            android:layout_width="@dimen/top_bar_action_size"
+            android:layout_height="@dimen/top_bar_action_size"
+            android:background="@drawable/bg_browse_header_icon"
+            android:contentDescription="@string/content_back"
+            android:padding="@dimen/spacing_sm"
+            android:src="@drawable/ic_arrow_back_24"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/primary" />
+
+        <TextView
+            android:id="@+id/tv_account_details_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_md"
+            android:text="@string/account_details_title"
+            android:textColor="@color/on_surface"
+            android:textSize="@dimen/text_lg"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/pb_account_details_loading"
+            app:layout_constraintStart_toEndOf="@id/btn_account_details_back"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/pb_account_details_loading"
+            android:layout_width="@dimen/icon_lg"
+            android:layout_height="@dimen/icon_lg"
+            android:indeterminate="true"
+            android:visibility="gone"
+            app:indicatorColor="@color/primary"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/nsv_account_details_content"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:clipToPadding="false"
         android:fillViewport="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toBottomOf="@id/cl_account_details_header">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="@dimen/spacing_lg">
+            android:paddingStart="@dimen/spacing_lg"
+            android:paddingTop="@dimen/spacing_lg"
+            android:paddingEnd="@dimen/spacing_lg"
+            android:paddingBottom="@dimen/browse_content_bottom_padding">
 
-            <ImageButton
-                android:id="@+id/btn_account_details_back"
-                android:layout_width="@dimen/icon_lg"
-                android:layout_height="@dimen/icon_lg"
-                android:background="@android:color/transparent"
-                android:contentDescription="@string/content_back"
-                android:src="@drawable/ic_arrow_back_24"
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_account_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/surface_container_low"
+                app:cardCornerRadius="@dimen/radius_xl"
+                app:cardElevation="0dp"
+                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
+                app:layout_constraintTop_toTopOf="parent">
 
-            <TextView
-                android:id="@+id/tv_account_details_title"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/spacing_lg">
+
+                    <TextView
+                        android:id="@+id/tv_account_details_profile_section"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/profile_edit_name"
+                        android:textColor="@color/on_surface"
+                        android:textSize="@dimen/text_lg"
+                        android:textStyle="bold"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_account_details_full_name"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:hint="@string/profile_full_name"
+                        app:boxBackgroundColor="@color/surface_container_lowest"
+                        app:boxStrokeColor="@color/outline_variant"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tv_account_details_profile_section">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edt_account_details_full_name"
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/input_height"
+                            android:inputType="textPersonName"
+                            android:textColor="@color/on_surface"
+                            android:textColorHint="@color/on_surface_variant"
+                            android:textSize="@dimen/text_md"
+                            tools:text="Alex Sterling" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_account_details_save_name"
+                        style="@style/Widget.Material3.Button"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/button_height"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:text="@string/profile_save"
+                        android:textSize="@dimen/text_sm"
+                        app:backgroundTint="@color/primary"
+                        app:cornerRadius="@dimen/radius_lg"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/til_account_details_full_name" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_account_password"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_lg"
-                android:text="@string/account_details_title"
-                android:textColor="@color/text_primary"
-                android:textSize="@dimen/text_xl"
-                android:textStyle="bold"
+                app:cardBackgroundColor="@color/surface_container_low"
+                app:cardCornerRadius="@dimen/radius_xl"
+                app:cardElevation="0dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/btn_account_details_back" />
+                app:layout_constraintTop_toBottomOf="@id/card_account_name">
 
-            <com.google.android.material.progressindicator.CircularProgressIndicator
-                android:id="@+id/pb_account_details_loading"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:indeterminate="true"
-                android:visibility="gone"
-                app:indicatorColor="@color/accent_primary"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="@id/btn_account_details_back" />
-
-            <TextView
-                android:id="@+id/tv_account_details_profile_section"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_xl"
-                android:text="@string/profile_edit_name"
-                android:textColor="@color/text_primary"
-                android:textSize="@dimen/text_lg"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_account_details_title" />
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_account_details_full_name"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_lg"
-                android:hint="@string/profile_full_name"
-                app:boxBackgroundColor="@color/bg_surface"
-                app:boxStrokeColor="@color/divider_color"
-                app:hintTextColor="@color/text_secondary"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_account_details_profile_section">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edt_account_details_full_name"
+                <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/input_height"
-                    android:inputType="textPersonName"
-                    android:textColor="@color/text_primary"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="@dimen/text_md" />
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/spacing_lg">
 
-            </com.google.android.material.textfield.TextInputLayout>
+                    <TextView
+                        android:id="@+id/tv_account_details_password_section"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/profile_change_password"
+                        android:textColor="@color/on_surface"
+                        android:textSize="@dimen/text_lg"
+                        android:textStyle="bold"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_account_details_save_name"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="0dp"
-                android:layout_height="@dimen/button_height"
-                android:layout_marginTop="@dimen/spacing_md"
-                android:text="@string/profile_save"
-                android:textSize="@dimen/text_md"
-                app:backgroundTint="@color/accent_primary"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/til_account_details_full_name" />
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_account_details_current_password"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:hint="@string/profile_current_password"
+                        app:boxBackgroundColor="@color/surface_container_lowest"
+                        app:boxStrokeColor="@color/outline_variant"
+                        app:endIconMode="password_toggle"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tv_account_details_password_section">
 
-            <View
-                android:id="@+id/div_account_details"
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_marginTop="@dimen/spacing_xl"
-                android:background="@color/divider_color"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/btn_account_details_save_name" />
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edt_account_details_current_password"
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/input_height"
+                            android:inputType="textPassword"
+                            android:textColor="@color/on_surface"
+                            android:textColorHint="@color/on_surface_variant"
+                            android:textSize="@dimen/text_md" />
 
-            <TextView
-                android:id="@+id/tv_account_details_password_section"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_xl"
-                android:text="@string/profile_change_password"
-                android:textColor="@color/text_primary"
-                android:textSize="@dimen/text_lg"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/div_account_details" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_account_details_current_password"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_lg"
-                android:hint="@string/profile_current_password"
-                app:boxBackgroundColor="@color/bg_surface"
-                app:boxStrokeColor="@color/divider_color"
-                app:endIconMode="password_toggle"
-                app:hintTextColor="@color/text_secondary"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_account_details_password_section">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_account_details_new_password"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:hint="@string/profile_new_password"
+                        app:boxBackgroundColor="@color/surface_container_lowest"
+                        app:boxStrokeColor="@color/outline_variant"
+                        app:endIconMode="password_toggle"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/til_account_details_current_password">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edt_account_details_current_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/input_height"
-                    android:inputType="textPassword"
-                    android:textColor="@color/text_primary"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="@dimen/text_md" />
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edt_account_details_new_password"
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/input_height"
+                            android:inputType="textPassword"
+                            android:textColor="@color/on_surface"
+                            android:textColorHint="@color/on_surface_variant"
+                            android:textSize="@dimen/text_md" />
 
-            </com.google.android.material.textfield.TextInputLayout>
+                    </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_account_details_new_password"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_md"
-                android:hint="@string/profile_new_password"
-                app:boxBackgroundColor="@color/bg_surface"
-                app:boxStrokeColor="@color/divider_color"
-                app:endIconMode="password_toggle"
-                app:hintTextColor="@color/text_secondary"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/til_account_details_current_password">
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_account_details_confirm_password"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:hint="@string/profile_confirm_password"
+                        app:boxBackgroundColor="@color/surface_container_lowest"
+                        app:boxStrokeColor="@color/outline_variant"
+                        app:endIconMode="password_toggle"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/til_account_details_new_password">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edt_account_details_new_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/input_height"
-                    android:inputType="textPassword"
-                    android:textColor="@color/text_primary"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="@dimen/text_md" />
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edt_account_details_confirm_password"
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/input_height"
+                            android:inputType="textPassword"
+                            android:textColor="@color/on_surface"
+                            android:textColorHint="@color/on_surface_variant"
+                            android:textSize="@dimen/text_md" />
 
-            </com.google.android.material.textfield.TextInputLayout>
+                    </com.google.android.material.textfield.TextInputLayout>
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_account_details_confirm_password"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_md"
-                android:hint="@string/profile_confirm_password"
-                app:boxBackgroundColor="@color/bg_surface"
-                app:boxStrokeColor="@color/divider_color"
-                app:endIconMode="password_toggle"
-                app:hintTextColor="@color/text_secondary"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/til_account_details_new_password">
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_account_details_update_password"
+                        style="@style/Widget.Material3.Button"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/button_height"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:text="@string/profile_update_password"
+                        android:textSize="@dimen/text_sm"
+                        app:backgroundTint="@color/primary"
+                        app:cornerRadius="@dimen/radius_lg"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/til_account_details_confirm_password" />
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/edt_account_details_confirm_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/input_height"
-                    android:inputType="textPassword"
-                    android:textColor="@color/text_primary"
-                    android:textColorHint="@color/text_secondary"
-                    android:textSize="@dimen/text_md" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_account_details_update_password"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="0dp"
-                android:layout_height="@dimen/button_height"
-                android:layout_marginTop="@dimen/spacing_md"
-                android:text="@string/profile_update_password"
-                android:textSize="@dimen/text_md"
-                app:backgroundTint="@color/accent_primary"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/til_account_details_confirm_password" />
+            </com.google.android.material.card.MaterialCardView>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

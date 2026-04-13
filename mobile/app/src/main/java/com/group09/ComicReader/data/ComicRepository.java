@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.data.remote.TranslateApi;
 import com.group09.ComicReader.model.Chapter;
+import com.group09.ComicReader.model.CategoryPreview;
 import com.group09.ComicReader.model.Comic;
 import com.group09.ComicReader.model.ComicResponse;
 import com.group09.ComicReader.model.CommentItem;
@@ -45,6 +46,11 @@ public class ComicRepository {
 
     public interface CategoryListCallback {
         void onSuccess(List<String> categories);
+        void onError(String error);
+    }
+
+    public interface CategoryPreviewCallback {
+        void onSuccess(CategoryPreview preview);
         void onError(String error);
     }
 
@@ -213,6 +219,132 @@ public class ComicRepository {
                 callback.onError(t.getMessage());
             }
         });
+    }
+
+    public void getMostViewedComics(@NonNull ComicListCallback callback) {
+        if (apiClient == null) {
+            callback.onError("ApiClient not initialized");
+            return;
+        }
+        apiClient.comicApi().getComics(null, null, 0, 100, "viewCount,desc")
+                .enqueue(new Callback<PageResponse<ComicResponse>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
+                                           @NonNull Response<PageResponse<ComicResponse>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            List<Comic> comics = new ArrayList<>();
+                            for (ComicResponse res : response.body().getContent()) {
+                                comics.add(res.toComic());
+                            }
+                            comics.sort((left, right) -> Integer.compare(right.getViewCount(), left.getViewCount()));
+                            callback.onSuccess(comics);
+                        } else {
+                            callback.onError("Error: " + response.code());
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
+                        callback.onError(t.getMessage());
+                    }
+                });
+    }
+
+    public void getComicsByCategory(@NonNull String categoryId, int size, @NonNull ComicListCallback callback) {
+        if (apiClient == null) {
+            callback.onError("ApiClient not initialized");
+            return;
+        }
+        String safeCategory = categoryId.trim();
+        if (safeCategory.isEmpty()) {
+            callback.onSuccess(new ArrayList<>());
+            return;
+        }
+        int safeSize = Math.max(1, size);
+        apiClient.comicApi().getComics(null, safeCategory, 0, safeSize, "viewCount,desc")
+                .enqueue(new Callback<PageResponse<ComicResponse>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
+                                           @NonNull Response<PageResponse<ComicResponse>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            List<Comic> comics = new ArrayList<>();
+                            for (ComicResponse res : response.body().getContent()) {
+                                comics.add(res.toComic());
+                            }
+                            callback.onSuccess(comics);
+                        } else {
+                            callback.onError("Error: " + response.code());
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
+                        callback.onError(t.getMessage());
+                    }
+                });
+    }
+
+    public void getCategoryPreview(@NonNull String categoryId, int sampleSize, @NonNull CategoryPreviewCallback callback) {
+        if (apiClient == null) {
+            callback.onError("ApiClient not initialized");
+            return;
+        }
+        String safeCategory = categoryId.trim();
+        if (safeCategory.isEmpty()) {
+            callback.onError("Category is empty");
+            return;
+        }
+        int safeSampleSize = Math.max(1, sampleSize);
+        apiClient.comicApi().getComics(null, safeCategory, 0, safeSampleSize, "viewCount,desc")
+                .enqueue(new Callback<PageResponse<ComicResponse>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
+                                           @NonNull Response<PageResponse<ComicResponse>> response) {
+                        if (!response.isSuccessful() || response.body() == null) {
+                            callback.onError("Error: " + response.code());
+                            return;
+                        }
+                        List<ComicResponse> content = response.body().getContent();
+                        String coverUrl = null;
+                        String sampleSynopsis = null;
+                        boolean hasCompleted = false;
+                        boolean hasOngoing = false;
+
+                        if (content != null && !content.isEmpty()) {
+                            ComicResponse first = content.get(0);
+                            coverUrl = first.getCoverUrl();
+                            sampleSynopsis = first.getSynopsis();
+
+                            for (ComicResponse item : content) {
+                                String status = item.getStatus() == null ? "" : item.getStatus().trim().toUpperCase(Locale.US);
+                                if (status.contains("COMPLETE")) {
+                                    hasCompleted = true;
+                                }
+                                if (status.contains("ONGOING") || status.contains("UPDATING") || status.contains("NEW")) {
+                                    hasOngoing = true;
+                                }
+                            }
+                        }
+                        if (!hasCompleted && !hasOngoing) {
+                            hasOngoing = true;
+                        }
+
+                        int totalComics = (int) Math.max(0, Math.min(Integer.MAX_VALUE, response.body().getTotalElements()));
+                        callback.onSuccess(new CategoryPreview(
+                                safeCategory,
+                                safeCategory,
+                                coverUrl,
+                                totalComics,
+                                hasCompleted,
+                                hasOngoing,
+                                sampleSynopsis));
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
+                        callback.onError(t.getMessage());
+                    }
+                });
     }
 
     public void getRelatedComics(int comicId, @NonNull ComicListCallback callback) {

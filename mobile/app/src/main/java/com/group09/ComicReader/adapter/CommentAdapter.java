@@ -22,7 +22,6 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
     }
 
     private final Listener listener;
-
     private final List<CommentItem> items = new ArrayList<>();
 
     public CommentAdapter() {
@@ -44,7 +43,8 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        ItemCommentBinding binding = ItemCommentBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
+        ItemCommentBinding binding =
+                ItemCommentBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
         return new ViewHolder(binding);
     }
 
@@ -53,17 +53,7 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         CommentItem comment = items.get(position);
         int depth = Math.max(0, comment.getDepth());
         String username = comment.getUsername() == null ? "" : comment.getUsername();
-        if (depth > 0) {
-            int capped = Math.min(depth, 4);
-            StringBuilder prefix = new StringBuilder();
-            for (int i = 0; i < capped; i++) {
-                prefix.append("↳");
-            }
-            prefix.append(" ");
-            holder.binding.tvCommentUsername.setText(prefix + username);
-        } else {
-            holder.binding.tvCommentUsername.setText(username);
-        }
+        holder.binding.tvCommentUsername.setText(depth > 0 ? "Reply: " + username : username);
         holder.binding.tvCommentTimestamp.setText(comment.getTimeAgo());
         holder.binding.tvCommentText.setText(comment.getContent());
         holder.binding.tvCommentLikes.setVisibility(android.view.View.GONE);
@@ -81,11 +71,9 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
                     .into(holder.binding.imgCommentAvatar);
         }
 
-        if (comment.isLocked()) {
-            holder.binding.tvCommentLocked.setVisibility(android.view.View.VISIBLE);
-        } else {
-            holder.binding.tvCommentLocked.setVisibility(android.view.View.GONE);
-        }
+        holder.binding.tvCommentLocked.setVisibility(comment.isLocked()
+                ? android.view.View.VISIBLE
+                : android.view.View.GONE);
 
         if (comment.getChapterNumber() != null && comment.getChapterNumber() > 0) {
             holder.binding.tvCommentSource.setText(
@@ -101,10 +89,10 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         int baseStart = holder.itemView.getResources().getDimensionPixelSize(R.dimen.spacing_sm);
         int baseEnd = holder.itemView.getResources().getDimensionPixelSize(R.dimen.spacing_lg);
         int indentPerLevel = holder.itemView.getResources().getDimensionPixelSize(R.dimen.spacing_xxxl);
-        depth = Math.max(0, comment.getDepth());
         int extraIndent = Math.min(depth, 4) * indentPerLevel;
 
-        ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) holder.binding.clCommentCard.getLayoutParams();
+        ViewGroup.MarginLayoutParams lp =
+                (ViewGroup.MarginLayoutParams) holder.binding.clCommentCard.getLayoutParams();
         lp.leftMargin = baseStart + extraIndent;
         lp.rightMargin = baseEnd;
         holder.binding.clCommentCard.setLayoutParams(lp);
@@ -112,7 +100,9 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.ViewHold
         boolean canReply = listener != null && !comment.isLocked();
         holder.binding.tvCommentReply.setVisibility(canReply ? android.view.View.VISIBLE : android.view.View.GONE);
         holder.binding.tvCommentReply.setOnClickListener(v -> {
-            if (listener != null) listener.onReplyClicked(comment);
+            if (listener != null) {
+                listener.onReplyClicked(comment);
+            }
         });
     }
 
