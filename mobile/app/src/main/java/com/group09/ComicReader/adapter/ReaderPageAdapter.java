@@ -137,6 +137,16 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
         return super.getItemCount();
     }
 
+    public static int countPagesWithMissingDimensions(@NonNull List<ReaderPage> pages) {
+        int missingCount = 0;
+        for (ReaderPage page : pages) {
+            if (page == null || page.getImageWidth() <= 0 || page.getImageHeight() <= 0) {
+                missingCount += 1;
+            }
+        }
+        return missingCount;
+    }
+
     @Override
     public void onViewRecycled(@NonNull PageViewHolder holder) {
         holder.binding.imgReaderPage.setOnTransformChangeListener(null);

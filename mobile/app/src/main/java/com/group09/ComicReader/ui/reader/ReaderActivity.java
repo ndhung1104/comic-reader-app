@@ -53,6 +53,9 @@ public class ReaderActivity extends AppCompatActivity {
     public static final String EXTRA_CHAPTER_ID = "extra_chapter_id";
     public static final String EXTRA_CHAPTER = "extra_chapter";
     private static final long SAVE_PROGRESS_DEBOUNCE_MS = 1500L;
+    private static final long RESTORE_RETRY_DELAY_MS = 50L;
+    private static final int RESTORE_MAX_ATTEMPTS = 8;
+    private static final int RESTORE_OFFSET_TOLERANCE_PX = 24;
     private static final boolean ENABLE_ZOOM_CONTAINER = true;
     private static final float AUDIO_SPEED_075 = 0.75f;
     private static final float AUDIO_SPEED_100 = 1.0f;
@@ -102,6 +105,9 @@ public class ReaderActivity extends AppCompatActivity {
     private int lastRenderedPageIndex = RecyclerView.NO_POSITION;
     private int lastRenderedPageCount = -1;
     private long chapterLoadStartNs = -1L;
+    private boolean restoringReadingPosition;
+    private int totalPageMetadataCount;
+    private int missingPageMetadataCount;
 
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private final Runnable saveProgressRunnable = this::saveCurrentReadingProgress;
@@ -109,6 +115,9 @@ public class ReaderActivity extends AppCompatActivity {
         @Override
         public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
             preloadAroundCurrentViewport();
+            if (restoringReadingPosition) {
+                return;
+            }
             updateReaderProgressUi();
             if (dy != 0) {
                 scheduleSaveReadingProgress();
@@ -119,6 +128,9 @@ public class ReaderActivity extends AppCompatActivity {
         public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
             if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                 preloadAroundCurrentViewport();
+                if (restoringReadingPosition) {
+                    return;
+                }
                 scheduleSaveReadingProgress();
                 updateReaderProgressUi();
             }
@@ -269,6 +281,8 @@ public class ReaderActivity extends AppCompatActivity {
                 return;
             }
             List<ReaderPage> safePages = pages == null ? Collections.emptyList() : new ArrayList<>(pages);
+            totalPageMetadataCount = safePages.size();
+            missingPageMetadataCount = ReaderPageAdapter.countPagesWithMissingDimensions(safePages);
             boolean hasStableItemBounds = hasStablePageBounds(safePages);
             binding.rcvReaderPages.setHasFixedSize(hasStableItemBounds);
             PerfLogger.d(
@@ -277,13 +291,16 @@ public class ReaderActivity extends AppCompatActivity {
                     "reader_fixed_size_mode",
                     PerfLogger.kv("enabled", hasStableItemBounds),
                     PerfLogger.kv("pageCount", safePages.size()));
+            logPageMetadataQuality();
             pageAdapter.submitList(safePages, () -> {
                 if (!isUiActive()) {
                     return;
                 }
-                restoreReadingPositionIfNeeded();
-                binding.rcvReaderPages.post(this::preloadAroundCurrentViewport);
-                binding.rcvReaderPages.post(this::updateReaderProgressUi);
+                boolean restoreStarted = restoreReadingPositionIfNeeded();
+                if (!restoreStarted) {
+                    binding.rcvReaderPages.post(this::preloadAroundCurrentViewport);
+                    binding.rcvReaderPages.post(this::updateReaderProgressUi);
+                }
             });
             boolean hasPages = !safePages.isEmpty();
             if (hasPages) {
@@ -491,36 +508,128 @@ public class ReaderActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    private void restoreReadingPositionIfNeeded() {
+    private boolean restoreReadingPositionIfNeeded() {
         if (restoredPositionApplied || restoredProgress == null || pageAdapter.getItemCount() == 0) {
-            return;
+            return false;
         }
-        restoredPositionApplied = true;
 
         int restoredPosition = restoredProgress.getPagePosition();
         if (restoredPosition < 0) {
-            return;
+            return false;
         }
         int maxPosition = Math.max(0, pageAdapter.getItemCount() - 1);
         int targetPosition = Math.min(restoredPosition, maxPosition);
         int targetOffset = restoredProgress.getOffset();
+        boolean hasMissingMetadata = missingPageMetadataCount > 0;
+        restoringReadingPosition = true;
+        attemptRestoreReadingPosition(targetPosition, targetOffset, 1, !hasMissingMetadata, hasMissingMetadata);
+        return true;
+    }
 
+    private void attemptRestoreReadingPosition(
+            int targetPosition,
+            int targetOffset,
+            int attempt,
+            boolean applySavedOffset,
+            boolean metadataIncomplete) {
+        if (!isUiActive() || layoutManager == null || binding == null) {
+            restoringReadingPosition = false;
+            return;
+        }
+        int requestedOffset = applySavedOffset ? targetOffset : 0;
+        layoutManager.scrollToPositionWithOffset(targetPosition, requestedOffset);
         binding.rcvReaderPages.post(() -> {
-            if (!isUiActive()) {
+            if (!isUiActive() || layoutManager == null) {
+                restoringReadingPosition = false;
                 return;
             }
-            layoutManager.scrollToPositionWithOffset(targetPosition, targetOffset);
-            binding.rcvReaderPages.post(() -> {
-                if (!isUiActive()) {
-                    return;
-                }
-                preloadAroundCurrentViewport();
-                updateReaderProgressUi();
-            });
+            View targetView = layoutManager.findViewByPosition(targetPosition);
+            boolean targetReady = targetView != null && targetView.getHeight() > 0;
+            int actualTop = targetView == null ? Integer.MIN_VALUE : targetView.getTop();
+            boolean offsetApplied = targetView != null
+                    && Math.abs(actualTop - requestedOffset) <= RESTORE_OFFSET_TOLERANCE_PX;
+
+            if (targetReady && applySavedOffset && offsetApplied) {
+                finishRestoreReadingPosition(true, targetPosition, targetOffset, actualTop, attempt, metadataIncomplete);
+                return;
+            }
+            if (targetReady && !applySavedOffset) {
+                PerfLogger.d(
+                        PerfLogger.TAG_STATE,
+                        SCREEN_NAME,
+                        "restore_position_defer_offset",
+                        PerfLogger.kv("targetPage", targetPosition),
+                        PerfLogger.kv("attempt", attempt),
+                        PerfLogger.kv("actualTop", actualTop));
+                scheduleRestoreRetry(targetPosition, targetOffset, attempt + 1, true, metadataIncomplete);
+                return;
+            }
+            if (attempt >= RESTORE_MAX_ATTEMPTS) {
+                finishRestoreReadingPosition(false, targetPosition, targetOffset, actualTop, attempt, metadataIncomplete);
+                return;
+            }
+            scheduleRestoreRetry(targetPosition, targetOffset, attempt + 1, applySavedOffset, metadataIncomplete);
         });
     }
 
+    private void scheduleRestoreRetry(
+            int targetPosition,
+            int targetOffset,
+            int nextAttempt,
+            boolean applySavedOffset,
+            boolean metadataIncomplete) {
+        if (binding == null) {
+            restoringReadingPosition = false;
+            return;
+        }
+        binding.rcvReaderPages.postDelayed(
+                () -> attemptRestoreReadingPosition(
+                        targetPosition,
+                        targetOffset,
+                        nextAttempt,
+                        applySavedOffset,
+                        metadataIncomplete),
+                RESTORE_RETRY_DELAY_MS);
+    }
+
+    private void finishRestoreReadingPosition(
+            boolean success,
+            int targetPosition,
+            int targetOffset,
+            int actualTop,
+            int attempts,
+            boolean metadataIncomplete) {
+        restoredPositionApplied = true;
+        restoringReadingPosition = false;
+        if (success) {
+            PerfLogger.d(
+                    PerfLogger.TAG_STATE,
+                    SCREEN_NAME,
+                    "restore_position_applied",
+                    PerfLogger.kv("targetPage", targetPosition),
+                    PerfLogger.kv("targetOffset", targetOffset),
+                    PerfLogger.kv("actualTop", actualTop),
+                    PerfLogger.kv("attempts", attempts),
+                    PerfLogger.kv("metadataIncomplete", metadataIncomplete));
+        } else {
+            PerfLogger.w(
+                    PerfLogger.TAG_STATE,
+                    SCREEN_NAME,
+                    "restore_position_fallback",
+                    PerfLogger.kv("targetPage", targetPosition),
+                    PerfLogger.kv("targetOffset", targetOffset),
+                    PerfLogger.kv("actualTop", actualTop),
+                    PerfLogger.kv("attempts", attempts),
+                    PerfLogger.kv("metadataIncomplete", metadataIncomplete));
+        }
+        preloadAroundCurrentViewport();
+        updateReaderProgressUi();
+    }
+
     private void scheduleSaveReadingProgress() {
+        if (restoringReadingPosition) {
+            return;
+        }
         progressHandler.removeCallbacks(saveProgressRunnable);
         progressHandler.postDelayed(saveProgressRunnable, SAVE_PROGRESS_DEBOUNCE_MS);
     }
@@ -790,12 +899,22 @@ public class ReaderActivity extends AppCompatActivity {
         if (pages.isEmpty()) {
             return false;
         }
-        for (ReaderPage page : pages) {
-            if (page == null || page.getImageWidth() <= 0 || page.getImageHeight() <= 0) {
-                return false;
-            }
+        return ReaderPageAdapter.countPagesWithMissingDimensions(pages) == 0;
+    }
+
+    private void logPageMetadataQuality() {
+        if (totalPageMetadataCount <= 0) {
+            return;
         }
-        return true;
+        int missingCount = Math.max(0, missingPageMetadataCount);
+        int missingPercent = Math.max(0, Math.min(100, (missingCount * 100) / totalPageMetadataCount));
+        PerfLogger.d(
+                PerfLogger.TAG_STATE,
+                SCREEN_NAME,
+                "page_metadata_quality",
+                PerfLogger.kv("totalPages", totalPageMetadataCount),
+                PerfLogger.kv("missingSizePages", missingCount),
+                PerfLogger.kv("missingPercent", missingPercent));
     }
 
     private void logMemorySnapshot(@NonNull String event) {
