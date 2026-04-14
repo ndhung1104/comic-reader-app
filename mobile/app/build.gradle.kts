@@ -91,6 +91,7 @@ dependencies {
     annotationProcessor(libs.glide.compiler)
     annotationProcessor(libs.room.compiler)
     testImplementation(libs.junit)
+    debugImplementation(libs.leakcanary.android)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 }

@@ -22,6 +22,7 @@ public class ZoomableImageView extends AppCompatImageView {
 
     private final Matrix drawMatrix = new Matrix();
     private final ScaleGestureDetector scaleDetector;
+    private final RectF tempRect = new RectF();
     private final int touchSlop;
 
     private float minScale = 1.0f;
@@ -370,9 +371,9 @@ public class ZoomableImageView extends AppCompatImageView {
             return null;
         }
 
-        RectF rect = new RectF(0f, 0f, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
-        drawMatrix.mapRect(rect);
-        return rect;
+        tempRect.set(0f, 0f, drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight());
+        drawMatrix.mapRect(tempRect);
+        return tempRect;
     }
 
     private void requestParentIntercept(boolean disallow) {

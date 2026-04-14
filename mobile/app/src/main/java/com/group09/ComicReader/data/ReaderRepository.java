@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.group09.ComicReader.R;
+import com.group09.ComicReader.common.error.ErrorParser;
 import com.group09.ComicReader.data.download.ReaderContentSourceResolver;
 import com.group09.ComicReader.data.local.download.ChapterDownloadEntity;
 import com.group09.ComicReader.data.local.download.ChapterPageFileEntity;
@@ -26,8 +27,6 @@ import com.group09.ComicReader.model.ReaderPage;
 import com.group09.ComicReader.model.ReaderPageResponse;
 import com.group09.ComicReader.model.RecentReadResponse;
 import com.group09.ComicReader.model.WalletResponse;
-
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -85,6 +84,7 @@ public class ReaderRepository {
     private final ReaderContentSourceResolver contentSourceResolver;
     private final ExecutorService ioExecutor;
     private final Handler mainHandler;
+    private final InFlightCallRegistry inFlightCallRegistry;
 
     public ReaderRepository(@NonNull Context context, @NonNull ApiClient apiClient) {
         this(
@@ -108,10 +108,15 @@ public class ReaderRepository {
         this.contentSourceResolver = contentSourceResolver;
         this.ioExecutor = Executors.newSingleThreadExecutor();
         this.mainHandler = new Handler(Looper.getMainLooper());
+        this.inFlightCallRegistry = new InFlightCallRegistry();
+    }
+
+    public void cancelAllPendingRequests() {
+        inFlightCallRegistry.cancelAll();
     }
 
     public void getChapterById(long chapterId, @NonNull ChapterCallback callback) {
-        apiClient.chapterApi().getChapter(chapterId).enqueue(new Callback<ComicChapterResponse>() {
+        enqueueTracked(apiClient.chapterApi().getChapter(chapterId), new Callback<ComicChapterResponse>() {
             @Override
             public void onResponse(@NonNull Call<ComicChapterResponse> call,
                                    @NonNull Response<ComicChapterResponse> response) {
@@ -130,7 +135,7 @@ public class ReaderRepository {
     }
 
     public void getComicChapters(int comicId, @NonNull ChaptersCallback callback) {
-        apiClient.comicApi().getComicChapters(comicId).enqueue(new Callback<List<ComicChapterResponse>>() {
+        enqueueTracked(apiClient.comicApi().getComicChapters(comicId), new Callback<List<ComicChapterResponse>>() {
             @Override
             public void onResponse(@NonNull Call<List<ComicChapterResponse>> call,
                                    @NonNull Response<List<ComicChapterResponse>> response) {
@@ -178,7 +183,7 @@ public class ReaderRepository {
     }
 
     private void fetchChapterPagesRemote(long chapterId, @NonNull PagesCallback callback, boolean localFallbackAttempted) {
-        apiClient.chapterApi().getChapterPages(chapterId).enqueue(new Callback<List<ReaderPageResponse>>() {
+        enqueueTracked(apiClient.chapterApi().getChapterPages(chapterId), new Callback<List<ReaderPageResponse>>() {
             @Override
             public void onResponse(@NonNull Call<List<ReaderPageResponse>> call,
                                    @NonNull Response<List<ReaderPageResponse>> response) {
@@ -221,7 +226,7 @@ public class ReaderRepository {
 
     public void purchaseChapter(long chapterId, @NonNull PurchaseChapterCallback callback) {
         PurchaseChapterRequest request = new PurchaseChapterRequest(chapterId, "COIN");
-        apiClient.walletApi().purchaseChapter(request).enqueue(new Callback<WalletResponse>() {
+        enqueueTracked(apiClient.walletApi().purchaseChapter(request), new Callback<WalletResponse>() {
             @Override
             public void onResponse(@NonNull Call<WalletResponse> call, @NonNull Response<WalletResponse> response) {
                 if (!response.isSuccessful() || response.body() == null) {
@@ -248,16 +253,14 @@ public class ReaderRepository {
 
     public void recordReadingHistory(int comicId, int chapterId, int pageNumber, @NonNull HistoryCallback callback) {
         ReadingHistoryRequest request = new ReadingHistoryRequest((long) comicId, (long) chapterId, pageNumber);
-        apiClient.libraryApi().recordReadingHistory(request).enqueue(new Callback<RecentReadResponse>() {
+        enqueueTracked(apiClient.libraryApi().recordReadingHistory(request), new Callback<RecentReadResponse>() {
             @Override
             public void onResponse(@NonNull Call<RecentReadResponse> call,
                                    @NonNull Response<RecentReadResponse> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    if (response.code() == 401 || response.code() == 403) {
-                        callback.onError("Session expired. Please log in again.");
-                    } else {
-                        callback.onError("Failed to save reading history (" + response.code() + ")");
-                    }
+                    callback.onError(extractErrorMessage(
+                            response,
+                            "Failed to save reading history (" + response.code() + ")"));
                     return;
                 }
                 callback.onSuccess();
@@ -272,7 +275,7 @@ public class ReaderRepository {
 
     public void createOrGetChapterAudioPlaylist(long chapterId, @NonNull AudioPlaylistCallback callback) {
         ChapterAudioPlaylistRequest request = new ChapterAudioPlaylistRequest();
-        apiClient.chapterApi().createOrGetAudioPlaylist(chapterId, request).enqueue(new Callback<ChapterAudioPlaylistResponse>() {
+        enqueueTracked(apiClient.chapterApi().createOrGetAudioPlaylist(chapterId, request), new Callback<ChapterAudioPlaylistResponse>() {
             @Override
             public void onResponse(@NonNull Call<ChapterAudioPlaylistResponse> call,
                     @NonNull Response<ChapterAudioPlaylistResponse> response) {
@@ -312,6 +315,10 @@ public class ReaderRepository {
         });
     }
 
+    private <T> void enqueueTracked(@NonNull Call<T> call, @NonNull Callback<T> callback) {
+        inFlightCallRegistry.enqueue(call, callback);
+    }
+
     @NonNull
     private String resolveAudioPlaylistError(@NonNull Response<?> response) {
         if (response.code() == 503) {
@@ -343,24 +350,25 @@ public class ReaderRepository {
 
     @NonNull
     private String getNetworkMessage(@NonNull Throwable throwable) {
-        return throwable.getMessage() == null ? "Network error" : throwable.getMessage();
+        return ErrorParser.parseThrowable(throwable, "Network error").getMessage();
     }
 
     @NonNull
     private String extractErrorMessage(@NonNull Response<?> response, @NonNull String fallback) {
+        String raw = readErrorBody(response);
+        return ErrorParser.parseHttpError(response.code(), raw, fallback).getMessage();
+    }
+
+    @Nullable
+    private String readErrorBody(@NonNull Response<?> response) {
         try {
             if (response.errorBody() == null) {
-                return fallback;
+                return null;
             }
             String raw = response.errorBody().string();
-            if (raw == null || raw.trim().isEmpty()) {
-                return fallback;
-            }
-            JSONObject json = new JSONObject(raw);
-            String message = json.optString("error", json.optString("message", fallback));
-            return message == null || message.trim().isEmpty() ? fallback : message;
+            return raw == null || raw.trim().isEmpty() ? null : raw;
         } catch (Exception ignored) {
-            return fallback;
+            return null;
         }
     }
 

@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ReaderAudioController {
-
     public interface Listener {
         void onPlaybackStateChanged();
 
@@ -120,7 +119,7 @@ public class ReaderAudioController {
             createdPlayer.prepare(page.getAudioUrl(), new ReaderAudioPlayer.Listener() {
                 @Override
                 public void onPrepared() {
-                    if (player == null) {
+                    if (player != createdPlayer) {
                         return;
                     }
                     player.setSpeed(playbackSpeed);
@@ -130,6 +129,9 @@ public class ReaderAudioController {
 
                 @Override
                 public void onCompletion() {
+                    if (player != createdPlayer) {
+                        return;
+                    }
                     int nextIndex = currentIndex + 1;
                     if (nextIndex < playlist.size()) {
                         playAtIndex(nextIndex);
@@ -142,6 +144,9 @@ public class ReaderAudioController {
 
                 @Override
                 public void onError() {
+                    if (player != createdPlayer) {
+                        return;
+                    }
                     releasePlayer();
                     listener.onPlaybackError(ReaderAudioError.PLAYBACK_FAILED);
                     listener.onPlaybackStateChanged();

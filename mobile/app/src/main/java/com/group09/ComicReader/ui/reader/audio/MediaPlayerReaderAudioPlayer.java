@@ -74,6 +74,9 @@ public class MediaPlayerReaderAudioPlayer implements ReaderAudioPlayer {
             return;
         }
         try {
+            mediaPlayer.setOnPreparedListener(null);
+            mediaPlayer.setOnCompletionListener(null);
+            mediaPlayer.setOnErrorListener(null);
             mediaPlayer.reset();
             mediaPlayer.release();
         } catch (Exception ignored) {

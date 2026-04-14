@@ -16,6 +16,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.LibraryComicAdapter;
 import com.group09.ComicReader.base.BaseFragment;
+import com.group09.ComicReader.common.error.ErrorParser;
 import com.group09.ComicReader.data.LibraryRepository;
 import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
@@ -93,7 +94,7 @@ public class LibraryFragment extends BaseFragment {
         });
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
             if (message != null && !message.trim().isEmpty()) {
-                if ("Session expired. Please log in again.".equals(message)) {
+                if (ErrorParser.isTokenExpiredMessage(message)) {
                     sessionManager.clear();
                     showEmptyState(R.string.library_login_required, R.string.library_empty_subtitle);
                     binding.cardLibraryRecentHighlight.setVisibility(View.GONE);

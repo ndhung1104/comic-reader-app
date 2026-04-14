@@ -6,12 +6,10 @@ import com.group09.ComicReader.BuildConfig;
 import com.group09.ComicReader.data.local.SessionManager;
 
 import okhttp3.OkHttpClient;
-import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ApiClient {
-
     // Emulator -> host machine
     public static final String DEFAULT_BASE_URL = normalizeBaseUrl(BuildConfig.BASE_URL);
     public static final String PUBLIC_BASE_URL = normalizeBaseUrl(BuildConfig.PUBLIC_BASE_URL);
@@ -22,12 +20,8 @@ public class ApiClient {
     public ApiClient(Context context) {
         SessionManager sessionManager = new SessionManager(context);
 
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
-
         okHttpClient = new OkHttpClient.Builder()
                 .addInterceptor(new AuthInterceptor(sessionManager))
-                .addInterceptor(logging)
                 .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
                 .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
                 .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)

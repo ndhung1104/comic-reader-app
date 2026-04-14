@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Objects;
 
 public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter.PageViewHolder> {
-
     private static final float ZOOM_MIN_SCALE = 1.0f;
     private static final float ZOOM_MEDIUM_SCALE = 2.0f;
     private static final float ZOOM_MAX_SCALE = 5.0f;
@@ -128,6 +127,16 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
     @Override
     public int getItemCount() {
         return super.getItemCount();
+    }
+
+    public static int countPagesWithMissingDimensions(@NonNull List<ReaderPage> pages) {
+        int missingCount = 0;
+        for (ReaderPage page : pages) {
+            if (page == null || page.getImageWidth() <= 0 || page.getImageHeight() <= 0) {
+                missingCount += 1;
+            }
+        }
+        return missingCount;
     }
 
     @Override

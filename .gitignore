@@ -59,3 +59,11 @@ backend/.env
 mobile/.env
 
 .env
+
+# Mobile local debug / trace artifacts
+mobile/logs.txt
+mobile/log1.txt
+mobile/meminfo_*.txt
+mobile/gfx_*.txt
+mobile/leakcanary_*.txt
+mobile/leaks*.db

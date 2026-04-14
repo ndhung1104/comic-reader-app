@@ -23,6 +23,7 @@ import com.group09.ComicReader.adapter.ChapterAdapter;
 import com.group09.ComicReader.adapter.CommentAdapter;
 import com.group09.ComicReader.adapter.RelatedComicAdapter;
 import com.group09.ComicReader.base.BaseFragment;
+import com.group09.ComicReader.common.error.ErrorParser;
 import com.group09.ComicReader.data.ComicRepository;
 import com.group09.ComicReader.data.LibraryRepository;
 import com.group09.ComicReader.data.ReaderRepository;
@@ -194,7 +195,7 @@ public class ComicDetailFragment extends BaseFragment {
 
         commentsViewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
             if (error != null && !error.trim().isEmpty()) {
-                if ("Session expired. Please log in again.".equals(error)) {
+                if (ErrorParser.isTokenExpiredMessage(error)) {
                     sessionManager.clear();
                     updateCommentsFooterLoginState();
                 }

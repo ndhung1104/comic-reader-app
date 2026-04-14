@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.group09.ComicReader.R;
+import com.group09.ComicReader.common.error.ErrorParser;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.data.remote.TranslateApi;
 import com.group09.ComicReader.model.CategoryPreview;
@@ -131,7 +132,7 @@ public class ComicRepository {
 
             @Override
             public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
-                callback.onError(t.getMessage());
+                callback.onError(getNetworkMessage(t));
             }
         });
     }
@@ -158,7 +159,7 @@ public class ComicRepository {
 
             @Override
             public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
-                callback.onError(t.getMessage());
+                callback.onError(getNetworkMessage(t));
             }
         });
     }
@@ -217,7 +218,7 @@ public class ComicRepository {
 
             @Override
             public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
-                callback.onError(t.getMessage());
+                callback.onError(getNetworkMessage(t));
             }
         });
     }
@@ -246,7 +247,7 @@ public class ComicRepository {
 
                     @Override
                     public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
-                        callback.onError(t.getMessage());
+                        callback.onError(getNetworkMessage(t));
                     }
                 });
     }
@@ -280,7 +281,7 @@ public class ComicRepository {
 
                     @Override
                     public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
-                        callback.onError(t.getMessage());
+                        callback.onError(getNetworkMessage(t));
                     }
                 });
     }
@@ -343,7 +344,7 @@ public class ComicRepository {
 
                     @Override
                     public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
-                        callback.onError(t.getMessage());
+                        callback.onError(getNetworkMessage(t));
                     }
                 });
     }
@@ -370,7 +371,7 @@ public class ComicRepository {
 
             @Override
             public void onFailure(@NonNull Call<List<ComicResponse>> call, @NonNull Throwable t) {
-                callback.onError(t.getMessage());
+                callback.onError(getNetworkMessage(t));
             }
         });
     }
@@ -406,7 +407,7 @@ public class ComicRepository {
 
             @Override
             public void onFailure(@NonNull Call<ComicResponse> call, @NonNull Throwable t) {
-                callback.onError(t.getMessage());
+                callback.onError(getNetworkMessage(t));
             }
         });
     }
@@ -430,20 +431,13 @@ public class ComicRepository {
 
             @Override
             public void onFailure(@NonNull Call<Map<String, String>> call, @NonNull Throwable t) {
-                callback.onError(t.getMessage());
+                callback.onError(getNetworkMessage(t));
             }
         });
     }
 
     private String extractErrorMessage(@NonNull Response<?> response) {
-        String errorBodyText = null;
-        try {
-            ResponseBody errorBody = response.errorBody();
-            if (errorBody != null) {
-                errorBodyText = errorBody.string();
-            }
-        } catch (Exception ignored) {
-        }
+        String errorBodyText = readErrorBody(response);
 
         if (errorBodyText != null && !errorBodyText.trim().isEmpty()) {
             try {
@@ -465,7 +459,7 @@ public class ComicRepository {
             }
         }
 
-        return "Error: " + response.code();
+        return ErrorParser.parseHttpError(response.code(), errorBodyText, "Error: " + response.code()).getMessage();
     }
 
     public void incrementViewCount(int comicId) {
@@ -513,7 +507,7 @@ public class ComicRepository {
 
                     @Override
                     public void onFailure(@NonNull Call<TranslateApi.ComicTranslateResponse> call, @NonNull Throwable t) {
-                        callback.onError(t.getMessage());
+                        callback.onError(getNetworkMessage(t));
                     }
                 });
     }
@@ -555,7 +549,7 @@ public class ComicRepository {
 
             @Override
             public void onFailure(@NonNull Call<List<String>> call, @NonNull Throwable t) {
-                callback.onError(t.getMessage());
+                callback.onError(getNetworkMessage(t));
             }
         });
     }
@@ -598,7 +592,7 @@ public class ComicRepository {
 
             @Override
             public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
-                callback.onError(t.getMessage());
+                callback.onError(getNetworkMessage(t));
             }
         });
     }
@@ -623,7 +617,7 @@ public class ComicRepository {
 
             @Override
             public void onFailure(@NonNull Call<List<CommentItem>> call, @NonNull Throwable t) {
-                callback.onError(t.getMessage());
+                callback.onError(getNetworkMessage(t));
             }
         });
     }
@@ -650,7 +644,7 @@ public class ComicRepository {
 
                     @Override
                     public void onFailure(@NonNull Call<CommentPageResponse> call, @NonNull Throwable t) {
-                        callback.onError(t.getMessage());
+                        callback.onError(getNetworkMessage(t));
                     }
                 });
     }
@@ -678,31 +672,15 @@ public class ComicRepository {
                     callback.onSuccess(response.body());
                 } else {
                     int code = response.code();
-                    if (code == 401 || code == 403) {
-                        String errorBodyText = null;
-                        try {
-                            ResponseBody errorBody = response.errorBody();
-                            if (errorBody != null) {
-                                errorBodyText = errorBody.string();
-                            }
-                        } catch (Exception ignored) {
-                        }
+                    String errorBodyText = readErrorBody(response);
 
+                    if (ErrorParser.isTokenExpiredStatus(code)) {
                         if (errorBodyText != null && errorBodyText.toLowerCase(Locale.US).contains("banned")) {
                             callback.onError("Account is banned");
                         } else {
-                            callback.onError("Session expired. Please log in again.");
+                            callback.onError(ErrorParser.parseHttpError(code, errorBodyText, "Error: " + code).getMessage());
                         }
                         return;
-                    }
-
-                    String errorBodyText = null;
-                    try {
-                        ResponseBody errorBody = response.errorBody();
-                        if (errorBody != null) {
-                            errorBodyText = errorBody.string();
-                        }
-                    } catch (Exception ignored) {
                     }
 
                     if (errorBodyText != null && !errorBodyText.trim().isEmpty()) {
@@ -717,15 +695,37 @@ public class ComicRepository {
                         }
                     }
 
-                    callback.onError("Error: " + code);
+                    callback.onError(ErrorParser.parseHttpError(code, errorBodyText, "Error: " + code).getMessage());
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<CommentItem> call, @NonNull Throwable t) {
-                callback.onError(t.getMessage());
+                callback.onError(getNetworkMessage(t));
             }
         });
+    }
+
+    @NonNull
+    private String getNetworkMessage(@Nullable Throwable throwable) {
+        if (throwable == null) {
+            return "Network error";
+        }
+        return ErrorParser.parseThrowable(throwable, "Network error").getMessage();
+    }
+
+    @Nullable
+    private String readErrorBody(@NonNull Response<?> response) {
+        try {
+            ResponseBody errorBody = response.errorBody();
+            if (errorBody == null) {
+                return null;
+            }
+            String errorBodyText = errorBody.string();
+            return errorBodyText == null || errorBodyText.trim().isEmpty() ? null : errorBodyText;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
 }
