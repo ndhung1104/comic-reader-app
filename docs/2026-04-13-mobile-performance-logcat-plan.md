@@ -220,7 +220,7 @@ bash ./gradlew assembleDebug
 ## Progress Update (2026-04-14)
 
 ### Overall
-- Current scope status: **P0 implemented in code, P1/P2 pending**.
+- Current scope status: **P0 + P1 implemented in code, P2 pending**.
 - Branch: `optimization-testing`.
 
 ### P0 Status
@@ -241,14 +241,33 @@ bash ./gradlew assembleDebug
   - Hardened `ReaderAudioController` callbacks to ignore stale player callbacks and added lifecycle logs.
 
 ### Verification Status
-- [x] `testDebugUnitTest --offline` passed.
-- [x] `lint --offline` passed.
-- [x] `assembleDebug --offline` passed.
+- [x] `testDebugUnitTest` passed.
+- [x] `lint` passed.
+- [x] `assembleDebug` passed.
 - [x] Added and passed new unit tests:
   - `PerfSessionTest`
   - `PerfLoggerTest`
   - `InFlightCallRegistryTest`
+  - `ErrorParserTest`
+  - `ApiRequestMetricsTest`
+
+### P1 Status
+- [x] **P1.1 Tune RecyclerView cache + preload policy**
+  - Reduced `ReaderActivity` cache size from `6` to `3`.
+  - Added conditional `setHasFixedSize(...)` based on page metadata stability.
+  - Added preload/bind/memory telemetry in `ReaderPageAdapter` and reader lifecycle memory snapshots.
+- [x] **P1.2 Structured network latency logging**
+  - Removed default `HttpLoggingInterceptor.Level.BODY` from normal flow.
+  - Added lightweight network perf interceptor in `ApiClient` (method/path/status/duration/request-count window).
+  - Added request window counter (`ApiRequestMetrics`) + unit test.
+- [x] **P1.3 Centralized API error mapping**
+  - Added `AppError` + `ErrorParser` with HTTP + throwable mapping.
+  - Repositories now parse auth/network errors via `ErrorParser`.
+  - Replaced brittle session-expired string checks in Reader/Library/Comic comment UI flows with `ErrorParser.isTokenExpiredMessage(...)`.
+- [x] **P1.4 LeakCanary debug integration**
+  - Added `debugImplementation` LeakCanary dependency via version catalog.
+  - Added `ComicReaderApp` and registered in manifest for app-level perf hooks/debug leak tooling.
 
 ### Remaining Work
-- [ ] Manual validation scenarios on real device/emulator (Reader long-scroll, fast-exit while loading, reopen loop, audio lifecycle).
-- [ ] P1 and P2 phases (as defined above) are not started.
+- [ ] Run full manual validation scenarios on real device/emulator with new P1 telemetry + LeakCanary traces.
+- [ ] Execute P2 phases (as defined above) after collecting P1 telemetry evidence.

@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.group09.ComicReader.R;
+import com.group09.ComicReader.common.error.ErrorParser;
 import com.group09.ComicReader.data.download.ReaderContentSourceResolver;
 import com.group09.ComicReader.data.local.download.ChapterDownloadEntity;
 import com.group09.ComicReader.data.local.download.ChapterPageFileEntity;
@@ -26,8 +27,6 @@ import com.group09.ComicReader.model.ReaderPage;
 import com.group09.ComicReader.model.ReaderPageResponse;
 import com.group09.ComicReader.model.RecentReadResponse;
 import com.group09.ComicReader.model.WalletResponse;
-
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -259,11 +258,9 @@ public class ReaderRepository {
             public void onResponse(@NonNull Call<RecentReadResponse> call,
                                    @NonNull Response<RecentReadResponse> response) {
                 if (!response.isSuccessful() || response.body() == null) {
-                    if (response.code() == 401 || response.code() == 403) {
-                        callback.onError("Session expired. Please log in again.");
-                    } else {
-                        callback.onError("Failed to save reading history (" + response.code() + ")");
-                    }
+                    callback.onError(extractErrorMessage(
+                            response,
+                            "Failed to save reading history (" + response.code() + ")"));
                     return;
                 }
                 callback.onSuccess();
@@ -353,24 +350,25 @@ public class ReaderRepository {
 
     @NonNull
     private String getNetworkMessage(@NonNull Throwable throwable) {
-        return throwable.getMessage() == null ? "Network error" : throwable.getMessage();
+        return ErrorParser.parseThrowable(throwable, "Network error").getMessage();
     }
 
     @NonNull
     private String extractErrorMessage(@NonNull Response<?> response, @NonNull String fallback) {
+        String raw = readErrorBody(response);
+        return ErrorParser.parseHttpError(response.code(), raw, fallback).getMessage();
+    }
+
+    @Nullable
+    private String readErrorBody(@NonNull Response<?> response) {
         try {
             if (response.errorBody() == null) {
-                return fallback;
+                return null;
             }
             String raw = response.errorBody().string();
-            if (raw == null || raw.trim().isEmpty()) {
-                return fallback;
-            }
-            JSONObject json = new JSONObject(raw);
-            String message = json.optString("error", json.optString("message", fallback));
-            return message == null || message.trim().isEmpty() ? fallback : message;
+            return raw == null || raw.trim().isEmpty() ? null : raw;
         } catch (Exception ignored) {
-            return fallback;
+            return null;
         }
     }
 

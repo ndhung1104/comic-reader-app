@@ -16,11 +16,14 @@ import com.bumptech.glide.RequestBuilder;
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.databinding.ItemReaderPageBinding;
 import com.group09.ComicReader.model.ReaderPage;
+import com.group09.ComicReader.util.PerfLogger;
+import com.group09.ComicReader.util.PerfSession;
 
 import java.util.List;
 import java.util.Objects;
 
 public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter.PageViewHolder> {
+    private static final String SCREEN_NAME = "ReaderPageAdapter";
 
     private static final float ZOOM_MIN_SCALE = 1.0f;
     private static final float ZOOM_MEDIUM_SCALE = 2.0f;
@@ -31,6 +34,7 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
     private static final int PRELOAD_BEHIND_DEFAULT = 1;
     private static final int PRELOAD_AHEAD_ZOOMED = 8;
     private static final int PRELOAD_BEHIND_ZOOMED = 2;
+    private static final long BIND_LOG_WINDOW_MS = 1_000L;
 
     private static final DiffUtil.ItemCallback<ReaderPage> DIFF_CALLBACK =
             new DiffUtil.ItemCallback<ReaderPage>() {
@@ -56,6 +60,8 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
     private int lastPreloadStart = -1;
     private int lastPreloadEnd = -1;
     private boolean lastPreloadZoomed;
+    private long bindWindowStartMs = 0L;
+    private int bindCountInWindow = 0;
 
     public ReaderPageAdapter() {
         super(DIFF_CALLBACK);
@@ -93,6 +99,7 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
     @Override
     public void onBindViewHolder(@NonNull PageViewHolder holder, int position) {
         ReaderPage page = getItem(position);
+        recordBindTelemetry();
         applyPresetAspectRatio(holder, page);
         holder.binding.imgReaderPage.setMinimumScale(ZOOM_MIN_SCALE);
         holder.binding.imgReaderPage.setMediumScale(ZOOM_MEDIUM_SCALE);
@@ -183,6 +190,7 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
         lastPreloadStart = targetStart;
         lastPreloadEnd = targetEnd;
         lastPreloadZoomed = zoomed;
+        logPreloadTelemetry(targetStart, targetEnd, safeLastVisible - firstVisible + 1, zoomed);
     }
 
     private float clampScale(float scale) {
@@ -309,6 +317,42 @@ public class ReaderPageAdapter extends ListAdapter<ReaderPage, ReaderPageAdapter
         lastPreloadStart = -1;
         lastPreloadEnd = -1;
         lastPreloadZoomed = false;
+    }
+
+    private void recordBindTelemetry() {
+        long now = System.currentTimeMillis();
+        if (bindWindowStartMs <= 0L) {
+            bindWindowStartMs = now;
+        }
+        bindCountInWindow += 1;
+        long elapsed = now - bindWindowStartMs;
+        if (elapsed < BIND_LOG_WINDOW_MS) {
+            return;
+        }
+        PerfLogger.d(
+                PerfLogger.TAG_READER,
+                SCREEN_NAME,
+                "bind_rate",
+                PerfLogger.kv("bindCount", bindCountInWindow),
+                PerfLogger.kv("windowMs", elapsed),
+                PerfLogger.kv("itemCount", getItemCount()));
+        bindWindowStartMs = now;
+        bindCountInWindow = 0;
+    }
+
+    private void logPreloadTelemetry(int start, int end, int visibleCount, boolean zoomed) {
+        PerfSession.MemorySnapshot snapshot = PerfSession.captureMemorySnapshot();
+        PerfLogger.d(
+                PerfLogger.TAG_READER,
+                SCREEN_NAME,
+                "preload_window",
+                PerfLogger.kv("start", start),
+                PerfLogger.kv("end", end),
+                PerfLogger.kv("visibleCount", Math.max(0, visibleCount)),
+                PerfLogger.kv("zoomed", zoomed),
+                PerfLogger.kv("itemCount", getItemCount()),
+                PerfLogger.kv("usedMb", snapshot.getUsedMb()),
+                PerfLogger.kv("nativeHeapMb", snapshot.getNativeHeapMb()));
     }
 
     private static final class TargetSize {

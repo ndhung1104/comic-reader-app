@@ -2,14 +2,13 @@ package com.group09.ComicReader.data;
 
 import androidx.annotation.NonNull;
 
+import com.group09.ComicReader.common.error.ErrorParser;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.model.FollowStatusResponse;
 import com.group09.ComicReader.model.FollowedComicResponse;
 import com.group09.ComicReader.model.LibraryItem;
 import com.group09.ComicReader.model.ReadingHistoryRequest;
 import com.group09.ComicReader.model.RecentReadResponse;
-
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -164,29 +163,24 @@ public class LibraryRepository {
 
     @NonNull
     private String getNetworkMessage(@NonNull Throwable throwable) {
-        return throwable.getMessage() == null || throwable.getMessage().trim().isEmpty()
-                ? "Network error"
-                : throwable.getMessage();
+        return ErrorParser.parseThrowable(throwable, "Network error").getMessage();
     }
 
     @NonNull
     private String extractErrorMessage(@NonNull Response<?> response, @NonNull String fallback) {
-        if (response.code() == 401 || response.code() == 403) {
-            return "Session expired. Please log in again.";
-        }
+        String raw = readErrorBody(response);
+        return ErrorParser.parseHttpError(response.code(), raw, fallback).getMessage();
+    }
+
+    private String readErrorBody(@NonNull Response<?> response) {
         try {
             if (response.errorBody() == null) {
-                return fallback;
+                return null;
             }
             String raw = response.errorBody().string();
-            if (raw == null || raw.trim().isEmpty()) {
-                return fallback;
-            }
-            JSONObject json = new JSONObject(raw);
-            String message = json.optString("error", json.optString("message", fallback));
-            return message == null || message.trim().isEmpty() ? fallback : message;
+            return raw == null || raw.trim().isEmpty() ? null : raw;
         } catch (Exception ignored) {
-            return fallback;
+            return null;
         }
     }
 }

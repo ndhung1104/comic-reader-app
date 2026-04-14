@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.CommentAdapter;
+import com.group09.ComicReader.common.error.ErrorParser;
 import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.databinding.FragmentCommentSheetBinding;
 import com.group09.ComicReader.viewmodel.CommentsViewModel;
@@ -172,7 +173,7 @@ public class CommentSheetBottomSheetFragment extends BottomSheetDialogFragment {
 
         viewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
             if (error != null && !error.isEmpty()) {
-                if ("Session expired. Please log in again.".equals(error)) {
+                if (ErrorParser.isTokenExpiredMessage(error)) {
                     sessionManager.clear();
                     binding.edtCommentSheetInput.setText("");
                     viewModel.cancelReply();

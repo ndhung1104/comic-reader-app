@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.ReaderCommentsFooterAdapter;
 import com.group09.ComicReader.adapter.ReaderPageAdapter;
+import com.group09.ComicReader.common.error.ErrorParser;
 import com.group09.ComicReader.data.ComicRepository;
 import com.group09.ComicReader.data.ReaderRepository;
 import com.group09.ComicReader.data.local.AppSettingsStore;
@@ -56,6 +57,7 @@ public class ReaderActivity extends AppCompatActivity {
     private static final float AUDIO_SPEED_075 = 0.75f;
     private static final float AUDIO_SPEED_100 = 1.0f;
     private static final float AUDIO_SPEED_125 = 1.25f;
+    private static final int READER_ITEM_VIEW_CACHE_SIZE = 3;
 
     public static Intent createIntent(@NonNull Context context, int comicId, int chapterId, int chapterNumber) {
         Intent intent = new Intent(context, ReaderActivity.class);
@@ -199,7 +201,8 @@ public class ReaderActivity extends AppCompatActivity {
         pageAdapter.setItemZoomEnabled(!ENABLE_ZOOM_CONTAINER);
         layoutManager = new LinearLayoutManager(this);
         binding.rcvReaderPages.setLayoutManager(layoutManager);
-        binding.rcvReaderPages.setItemViewCacheSize(6);
+        binding.rcvReaderPages.setItemViewCacheSize(READER_ITEM_VIEW_CACHE_SIZE);
+        binding.rcvReaderPages.setHasFixedSize(false);
         binding.rcvReaderPages.setAdapter(concatAdapter);
         binding.rcvReaderPages.addOnScrollListener(progressScrollListener);
         binding.zoomContainerReader.setZoomEnabled(ENABLE_ZOOM_CONTAINER);
@@ -249,7 +252,7 @@ public class ReaderActivity extends AppCompatActivity {
         });
         commentsViewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.trim().isEmpty()) {
-                if ("Session expired. Please log in again.".equals(error)) {
+                if (ErrorParser.isTokenExpiredMessage(error)) {
                     sessionManager.clear();
                     commentsFooterAdapter.setLoggedIn(false);
                 }
@@ -266,6 +269,14 @@ public class ReaderActivity extends AppCompatActivity {
                 return;
             }
             List<ReaderPage> safePages = pages == null ? Collections.emptyList() : new ArrayList<>(pages);
+            boolean hasStableItemBounds = hasStablePageBounds(safePages);
+            binding.rcvReaderPages.setHasFixedSize(hasStableItemBounds);
+            PerfLogger.d(
+                    PerfLogger.TAG_READER,
+                    SCREEN_NAME,
+                    "reader_fixed_size_mode",
+                    PerfLogger.kv("enabled", hasStableItemBounds),
+                    PerfLogger.kv("pageCount", safePages.size()));
             pageAdapter.submitList(safePages, () -> {
                 if (!isUiActive()) {
                     return;
@@ -299,7 +310,7 @@ public class ReaderActivity extends AppCompatActivity {
                 return;
             }
             if (message != null && !message.trim().isEmpty()) {
-                if ("Session expired. Please log in again.".equals(message)) {
+                if (ErrorParser.isTokenExpiredMessage(message)) {
                     sessionManager.clear();
                     commentsFooterAdapter.setLoggedIn(false);
                 }
@@ -352,6 +363,7 @@ public class ReaderActivity extends AppCompatActivity {
                 "chapter_pages_requested",
                 PerfLogger.kv("chapterId", chapterId));
         viewModel.loadChapterPages(chapterId);
+        logMemorySnapshot("reader_init");
     }
 
     private void resolveChapterMetaIfNeeded() {
@@ -464,6 +476,7 @@ public class ReaderActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         PerfLogger.d(PerfLogger.TAG_READER, SCREEN_NAME, "on_destroy");
+        logMemorySnapshot("reader_destroy");
         progressHandler.removeCallbacks(saveProgressRunnable);
         if (readerRepository != null) {
             readerRepository.cancelAllPendingRequests();
@@ -771,5 +784,29 @@ public class ReaderActivity extends AppCompatActivity {
         boolean pageLoading = Boolean.TRUE.equals(viewModel.getLoading().getValue());
         boolean purchaseLoading = Boolean.TRUE.equals(viewModel.getPurchaseLoading().getValue());
         binding.prgReaderLoading.setVisibility(pageLoading || purchaseLoading ? View.VISIBLE : View.GONE);
+    }
+
+    private boolean hasStablePageBounds(@NonNull List<ReaderPage> pages) {
+        if (pages.isEmpty()) {
+            return false;
+        }
+        for (ReaderPage page : pages) {
+            if (page == null || page.getImageWidth() <= 0 || page.getImageHeight() <= 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void logMemorySnapshot(@NonNull String event) {
+        PerfSession.MemorySnapshot snapshot = PerfSession.captureMemorySnapshot();
+        PerfLogger.d(
+                PerfLogger.TAG_MEM,
+                SCREEN_NAME,
+                event,
+                PerfLogger.kv("usedMb", snapshot.getUsedMb()),
+                PerfLogger.kv("freeMb", snapshot.getFreeMb()),
+                PerfLogger.kv("maxMb", snapshot.getMaxMb()),
+                PerfLogger.kv("nativeHeapMb", snapshot.getNativeHeapMb()));
     }
 }
