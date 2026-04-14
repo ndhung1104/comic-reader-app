@@ -85,6 +85,7 @@ public class ReaderRepository {
     private final ReaderContentSourceResolver contentSourceResolver;
     private final ExecutorService ioExecutor;
     private final Handler mainHandler;
+    private final InFlightCallRegistry inFlightCallRegistry;
 
     public ReaderRepository(@NonNull Context context, @NonNull ApiClient apiClient) {
         this(
@@ -108,10 +109,15 @@ public class ReaderRepository {
         this.contentSourceResolver = contentSourceResolver;
         this.ioExecutor = Executors.newSingleThreadExecutor();
         this.mainHandler = new Handler(Looper.getMainLooper());
+        this.inFlightCallRegistry = new InFlightCallRegistry();
+    }
+
+    public void cancelAllPendingRequests() {
+        inFlightCallRegistry.cancelAll();
     }
 
     public void getChapterById(long chapterId, @NonNull ChapterCallback callback) {
-        apiClient.chapterApi().getChapter(chapterId).enqueue(new Callback<ComicChapterResponse>() {
+        enqueueTracked(apiClient.chapterApi().getChapter(chapterId), new Callback<ComicChapterResponse>() {
             @Override
             public void onResponse(@NonNull Call<ComicChapterResponse> call,
                                    @NonNull Response<ComicChapterResponse> response) {
@@ -130,7 +136,7 @@ public class ReaderRepository {
     }
 
     public void getComicChapters(int comicId, @NonNull ChaptersCallback callback) {
-        apiClient.comicApi().getComicChapters(comicId).enqueue(new Callback<List<ComicChapterResponse>>() {
+        enqueueTracked(apiClient.comicApi().getComicChapters(comicId), new Callback<List<ComicChapterResponse>>() {
             @Override
             public void onResponse(@NonNull Call<List<ComicChapterResponse>> call,
                                    @NonNull Response<List<ComicChapterResponse>> response) {
@@ -178,7 +184,7 @@ public class ReaderRepository {
     }
 
     private void fetchChapterPagesRemote(long chapterId, @NonNull PagesCallback callback, boolean localFallbackAttempted) {
-        apiClient.chapterApi().getChapterPages(chapterId).enqueue(new Callback<List<ReaderPageResponse>>() {
+        enqueueTracked(apiClient.chapterApi().getChapterPages(chapterId), new Callback<List<ReaderPageResponse>>() {
             @Override
             public void onResponse(@NonNull Call<List<ReaderPageResponse>> call,
                                    @NonNull Response<List<ReaderPageResponse>> response) {
@@ -221,7 +227,7 @@ public class ReaderRepository {
 
     public void purchaseChapter(long chapterId, @NonNull PurchaseChapterCallback callback) {
         PurchaseChapterRequest request = new PurchaseChapterRequest(chapterId, "COIN");
-        apiClient.walletApi().purchaseChapter(request).enqueue(new Callback<WalletResponse>() {
+        enqueueTracked(apiClient.walletApi().purchaseChapter(request), new Callback<WalletResponse>() {
             @Override
             public void onResponse(@NonNull Call<WalletResponse> call, @NonNull Response<WalletResponse> response) {
                 if (!response.isSuccessful() || response.body() == null) {
@@ -248,7 +254,7 @@ public class ReaderRepository {
 
     public void recordReadingHistory(int comicId, int chapterId, int pageNumber, @NonNull HistoryCallback callback) {
         ReadingHistoryRequest request = new ReadingHistoryRequest((long) comicId, (long) chapterId, pageNumber);
-        apiClient.libraryApi().recordReadingHistory(request).enqueue(new Callback<RecentReadResponse>() {
+        enqueueTracked(apiClient.libraryApi().recordReadingHistory(request), new Callback<RecentReadResponse>() {
             @Override
             public void onResponse(@NonNull Call<RecentReadResponse> call,
                                    @NonNull Response<RecentReadResponse> response) {
@@ -272,7 +278,7 @@ public class ReaderRepository {
 
     public void createOrGetChapterAudioPlaylist(long chapterId, @NonNull AudioPlaylistCallback callback) {
         ChapterAudioPlaylistRequest request = new ChapterAudioPlaylistRequest();
-        apiClient.chapterApi().createOrGetAudioPlaylist(chapterId, request).enqueue(new Callback<ChapterAudioPlaylistResponse>() {
+        enqueueTracked(apiClient.chapterApi().createOrGetAudioPlaylist(chapterId, request), new Callback<ChapterAudioPlaylistResponse>() {
             @Override
             public void onResponse(@NonNull Call<ChapterAudioPlaylistResponse> call,
                     @NonNull Response<ChapterAudioPlaylistResponse> response) {
@@ -310,6 +316,10 @@ public class ReaderRepository {
                 callback.onError(getNetworkMessage(throwable));
             }
         });
+    }
+
+    private <T> void enqueueTracked(@NonNull Call<T> call, @NonNull Callback<T> callback) {
+        inFlightCallRegistry.enqueue(call, callback);
     }
 
     @NonNull

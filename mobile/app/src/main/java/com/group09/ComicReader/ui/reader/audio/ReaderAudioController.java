@@ -4,11 +4,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.group09.ComicReader.model.ReaderAudioPage;
+import com.group09.ComicReader.util.PerfLogger;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ReaderAudioController {
+    private static final String SCREEN_NAME = "ReaderAudioController";
 
     public interface Listener {
         void onPlaybackStateChanged();
@@ -44,17 +46,28 @@ public class ReaderAudioController {
         }
         currentIndex = playlist.isEmpty() ? -1 : 0;
         releasePlayer();
+        PerfLogger.d(
+                PerfLogger.TAG_READER,
+                SCREEN_NAME,
+                "set_playlist",
+                PerfLogger.kv("size", playlist.size()));
         listener.onPlaybackStateChanged();
     }
 
     public boolean playOrResume() {
         if (playlist.isEmpty()) {
+            PerfLogger.d(PerfLogger.TAG_READER, SCREEN_NAME, "play_skipped_empty_playlist");
             return false;
         }
 
         if (player != null) {
             player.play();
             player.setSpeed(playbackSpeed);
+            PerfLogger.d(
+                    PerfLogger.TAG_READER,
+                    SCREEN_NAME,
+                    "resume_existing_player",
+                    PerfLogger.kv("index", currentIndex));
             listener.onPlaybackStateChanged();
             return true;
         }
@@ -70,6 +83,11 @@ public class ReaderAudioController {
             return;
         }
         player.pause();
+        PerfLogger.d(
+                PerfLogger.TAG_READER,
+                SCREEN_NAME,
+                "pause",
+                PerfLogger.kv("index", currentIndex));
         listener.onPlaybackStateChanged();
     }
 
@@ -93,6 +111,11 @@ public class ReaderAudioController {
     }
 
     public void release() {
+        PerfLogger.d(
+                PerfLogger.TAG_READER,
+                SCREEN_NAME,
+                "release_controller",
+                PerfLogger.kv("playlistSize", playlist.size()));
         releasePlayer();
         currentIndex = playlist.isEmpty() ? -1 : 0;
         listener.onPlaybackStateChanged();
@@ -107,6 +130,11 @@ public class ReaderAudioController {
 
         ReaderAudioPage page = playlist.get(index);
         if (page.getAudioUrl() == null || page.getAudioUrl().trim().isEmpty()) {
+            PerfLogger.w(
+                    PerfLogger.TAG_READER,
+                    SCREEN_NAME,
+                    "missing_audio_url",
+                    PerfLogger.kv("index", index));
             listener.onPlaybackError(ReaderAudioError.MISSING_AUDIO_URL);
             listener.onPlaybackStateChanged();
             return false;
@@ -116,22 +144,40 @@ public class ReaderAudioController {
         ReaderAudioPlayer createdPlayer = playerFactory.create();
         player = createdPlayer;
         currentIndex = index;
+        PerfLogger.d(
+                PerfLogger.TAG_READER,
+                SCREEN_NAME,
+                "prepare_player",
+                PerfLogger.kv("index", index));
         try {
             createdPlayer.prepare(page.getAudioUrl(), new ReaderAudioPlayer.Listener() {
                 @Override
                 public void onPrepared() {
-                    if (player == null) {
+                    if (player != createdPlayer) {
                         return;
                     }
                     player.setSpeed(playbackSpeed);
                     player.play();
+                    PerfLogger.d(
+                            PerfLogger.TAG_READER,
+                            SCREEN_NAME,
+                            "prepared_and_playing",
+                            PerfLogger.kv("index", currentIndex));
                     listener.onPlaybackStateChanged();
                 }
 
                 @Override
                 public void onCompletion() {
+                    if (player != createdPlayer) {
+                        return;
+                    }
                     int nextIndex = currentIndex + 1;
                     if (nextIndex < playlist.size()) {
+                        PerfLogger.d(
+                                PerfLogger.TAG_READER,
+                                SCREEN_NAME,
+                                "play_next",
+                                PerfLogger.kv("nextIndex", nextIndex));
                         playAtIndex(nextIndex);
                         return;
                     }
@@ -142,7 +188,15 @@ public class ReaderAudioController {
 
                 @Override
                 public void onError() {
+                    if (player != createdPlayer) {
+                        return;
+                    }
                     releasePlayer();
+                    PerfLogger.w(
+                            PerfLogger.TAG_READER,
+                            SCREEN_NAME,
+                            "playback_error",
+                            PerfLogger.kv("index", currentIndex));
                     listener.onPlaybackError(ReaderAudioError.PLAYBACK_FAILED);
                     listener.onPlaybackStateChanged();
                 }
@@ -151,6 +205,11 @@ public class ReaderAudioController {
             return true;
         } catch (Exception ignored) {
             releasePlayer();
+            PerfLogger.w(
+                    PerfLogger.TAG_READER,
+                    SCREEN_NAME,
+                    "prepare_exception",
+                    PerfLogger.kv("index", index));
             listener.onPlaybackError(ReaderAudioError.PLAYBACK_FAILED);
             listener.onPlaybackStateChanged();
             return false;
@@ -162,6 +221,11 @@ public class ReaderAudioController {
             return;
         }
         player.release();
+        PerfLogger.d(
+                PerfLogger.TAG_READER,
+                SCREEN_NAME,
+                "release_player",
+                PerfLogger.kv("index", currentIndex));
         player = null;
     }
 }

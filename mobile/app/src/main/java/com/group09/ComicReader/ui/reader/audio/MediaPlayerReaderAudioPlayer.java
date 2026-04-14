@@ -7,13 +7,21 @@ import android.media.PlaybackParams;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.group09.ComicReader.util.PerfLogger;
+
 public class MediaPlayerReaderAudioPlayer implements ReaderAudioPlayer {
+
+    private static final String SCREEN_NAME = "MediaPlayerReaderAudioPlayer";
 
     @Nullable
     private MediaPlayer mediaPlayer;
 
     @Override
     public void prepare(@NonNull String audioUrl, @NonNull Listener listener) throws Exception {
+        PerfLogger.d(
+                PerfLogger.TAG_READER,
+                SCREEN_NAME,
+                "prepare_start");
         release();
 
         mediaPlayer = new MediaPlayer();
@@ -25,6 +33,12 @@ public class MediaPlayerReaderAudioPlayer implements ReaderAudioPlayer {
         mediaPlayer.setOnPreparedListener(player -> listener.onPrepared());
         mediaPlayer.setOnCompletionListener(player -> listener.onCompletion());
         mediaPlayer.setOnErrorListener((player, what, extra) -> {
+            PerfLogger.w(
+                    PerfLogger.TAG_READER,
+                    SCREEN_NAME,
+                    "prepare_error",
+                    PerfLogger.kv("what", what),
+                    PerfLogger.kv("extra", extra));
             listener.onError();
             return true;
         });
@@ -36,6 +50,7 @@ public class MediaPlayerReaderAudioPlayer implements ReaderAudioPlayer {
         if (mediaPlayer == null) {
             return;
         }
+        PerfLogger.d(PerfLogger.TAG_READER, SCREEN_NAME, "play");
         mediaPlayer.start();
     }
 
@@ -44,6 +59,7 @@ public class MediaPlayerReaderAudioPlayer implements ReaderAudioPlayer {
         if (mediaPlayer == null || !mediaPlayer.isPlaying()) {
             return;
         }
+        PerfLogger.d(PerfLogger.TAG_READER, SCREEN_NAME, "pause");
         mediaPlayer.pause();
     }
 
@@ -74,10 +90,14 @@ public class MediaPlayerReaderAudioPlayer implements ReaderAudioPlayer {
             return;
         }
         try {
+            mediaPlayer.setOnPreparedListener(null);
+            mediaPlayer.setOnCompletionListener(null);
+            mediaPlayer.setOnErrorListener(null);
             mediaPlayer.reset();
             mediaPlayer.release();
         } catch (Exception ignored) {
         }
+        PerfLogger.d(PerfLogger.TAG_READER, SCREEN_NAME, "release");
         mediaPlayer = null;
     }
 }

@@ -36,6 +36,8 @@ import com.group09.ComicReader.model.ReaderPage;
 import com.group09.ComicReader.ui.reader.audio.MediaPlayerReaderAudioPlayer;
 import com.group09.ComicReader.ui.reader.audio.ReaderAudioController;
 import com.group09.ComicReader.ui.reader.audio.ReaderAudioError;
+import com.group09.ComicReader.util.PerfLogger;
+import com.group09.ComicReader.util.PerfSession;
 import com.group09.ComicReader.viewmodel.CommentsViewModel;
 import com.group09.ComicReader.viewmodel.ReaderViewModel;
 
@@ -44,6 +46,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class ReaderActivity extends AppCompatActivity {
+    private static final String SCREEN_NAME = "ReaderActivity";
 
     public static final String EXTRA_COMIC_ID = "extra_comic_id";
     public static final String EXTRA_CHAPTER_ID = "extra_chapter_id";
@@ -94,6 +97,9 @@ public class ReaderActivity extends AppCompatActivity {
     private boolean paywallDialogVisible;
     private ComicChapterResponse currentChapterMeta;
     private ReaderAudioController audioController;
+    private int lastRenderedPageIndex = RecyclerView.NO_POSITION;
+    private int lastRenderedPageCount = -1;
+    private long chapterLoadStartNs = -1L;
 
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private final Runnable saveProgressRunnable = this::saveCurrentReadingProgress;
@@ -120,6 +126,11 @@ public class ReaderActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        PerfLogger.d(
+                PerfLogger.TAG_READER,
+                SCREEN_NAME,
+                "on_create",
+                PerfLogger.kv("sessionId", PerfSession.getSessionId()));
         AppSettingsStore settingsStore = new AppSettingsStore(this);
         AppCompatDelegate.setDefaultNightMode(settingsStore.isDarkModeEnabled()
                 ? AppCompatDelegate.MODE_NIGHT_YES
@@ -215,7 +226,9 @@ public class ReaderActivity extends AppCompatActivity {
         binding.btnReaderBack.setOnClickListener(v -> {
             resetZoomToBaseState();
             saveCurrentReadingProgress();
-            audioController.release();
+            if (audioController != null) {
+                audioController.release();
+            }
             finish();
         });
         updateReaderProgressUi();
@@ -249,8 +262,14 @@ public class ReaderActivity extends AppCompatActivity {
         });
         viewModel.getPurchaseLoading().observe(this, loading -> updateLoadingIndicator());
         viewModel.getPages().observe(this, pages -> {
+            if (!isUiActive()) {
+                return;
+            }
             List<ReaderPage> safePages = pages == null ? Collections.emptyList() : new ArrayList<>(pages);
             pageAdapter.submitList(safePages, () -> {
+                if (!isUiActive()) {
+                    return;
+                }
                 restoreReadingPositionIfNeeded();
                 binding.rcvReaderPages.post(this::preloadAroundCurrentViewport);
                 binding.rcvReaderPages.post(this::updateReaderProgressUi);
@@ -265,8 +284,20 @@ public class ReaderActivity extends AppCompatActivity {
                 historyRecorded = true;
                 viewModel.recordReadingHistory(comicId, chapterId, 1);
             }
+            if (chapterLoadStartNs > 0L) {
+                PerfLogger.d(
+                        PerfLogger.TAG_READER,
+                        SCREEN_NAME,
+                        "chapter_pages_loaded",
+                        PerfLogger.kv("pageCount", safePages.size()),
+                        PerfLogger.kv("durationMs", PerfSession.durationMs(chapterLoadStartNs)));
+                chapterLoadStartNs = -1L;
+            }
         });
         viewModel.getErrorMessage().observe(this, message -> {
+            if (!isUiActive()) {
+                return;
+            }
             if (message != null && !message.trim().isEmpty()) {
                 if ("Session expired. Please log in again.".equals(message)) {
                     sessionManager.clear();
@@ -281,6 +312,9 @@ public class ReaderActivity extends AppCompatActivity {
             updateReaderProgressUi();
         });
         viewModel.getPurchaseSuccessBalance().observe(this, balance -> {
+            if (!isUiActive()) {
+                return;
+            }
             if (balance == null) {
                 return;
             }
@@ -291,6 +325,9 @@ public class ReaderActivity extends AppCompatActivity {
 
         viewModel.getAudioLoading().observe(this, loading -> updateAudioButtonState());
         viewModel.getAudioErrorMessage().observe(this, message -> {
+            if (!isUiActive()) {
+                return;
+            }
             if (message != null && !message.trim().isEmpty()) {
                 Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                 updateAudioButtonState();
@@ -308,6 +345,12 @@ public class ReaderActivity extends AppCompatActivity {
         resolveChapterMetaIfNeeded();
         initHeaderIfPossible();
         initCommentsIfPossible();
+        chapterLoadStartNs = PerfLogger.startTimer();
+        PerfLogger.d(
+                PerfLogger.TAG_READER,
+                SCREEN_NAME,
+                "chapter_pages_requested",
+                PerfLogger.kv("chapterId", chapterId));
         viewModel.loadChapterPages(chapterId);
     }
 
@@ -319,6 +362,9 @@ public class ReaderActivity extends AppCompatActivity {
         readerRepository.getChapterById(chapterId, new ReaderRepository.ChapterCallback() {
             @Override
             public void onSuccess(@NonNull ComicChapterResponse chapter) {
+                if (!isUiActive()) {
+                    return;
+                }
                 currentChapterMeta = chapter;
                 if (chapter.getComicId() != null && comicId <= 0) {
                     comicId = chapter.getComicId().intValue();
@@ -380,6 +426,9 @@ public class ReaderActivity extends AppCompatActivity {
         ComicRepository.getInstance().getComicById(comicId, new ComicRepository.ComicCallback() {
             @Override
             public void onSuccess(Comic fetchedComic) {
+                if (!isUiActive()) {
+                    return;
+                }
                 if (fetchedComic == null) {
                     return;
                 }
@@ -406,17 +455,26 @@ public class ReaderActivity extends AppCompatActivity {
     protected void onPause() {
         resetZoomToBaseState();
         saveCurrentReadingProgress();
-        audioController.pause();
+        if (audioController != null) {
+            audioController.pause();
+        }
         super.onPause();
     }
 
     @Override
     protected void onDestroy() {
+        PerfLogger.d(PerfLogger.TAG_READER, SCREEN_NAME, "on_destroy");
         progressHandler.removeCallbacks(saveProgressRunnable);
+        if (readerRepository != null) {
+            readerRepository.cancelAllPendingRequests();
+        }
         if (binding != null) {
             binding.rcvReaderPages.removeOnScrollListener(progressScrollListener);
         }
-        audioController.release();
+        if (audioController != null) {
+            audioController.release();
+            audioController = null;
+        }
         super.onDestroy();
     }
 
@@ -435,8 +493,14 @@ public class ReaderActivity extends AppCompatActivity {
         int targetOffset = restoredProgress.getOffset();
 
         binding.rcvReaderPages.post(() -> {
+            if (!isUiActive()) {
+                return;
+            }
             layoutManager.scrollToPositionWithOffset(targetPosition, targetOffset);
             binding.rcvReaderPages.post(() -> {
+                if (!isUiActive()) {
+                    return;
+                }
                 preloadAroundCurrentViewport();
                 updateReaderProgressUi();
             });
@@ -467,6 +531,13 @@ public class ReaderActivity extends AppCompatActivity {
         View firstVisiblePageView = layoutManager.findViewByPosition(pagePosition);
         int offset = firstVisiblePageView == null ? 0 : firstVisiblePageView.getTop();
         readerProgressStore.saveProgress(comicId, chapterId, chapterNumber, pagePosition, offset);
+        PerfLogger.d(
+                PerfLogger.TAG_STATE,
+                SCREEN_NAME,
+                "progress_saved",
+                PerfLogger.kv("chapterId", chapterId),
+                PerfLogger.kv("pagePosition", pagePosition),
+                PerfLogger.kv("offset", offset));
     }
 
     private void shareCurrentChapter() {
@@ -494,6 +565,9 @@ public class ReaderActivity extends AppCompatActivity {
         if (loading != null && loading) {
             return;
         }
+        if (audioController == null) {
+            return;
+        }
 
         if (!audioController.hasPlaylist()) {
             viewModel.createOrGetChapterAudioPlaylist(chapterId);
@@ -510,6 +584,9 @@ public class ReaderActivity extends AppCompatActivity {
     }
 
     private void onAudioPlaylistReady(List<ReaderAudioPage> pages) {
+        if (!isUiActive() || audioController == null) {
+            return;
+        }
         List<ReaderAudioPage> safePages = pages == null ? Collections.emptyList() : new ArrayList<>(pages);
         audioController.setPlaylist(safePages);
 
@@ -524,6 +601,11 @@ public class ReaderActivity extends AppCompatActivity {
 
     private void updateAudioButtonState() {
         if (binding == null) {
+            return;
+        }
+        if (audioController == null) {
+            binding.btnReaderAudio.setEnabled(false);
+            binding.btnReaderAudio.setText(R.string.reader_audio_request);
             return;
         }
 
@@ -655,6 +737,12 @@ public class ReaderActivity extends AppCompatActivity {
         }
         int pageCount = pageAdapter.getItemCount();
         int currentPage = pageCount > 0 ? getCurrentReaderPageIndex() + 1 : 0;
+        int currentPageIndex = currentPage > 0 ? currentPage - 1 : RecyclerView.NO_POSITION;
+        if (currentPageIndex == lastRenderedPageIndex && pageCount == lastRenderedPageCount) {
+            return;
+        }
+        lastRenderedPageIndex = currentPageIndex;
+        lastRenderedPageCount = pageCount;
 
         binding.tvReaderProgressStart.setText(String.valueOf(currentPage));
         binding.tvReaderProgressEnd.setText(String.valueOf(pageCount));
@@ -667,6 +755,16 @@ public class ReaderActivity extends AppCompatActivity {
         binding.btnReaderNext.setEnabled(canGoNext);
         binding.btnReaderPrevious.setAlpha(canGoPrevious ? 1f : 0.5f);
         binding.btnReaderNext.setAlpha(canGoNext ? 1f : 0.5f);
+        PerfLogger.d(
+                PerfLogger.TAG_READER,
+                SCREEN_NAME,
+                "progress_ui_updated",
+                PerfLogger.kv("currentPage", currentPage),
+                PerfLogger.kv("pageCount", pageCount));
+    }
+
+    private boolean isUiActive() {
+        return binding != null && !isFinishing() && !isDestroyed();
     }
 
     private void updateLoadingIndicator() {
