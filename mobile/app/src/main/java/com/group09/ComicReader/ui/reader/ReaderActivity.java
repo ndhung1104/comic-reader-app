@@ -37,8 +37,6 @@ import com.group09.ComicReader.model.ReaderPage;
 import com.group09.ComicReader.ui.reader.audio.MediaPlayerReaderAudioPlayer;
 import com.group09.ComicReader.ui.reader.audio.ReaderAudioController;
 import com.group09.ComicReader.ui.reader.audio.ReaderAudioError;
-import com.group09.ComicReader.util.PerfLogger;
-import com.group09.ComicReader.util.PerfSession;
 import com.group09.ComicReader.viewmodel.CommentsViewModel;
 import com.group09.ComicReader.viewmodel.ReaderViewModel;
 
@@ -47,8 +45,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class ReaderActivity extends AppCompatActivity {
-    private static final String SCREEN_NAME = "ReaderActivity";
-
     public static final String EXTRA_COMIC_ID = "extra_comic_id";
     public static final String EXTRA_CHAPTER_ID = "extra_chapter_id";
     public static final String EXTRA_CHAPTER = "extra_chapter";
@@ -104,9 +100,7 @@ public class ReaderActivity extends AppCompatActivity {
     private ReaderAudioController audioController;
     private int lastRenderedPageIndex = RecyclerView.NO_POSITION;
     private int lastRenderedPageCount = -1;
-    private long chapterLoadStartNs = -1L;
     private boolean restoringReadingPosition;
-    private int totalPageMetadataCount;
     private int missingPageMetadataCount;
 
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
@@ -140,11 +134,6 @@ public class ReaderActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        PerfLogger.d(
-                PerfLogger.TAG_READER,
-                SCREEN_NAME,
-                "on_create",
-                PerfLogger.kv("sessionId", PerfSession.getSessionId()));
         AppSettingsStore settingsStore = new AppSettingsStore(this);
         AppCompatDelegate.setDefaultNightMode(settingsStore.isDarkModeEnabled()
                 ? AppCompatDelegate.MODE_NIGHT_YES
@@ -281,17 +270,9 @@ public class ReaderActivity extends AppCompatActivity {
                 return;
             }
             List<ReaderPage> safePages = pages == null ? Collections.emptyList() : new ArrayList<>(pages);
-            totalPageMetadataCount = safePages.size();
             missingPageMetadataCount = ReaderPageAdapter.countPagesWithMissingDimensions(safePages);
             boolean hasStableItemBounds = hasStablePageBounds(safePages);
             binding.rcvReaderPages.setHasFixedSize(hasStableItemBounds);
-            PerfLogger.d(
-                    PerfLogger.TAG_READER,
-                    SCREEN_NAME,
-                    "reader_fixed_size_mode",
-                    PerfLogger.kv("enabled", hasStableItemBounds),
-                    PerfLogger.kv("pageCount", safePages.size()));
-            logPageMetadataQuality();
             pageAdapter.submitList(safePages, () -> {
                 if (!isUiActive()) {
                     return;
@@ -311,15 +292,6 @@ public class ReaderActivity extends AppCompatActivity {
             if (hasPages && comicId > 0 && sessionManager.hasToken() && !historyRecorded) {
                 historyRecorded = true;
                 viewModel.recordReadingHistory(comicId, chapterId, 1);
-            }
-            if (chapterLoadStartNs > 0L) {
-                PerfLogger.d(
-                        PerfLogger.TAG_READER,
-                        SCREEN_NAME,
-                        "chapter_pages_loaded",
-                        PerfLogger.kv("pageCount", safePages.size()),
-                        PerfLogger.kv("durationMs", PerfSession.durationMs(chapterLoadStartNs)));
-                chapterLoadStartNs = -1L;
             }
         });
         viewModel.getErrorMessage().observe(this, message -> {
@@ -373,14 +345,7 @@ public class ReaderActivity extends AppCompatActivity {
         resolveChapterMetaIfNeeded();
         initHeaderIfPossible();
         initCommentsIfPossible();
-        chapterLoadStartNs = PerfLogger.startTimer();
-        PerfLogger.d(
-                PerfLogger.TAG_READER,
-                SCREEN_NAME,
-                "chapter_pages_requested",
-                PerfLogger.kv("chapterId", chapterId));
         viewModel.loadChapterPages(chapterId);
-        logMemorySnapshot("reader_init");
     }
 
     private void resolveChapterMetaIfNeeded() {
@@ -492,8 +457,6 @@ public class ReaderActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        PerfLogger.d(PerfLogger.TAG_READER, SCREEN_NAME, "on_destroy");
-        logMemorySnapshot("reader_destroy");
         progressHandler.removeCallbacks(saveProgressRunnable);
         if (readerRepository != null) {
             readerRepository.cancelAllPendingRequests();
@@ -554,13 +517,6 @@ public class ReaderActivity extends AppCompatActivity {
                 return;
             }
             if (targetReady && !applySavedOffset) {
-                PerfLogger.d(
-                        PerfLogger.TAG_STATE,
-                        SCREEN_NAME,
-                        "restore_position_defer_offset",
-                        PerfLogger.kv("targetPage", targetPosition),
-                        PerfLogger.kv("attempt", attempt),
-                        PerfLogger.kv("actualTop", actualTop));
                 scheduleRestoreRetry(targetPosition, targetOffset, attempt + 1, true, metadataIncomplete);
                 return;
             }
@@ -601,27 +557,6 @@ public class ReaderActivity extends AppCompatActivity {
             boolean metadataIncomplete) {
         restoredPositionApplied = true;
         restoringReadingPosition = false;
-        if (success) {
-            PerfLogger.d(
-                    PerfLogger.TAG_STATE,
-                    SCREEN_NAME,
-                    "restore_position_applied",
-                    PerfLogger.kv("targetPage", targetPosition),
-                    PerfLogger.kv("targetOffset", targetOffset),
-                    PerfLogger.kv("actualTop", actualTop),
-                    PerfLogger.kv("attempts", attempts),
-                    PerfLogger.kv("metadataIncomplete", metadataIncomplete));
-        } else {
-            PerfLogger.w(
-                    PerfLogger.TAG_STATE,
-                    SCREEN_NAME,
-                    "restore_position_fallback",
-                    PerfLogger.kv("targetPage", targetPosition),
-                    PerfLogger.kv("targetOffset", targetOffset),
-                    PerfLogger.kv("actualTop", actualTop),
-                    PerfLogger.kv("attempts", attempts),
-                    PerfLogger.kv("metadataIncomplete", metadataIncomplete));
-        }
         preloadAroundCurrentViewport();
         updateReaderProgressUi();
     }
@@ -653,13 +588,6 @@ public class ReaderActivity extends AppCompatActivity {
         View firstVisiblePageView = layoutManager.findViewByPosition(pagePosition);
         int offset = firstVisiblePageView == null ? 0 : firstVisiblePageView.getTop();
         readerProgressStore.saveProgress(comicId, chapterId, chapterNumber, pagePosition, offset);
-        PerfLogger.d(
-                PerfLogger.TAG_STATE,
-                SCREEN_NAME,
-                "progress_saved",
-                PerfLogger.kv("chapterId", chapterId),
-                PerfLogger.kv("pagePosition", pagePosition),
-                PerfLogger.kv("offset", offset));
     }
 
     private void shareCurrentChapter() {
@@ -877,12 +805,6 @@ public class ReaderActivity extends AppCompatActivity {
         binding.btnReaderNext.setEnabled(canGoNext);
         binding.btnReaderPrevious.setAlpha(canGoPrevious ? 1f : 0.5f);
         binding.btnReaderNext.setAlpha(canGoNext ? 1f : 0.5f);
-        PerfLogger.d(
-                PerfLogger.TAG_READER,
-                SCREEN_NAME,
-                "progress_ui_updated",
-                PerfLogger.kv("currentPage", currentPage),
-                PerfLogger.kv("pageCount", pageCount));
     }
 
     private boolean isUiActive() {
@@ -900,32 +822,5 @@ public class ReaderActivity extends AppCompatActivity {
             return false;
         }
         return ReaderPageAdapter.countPagesWithMissingDimensions(pages) == 0;
-    }
-
-    private void logPageMetadataQuality() {
-        if (totalPageMetadataCount <= 0) {
-            return;
-        }
-        int missingCount = Math.max(0, missingPageMetadataCount);
-        int missingPercent = Math.max(0, Math.min(100, (missingCount * 100) / totalPageMetadataCount));
-        PerfLogger.d(
-                PerfLogger.TAG_STATE,
-                SCREEN_NAME,
-                "page_metadata_quality",
-                PerfLogger.kv("totalPages", totalPageMetadataCount),
-                PerfLogger.kv("missingSizePages", missingCount),
-                PerfLogger.kv("missingPercent", missingPercent));
-    }
-
-    private void logMemorySnapshot(@NonNull String event) {
-        PerfSession.MemorySnapshot snapshot = PerfSession.captureMemorySnapshot();
-        PerfLogger.d(
-                PerfLogger.TAG_MEM,
-                SCREEN_NAME,
-                event,
-                PerfLogger.kv("usedMb", snapshot.getUsedMb()),
-                PerfLogger.kv("freeMb", snapshot.getFreeMb()),
-                PerfLogger.kv("maxMb", snapshot.getMaxMb()),
-                PerfLogger.kv("nativeHeapMb", snapshot.getNativeHeapMb()));
     }
 }
