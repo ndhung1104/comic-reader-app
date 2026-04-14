@@ -145,6 +145,17 @@ public class HomeFragment extends BaseFragment {
 
     @Override
     public void onDestroyView() {
+        if (binding != null) {
+            binding.rcvHomeDailyList.setAdapter(null);
+            binding.rcvHomeTrendingList.setAdapter(null);
+            binding.rcvHomeRecommendedList.setAdapter(null);
+            binding.rcvHomeGenres.setAdapter(null);
+        }
+        dailyAdapter = null;
+        recommendedAdapter = null;
+        topTrendingAdapter = null;
+        genreAdapter = null;
+        heroComic = null;
         super.onDestroyView();
         binding = null;
     }
