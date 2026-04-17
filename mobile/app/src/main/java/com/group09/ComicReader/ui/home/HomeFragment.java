@@ -19,6 +19,7 @@ import com.group09.ComicReader.adapter.HomeDailyAdapter;
 import com.group09.ComicReader.adapter.HomeRecommendedAdapter;
 import com.group09.ComicReader.adapter.HomeTrendingAdapter;
 import com.group09.ComicReader.base.BaseFragment;
+import com.group09.ComicReader.data.local.AppSettingsStore;
 import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.databinding.FragmentHomeBinding;
 import com.group09.ComicReader.model.CategoryPreview;
@@ -37,6 +38,7 @@ public class HomeFragment extends BaseFragment {
     private GenreAdapter genreAdapter;
     private Comic heroComic;
     private SessionManager sessionManager;
+    private AppSettingsStore settingsStore;
 
     @Nullable
     @Override
@@ -56,6 +58,7 @@ public class HomeFragment extends BaseFragment {
         topTrendingAdapter = new HomeTrendingAdapter(this::openComicDetail);
         genreAdapter = new GenreAdapter(this::openGenre);
         sessionManager = new SessionManager(requireContext());
+        settingsStore = new AppSettingsStore(requireContext());
 
         binding.rcvHomeDailyList.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
         binding.rcvHomeDailyList.setAdapter(dailyAdapter);
@@ -112,7 +115,8 @@ public class HomeFragment extends BaseFragment {
             topTrendingAdapter.submitList(comics);
         });
         viewModel.getRecommended().observe(getViewLifecycleOwner(), comics -> {
-            boolean canShowRecommended = sessionManager.hasToken() && comics != null && !comics.isEmpty();
+            boolean hasPreferredGenres = settingsStore != null && settingsStore.getPreferredGenres().size() >= 3;
+            boolean canShowRecommended = comics != null && !comics.isEmpty() && (hasPreferredGenres || sessionManager.hasToken());
             binding.tvHomeRecommendedTitle.setVisibility(canShowRecommended ? View.VISIBLE : View.GONE);
             binding.rcvHomeRecommendedList.setVisibility(canShowRecommended ? View.VISIBLE : View.GONE);
             recommendedAdapter.submitList(canShowRecommended ? comics : java.util.Collections.emptyList());

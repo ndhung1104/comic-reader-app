@@ -6,6 +6,7 @@ import androidx.annotation.Nullable;
 
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.common.error.ErrorParser;
+import com.group09.ComicReader.data.local.AppSettingsStore;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.data.remote.TranslateApi;
 import com.group09.ComicReader.model.CategoryPreview;
@@ -25,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import org.json.JSONObject;
 
@@ -124,7 +126,7 @@ public class ComicRepository {
                     for (ComicResponse res : response.body().getContent()) {
                         comics.add(res.toComic());
                     }
-                    callback.onSuccess(comics);
+                    callback.onSuccess(applyUserContentFilter(comics));
                 } else {
                     callback.onError("Error: " + response.code());
                 }
@@ -151,7 +153,7 @@ public class ComicRepository {
                     for (ComicResponse res : response.body().getContent()) {
                         comics.add(res.toComic());
                     }
-                    callback.onSuccess(comics);
+                    callback.onSuccess(applyUserContentFilter(comics));
                 } else {
                     callback.onError("Error: " + response.code());
                 }
@@ -185,6 +187,23 @@ public class ComicRepository {
             public void onSuccess(List<Comic> comics) {
                 List<Comic> copy = new ArrayList<>(comics);
                 Collections.reverse(copy);
+
+                Set<String> preferredGenres = getPreferredGenres();
+                if (!preferredGenres.isEmpty() && !copy.isEmpty()) {
+                    List<Comic> matched = new ArrayList<>();
+                    List<Comic> rest = new ArrayList<>();
+                    for (Comic comic : copy) {
+                        if (hasAnyPreferredGenre(comic, preferredGenres)) {
+                            matched.add(comic);
+                        } else {
+                            rest.add(comic);
+                        }
+                    }
+                    copy.clear();
+                    copy.addAll(matched);
+                    copy.addAll(rest);
+                }
+
                 int limit = Math.min(6, copy.size());
                 callback.onSuccess(new ArrayList<>(copy.subList(0, limit)));
             }
@@ -210,7 +229,7 @@ public class ComicRepository {
                     for (ComicResponse res : response.body().getContent()) {
                         comics.add(res.toComic());
                     }
-                    callback.onSuccess(comics);
+                    callback.onSuccess(applyUserContentFilter(comics));
                 } else {
                     callback.onError("Error: " + response.code());
                 }
@@ -239,7 +258,7 @@ public class ComicRepository {
                                 comics.add(res.toComic());
                             }
                             comics.sort((left, right) -> Integer.compare(right.getViewCount(), left.getViewCount()));
-                            callback.onSuccess(comics);
+                            callback.onSuccess(applyUserContentFilter(comics));
                         } else {
                             callback.onError("Error: " + response.code());
                         }
@@ -273,7 +292,7 @@ public class ComicRepository {
                             for (ComicResponse res : response.body().getContent()) {
                                 comics.add(res.toComic());
                             }
-                            callback.onSuccess(comics);
+                            callback.onSuccess(applyUserContentFilter(comics));
                         } else {
                             callback.onError("Error: " + response.code());
                         }
@@ -363,7 +382,7 @@ public class ComicRepository {
                     for (ComicResponse res : response.body()) {
                         comics.add(res.toComic());
                     }
-                    callback.onSuccess(comics);
+                    callback.onSuccess(applyUserContentFilter(comics));
                 } else {
                     callback.onSuccess(new ArrayList<>());
                 }
@@ -567,6 +586,93 @@ public class ComicRepository {
         }
     }
 
+    @NonNull
+    private List<Comic> applyUserContentFilter(@NonNull List<Comic> comics) {
+        if (appContext == null || comics.isEmpty()) {
+            return comics;
+        }
+        AppSettingsStore settings = new AppSettingsStore(appContext);
+        if (settings.isAllowMatureContent()) {
+            return comics;
+        }
+        List<Comic> filtered = new ArrayList<>();
+        for (Comic comic : comics) {
+            if (comic == null) {
+                continue;
+            }
+            if (!isMatureComic(comic)) {
+                filtered.add(comic);
+            }
+        }
+        return filtered;
+    }
+
+    @NonNull
+    private Set<String> getPreferredGenres() {
+        if (appContext == null) {
+            return Collections.emptySet();
+        }
+        return new AppSettingsStore(appContext).getPreferredGenres();
+    }
+
+    private boolean hasAnyPreferredGenre(@NonNull Comic comic, @NonNull Set<String> preferred) {
+        if (preferred.isEmpty()) {
+            return false;
+        }
+        List<String> genres = comic.getGenres();
+        if (genres == null || genres.isEmpty()) {
+            return false;
+        }
+        for (String genre : genres) {
+            if (genre == null) {
+                continue;
+            }
+            String normalized = genre.trim();
+            if (normalized.isEmpty()) {
+                continue;
+            }
+            for (String wanted : preferred) {
+                if (wanted != null && wanted.trim().equalsIgnoreCase(normalized)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean isMatureComic(@NonNull Comic comic) {
+        List<String> genres = comic.getGenres();
+        if (genres == null || genres.isEmpty()) {
+            return false;
+        }
+        for (String genre : genres) {
+            if (genre == null) {
+                continue;
+            }
+            String normalized = genre.trim().toLowerCase(Locale.US);
+            if (normalized.isEmpty()) {
+                continue;
+            }
+
+            // Match both "name" and "slug" styles (e.g., "Adult" vs "adult").
+            if (normalized.contains("18+")
+                    || normalized.equals("18")
+                    || normalized.contains("r18")
+                    || normalized.contains("r-18")
+                    || normalized.contains("mature")
+                    || normalized.contains("adult")
+                    || normalized.contains("nsfw")
+                    || normalized.contains("smut")
+                    || normalized.contains("ecchi")
+                    || normalized.contains("hentai")
+                    || normalized.contains("porn")
+                    || normalized.contains("sex")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void searchComics(String query, String filter, @NonNull ComicListCallback callback) {
         if (apiClient == null) {
             callback.onError("ApiClient not initialized");
@@ -584,7 +690,7 @@ public class ComicRepository {
                     for (ComicResponse res : response.body().getContent()) {
                         comics.add(res.toComic());
                     }
-                    callback.onSuccess(comics);
+                    callback.onSuccess(applyUserContentFilter(comics));
                 } else {
                     callback.onError("Error: " + response.code());
                 }

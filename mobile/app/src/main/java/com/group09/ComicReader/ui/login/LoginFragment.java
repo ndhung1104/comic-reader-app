@@ -29,11 +29,24 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.group09.ComicReader.BuildConfig;
 import com.group09.ComicReader.R;
 import com.group09.ComicReader.base.BaseFragment;
+import com.group09.ComicReader.data.AccountRepository;
 import com.group09.ComicReader.data.AuthRepository;
+import com.group09.ComicReader.data.local.AppSettingsStore;
 import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.FragmentLoginBinding;
+import com.group09.ComicReader.model.UpdateUserPreferencesRequest;
 import com.group09.ComicReader.viewmodel.LoginViewModel;
+
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.os.LocaleListCompat;
+
+import java.time.LocalDate;
+import java.time.Period;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import java.security.MessageDigest;
 import java.util.Locale;
@@ -244,10 +257,137 @@ public class LoginFragment extends BaseFragment {
 
         viewModel.getLoginSuccess().observe(getViewLifecycleOwner(), success -> {
             if (success != null && success) {
-                NavHostFragment.findNavController(this)
-                        .navigate(LoginFragmentDirections.actionLoginToHome());
+                syncPreferencesThenNavigateHome();
             }
         });
+    }
+
+    private void syncPreferencesThenNavigateHome() {
+        if (!isAdded()) return;
+
+        AppSettingsStore settings = new AppSettingsStore(requireContext());
+        settings.setOnboardingCompleted(true);
+        settings.setOnboardingStep(0);
+
+        ApiClient apiClient = new ApiClient(requireContext());
+        AccountRepository accountRepository = new AccountRepository(apiClient);
+        accountRepository.getMyPreferences(new AccountRepository.PreferencesCallback() {
+            @Override
+            public void onSuccess(@NonNull com.group09.ComicReader.model.UserPreferencesResponse preferences) {
+                if (!isAdded()) return;
+
+                boolean serverEmpty = isPreferencesEmpty(preferences);
+                if (serverEmpty) {
+                    pushLocalPreferences(settings, accountRepository, () -> navigateHomeSafely());
+                    return;
+                }
+
+                applyServerPreferencesToLocal(preferences, settings);
+                navigateHomeSafely();
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                if (!isAdded()) return;
+                // Don't block login on sync failure.
+                navigateHomeSafely();
+            }
+        });
+    }
+
+    private boolean isPreferencesEmpty(@NonNull com.group09.ComicReader.model.UserPreferencesResponse preferences) {
+        String language = preferences.getLanguageCode();
+        String dob = preferences.getDateOfBirth();
+        List<String> genres = preferences.getPreferredGenres();
+
+        boolean languageEmpty = language == null || language.trim().isEmpty();
+        boolean dobEmpty = dob == null || dob.trim().isEmpty();
+        boolean genresEmpty = genres == null || genres.isEmpty();
+
+        return languageEmpty && dobEmpty && genresEmpty;
+    }
+
+    private void pushLocalPreferences(
+            @NonNull AppSettingsStore settings,
+            @NonNull AccountRepository accountRepository,
+            @NonNull Runnable done
+    ) {
+        String languageCode = settings.getLanguageCode();
+        String dobIso = settings.getBirthDateIso();
+        Set<String> localGenres = settings.getPreferredGenres();
+
+        List<String> preferredGenres = null;
+        if (localGenres != null && localGenres.size() >= 3) {
+            preferredGenres = new ArrayList<>(localGenres);
+        }
+
+        accountRepository.updateMyPreferences(
+                new UpdateUserPreferencesRequest(languageCode, dobIso, preferredGenres),
+                new AccountRepository.PreferencesCallback() {
+                    @Override
+                    public void onSuccess(@NonNull com.group09.ComicReader.model.UserPreferencesResponse preferences) {
+                        if (!isAdded()) return;
+                        applyServerPreferencesToLocal(preferences, settings);
+                        done.run();
+                    }
+
+                    @Override
+                    public void onError(@NonNull String message) {
+                        if (!isAdded()) return;
+                        done.run();
+                    }
+                }
+        );
+    }
+
+    private void applyServerPreferencesToLocal(
+            @NonNull com.group09.ComicReader.model.UserPreferencesResponse preferences,
+            @NonNull AppSettingsStore settings
+    ) {
+        String languageCode = preferences.getLanguageCode();
+        if (languageCode != null && !languageCode.trim().isEmpty()) {
+            String safe = languageCode.trim();
+            settings.setLanguageCode(safe);
+            settings.setLanguageSelected(true);
+            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(safe));
+        }
+
+        String dobIso = preferences.getDateOfBirth();
+        if (dobIso != null && !dobIso.trim().isEmpty()) {
+            String safeDob = dobIso.trim();
+            settings.setBirthDateIso(safeDob);
+            try {
+                LocalDate dob = LocalDate.parse(safeDob);
+                int age = Period.between(dob, LocalDate.now()).getYears();
+                settings.setAllowMatureContent(age >= 18);
+            } catch (Exception ignored) {
+                // keep stored setting
+            }
+        }
+
+        List<String> genres = preferences.getPreferredGenres();
+        if (genres != null && genres.size() >= 3) {
+            Set<String> asSet = new HashSet<>();
+            for (String raw : genres) {
+                if (raw == null) continue;
+                String trimmed = raw.trim();
+                if (!trimmed.isEmpty()) {
+                    asSet.add(trimmed);
+                }
+            }
+            if (asSet.size() >= 3) {
+                settings.setPreferredGenres(asSet);
+            }
+        }
+    }
+
+    private void navigateHomeSafely() {
+        if (!isAdded()) return;
+        androidx.navigation.NavController navController = NavHostFragment.findNavController(this);
+        if (navController.getCurrentDestination() != null
+                && navController.getCurrentDestination().getId() == R.id.loginFragment) {
+            navController.navigate(LoginFragmentDirections.actionLoginToHome());
+        }
     }
 
     @Override

@@ -1,8 +1,10 @@
 package com.group09.ComicReader.data.remote;
 
 import com.group09.ComicReader.model.ChangePasswordRequest;
+import com.group09.ComicReader.model.UpdateUserPreferencesRequest;
 import com.group09.ComicReader.model.UpdateProfileRequest;
 import com.group09.ComicReader.model.UserProfileResponse;
+import com.group09.ComicReader.model.UserPreferencesResponse;
 
 import java.util.Map;
 
@@ -19,8 +21,14 @@ public interface UserApi {
     @GET("/api/v1/users/me")
     Call<UserProfileResponse> getMe();
 
+    @GET("/api/v1/users/me/preferences")
+    Call<UserPreferencesResponse> getMyPreferences();
+
     @PUT("/api/v1/users/me")
     Call<UserProfileResponse> updateMe(@Body UpdateProfileRequest request);
+
+    @PUT("/api/v1/users/me/preferences")
+    Call<UserPreferencesResponse> updateMyPreferences(@Body UpdateUserPreferencesRequest request);
 
     @PUT("/api/v1/users/me/password")
     Call<Map<String, Object>> changePassword(@Body ChangePasswordRequest request);

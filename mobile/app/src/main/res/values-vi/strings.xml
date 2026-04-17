@@ -275,4 +275,25 @@
     <string name="admin_nav_revenue">Bảng doanh thu</string>
     <string name="admin_nav_packages">Quản lý gói</string>
     <string name="admin_nav_import">Nhập truyện</string>
+
+    <string name="onboarding_language_title">Chọn ngôn ngữ hiển thị</string>
+    <string name="onboarding_language_subtitle">Bạn có thể đổi lại trong mục Cá nhân.</string>
+    <string name="onboarding_continue">Tiếp tục</string>
+
+    <string name="onboarding_dob_title">Độ tuổi &amp; bộ lọc nội dung</string>
+    <string name="onboarding_dob_subtitle">Chọn ngày sinh để tự động ẩn nội dung 18+.</string>
+    <string name="onboarding_dob_pick">Chọn ngày sinh</string>
+    <string name="onboarding_dob_not_selected">Chưa chọn</string>
+    <string name="onboarding_dob_required">Vui lòng chọn ngày sinh</string>
+
+    <string name="onboarding_interests_title">Cá nhân hóa Trang chủ</string>
+    <string name="onboarding_interests_subtitle">Chọn tối thiểu 3 thể loại yêu thích.</string>
+    <string name="onboarding_genres_selected_count">Đã chọn: %1$d</string>
+    <string name="onboarding_genres_min_required">Chọn tối thiểu %1$d thể loại</string>
+    <string name="onboarding_genres_ready">Đủ rồi</string>
+    <string name="onboarding_genres_load_failed">Tải thể loại thất bại</string>
+
+    <string name="onboarding_art_style_title">Nét vẽ (tùy chọn)</string>
+    <string name="onboarding_art_style_subtitle">Giúp đề xuất phù hợp hơn.</string>
+    <string name="onboarding_finish">Hoàn tất</string>
 </resources>

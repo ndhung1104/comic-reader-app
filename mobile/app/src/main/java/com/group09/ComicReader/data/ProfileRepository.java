@@ -39,6 +39,7 @@ public class ProfileRepository {
         items.add(new ProfileMenuItem("APP_SETTINGS", context.getString(R.string.profile_menu_app_settings), "", R.drawable.ic_filter_24, false));
         items.add(new ProfileMenuItem("DARK_MODE", context.getString(R.string.profile_menu_dark_mode), darkModeBadge, R.drawable.ic_nav_home, false));
         items.add(new ProfileMenuItem("LANGUAGE", context.getString(R.string.profile_menu_language), badge, R.drawable.ic_nav_search, false));
+        items.add(new ProfileMenuItem("INTERESTS", context.getString(R.string.profile_menu_interests), "", R.drawable.ic_filter_24, false));
         items.add(new ProfileMenuItem("WALLET", context.getString(R.string.profile_menu_wallet), "", R.drawable.ic_wallet_24, true));
         items.add(new ProfileMenuItem("CLEAR_CACHE", context.getString(R.string.profile_menu_clear_cache), "", R.drawable.ic_close_24, false));
         return items;

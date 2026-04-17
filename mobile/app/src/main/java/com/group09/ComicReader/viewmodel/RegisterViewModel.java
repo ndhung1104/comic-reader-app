@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel;
 
 import com.group09.ComicReader.data.AuthRepository;
 
+import java.time.LocalDate;
+
 public class RegisterViewModel extends ViewModel {
 
     public static class Factory implements androidx.lifecycle.ViewModelProvider.Factory {
@@ -49,11 +51,12 @@ public class RegisterViewModel extends ViewModel {
         return registerSuccess;
     }
 
-    public void register(String email, String password, String confirmPassword, String fullName) {
+    public void register(String email, String password, String confirmPassword, String fullName, String dateOfBirthIso) {
         String safeEmail = email == null ? "" : email.trim();
         String safePassword = password == null ? "" : password.trim();
         String safeConfirmPassword = confirmPassword == null ? "" : confirmPassword.trim();
         String safeFullName = fullName == null ? "" : fullName.trim();
+        String safeDob = dateOfBirthIso == null ? "" : dateOfBirthIso.trim();
 
         if (safeFullName.isEmpty()) {
             errorMessage.setValue("Full name is required");
@@ -72,11 +75,23 @@ public class RegisterViewModel extends ViewModel {
             return;
         }
 
+        if (safeDob.isEmpty()) {
+            errorMessage.setValue("Date of birth is required");
+            return;
+        }
+
+        try {
+            LocalDate.parse(safeDob);
+        } catch (Exception ignored) {
+            errorMessage.setValue("Invalid date of birth");
+            return;
+        }
+
         loading.setValue(true);
         errorMessage.setValue(null);
         registerSuccess.setValue(false);
 
-        authRepository.register(safeEmail, safePassword, safeFullName, new AuthRepository.AuthCallback() {
+        authRepository.register(safeEmail, safePassword, safeFullName, safeDob, new AuthRepository.AuthCallback() {
             @Override
             public void onSuccess(@NonNull com.group09.ComicReader.model.AuthResponse authResponse) {
                 loading.postValue(false);

@@ -7,10 +7,13 @@ public class RegisterRequest {
 
     private String fullName;
 
-    public RegisterRequest(String email, String password, String fullName) {
+    private String dateOfBirth;
+
+    public RegisterRequest(String email, String password, String fullName, String dateOfBirth) {
         this.email = email;
         this.password = password;
         this.fullName = fullName;
+        this.dateOfBirth = dateOfBirth;
     }
 
     public String getEmail() { return email; }
@@ -21,4 +24,12 @@ public class RegisterRequest {
 
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public String getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(String dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
 }

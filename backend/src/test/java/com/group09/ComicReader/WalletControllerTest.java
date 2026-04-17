@@ -202,7 +202,8 @@ class WalletControllerTest {
                 {
                   "email": "%s",
                   "password": "user123",
-                  "fullName": "Wallet Test"
+                                                                        "fullName": "Wallet Test",
+                                                                        "dateOfBirth": "2000-01-01"
                 }
                 """.formatted(email);
 

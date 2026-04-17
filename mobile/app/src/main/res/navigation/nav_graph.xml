@@ -3,7 +3,37 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/homeFragment">
+    app:startDestination="@id/onboardingGateFragment">
+
+    <fragment
+        android:id="@+id/onboardingGateFragment"
+        android:name="com.group09.ComicReader.ui.onboarding.OnboardingGateFragment"
+        android:label="onboarding_gate"
+        tools:layout="@layout/fragment_onboarding_gate" />
+
+    <fragment
+        android:id="@+id/onboardingLanguageFragment"
+        android:name="com.group09.ComicReader.ui.onboarding.OnboardingLanguageFragment"
+        android:label="onboarding_language"
+        tools:layout="@layout/fragment_onboarding_language" />
+
+    <fragment
+        android:id="@+id/onboardingDobFragment"
+        android:name="com.group09.ComicReader.ui.onboarding.OnboardingDobFragment"
+        android:label="onboarding_dob"
+        tools:layout="@layout/fragment_onboarding_dob">
+        <action
+            android:id="@+id/action_onboardingDobFragment_to_onboardingInterestsFragment"
+            app:destination="@id/onboardingInterestsFragment"
+            app:popUpTo="@id/onboardingDobFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/onboardingInterestsFragment"
+        android:name="com.group09.ComicReader.ui.onboarding.OnboardingInterestsFragment"
+        android:label="onboarding_interests"
+        tools:layout="@layout/fragment_onboarding_interests" />
 
     <fragment
         android:id="@+id/loginFragment"
@@ -115,6 +145,9 @@
             android:id="@+id/action_profile_to_wallet"
             app:destination="@id/walletFragment" />
         <action
+            android:id="@+id/action_profile_to_edit_interests"
+            app:destination="@id/editInterestsFragment" />
+        <action
             android:id="@+id/action_profile_to_admin_dashboard"
             app:destination="@id/adminDashboardFragment" />
     </fragment>
@@ -124,6 +157,12 @@
         android:name="com.group09.ComicReader.ui.profile.AccountDetailsFragment"
         android:label="account_details"
         tools:layout="@layout/fragment_account_details" />
+
+    <fragment
+        android:id="@+id/editInterestsFragment"
+        android:name="com.group09.ComicReader.ui.profile.EditInterestsFragment"
+        android:label="edit_interests"
+        tools:layout="@layout/fragment_onboarding_interests" />
 
     <fragment
         android:id="@+id/walletFragment"

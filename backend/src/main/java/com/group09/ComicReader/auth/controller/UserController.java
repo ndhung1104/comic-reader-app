@@ -1,7 +1,9 @@
 package com.group09.ComicReader.auth.controller;
 
 import com.group09.ComicReader.auth.dto.ChangePasswordRequest;
+import com.group09.ComicReader.auth.dto.UpdateUserPreferencesRequest;
 import com.group09.ComicReader.auth.dto.UpdateProfileRequest;
+import com.group09.ComicReader.auth.dto.UserPreferencesResponse;
 import com.group09.ComicReader.auth.dto.UserProfileResponse;
 import com.group09.ComicReader.auth.entity.UserEntity;
 import com.group09.ComicReader.auth.repository.UserRepository;
@@ -23,6 +25,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -42,6 +48,50 @@ public class UserController {
     public ResponseEntity<UserProfileResponse> getMe() {
         UserEntity user = getCurrentUser();
         return ResponseEntity.ok(new UserProfileResponse(user.getEmail(), user.getFullName(), user.getAvatarUrl()));
+    }
+
+    @GetMapping("/me/preferences")
+    public ResponseEntity<UserPreferencesResponse> getMyPreferences() {
+        UserEntity user = getCurrentUser();
+        return ResponseEntity.ok(new UserPreferencesResponse(
+                user.getLanguageCode(),
+                user.getDateOfBirth(),
+                splitCommaList(user.getPreferredGenres())
+        ));
+    }
+
+    @PutMapping("/me/preferences")
+    public ResponseEntity<UserPreferencesResponse> updateMyPreferences(@Valid @RequestBody UpdateUserPreferencesRequest request) {
+        UserEntity user = getCurrentUser();
+
+        String languageCode = request.getLanguageCode();
+        if (languageCode != null) {
+            String normalized = languageCode.trim().toLowerCase();
+            if (!normalized.isEmpty() && !normalized.equals("en") && !normalized.equals("vi")) {
+                throw new BadRequestException("Unsupported language");
+            }
+            user.setLanguageCode(normalized.isEmpty() ? null : normalized);
+        }
+
+        if (request.getDateOfBirth() != null) {
+            user.setDateOfBirth(request.getDateOfBirth());
+        }
+
+        if (request.getPreferredGenres() != null) {
+            List<String> normalized = normalizeStringList(request.getPreferredGenres());
+            if (!normalized.isEmpty() && normalized.size() < 3) {
+                throw new BadRequestException("Select at least 3 genres");
+            }
+            user.setPreferredGenres(joinCommaList(normalized));
+        }
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok(new UserPreferencesResponse(
+                user.getLanguageCode(),
+                user.getDateOfBirth(),
+                splitCommaList(user.getPreferredGenres())
+        ));
     }
 
     @PutMapping("/me")
@@ -94,5 +144,39 @@ public class UserController {
         }
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    private static List<String> splitCommaList(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        String[] parts = raw.split(",");
+        List<String> out = new ArrayList<>();
+        for (String part : parts) {
+            if (part == null) continue;
+            String trimmed = part.trim();
+            if (!trimmed.isEmpty()) out.add(trimmed);
+        }
+        return out;
+    }
+
+    private static String joinCommaList(List<String> items) {
+        if (items == null || items.isEmpty()) {
+            return null;
+        }
+        return String.join(",", items);
+    }
+
+    private static List<String> normalizeStringList(List<String> input) {
+        if (input == null || input.isEmpty()) {
+            return new ArrayList<>();
+        }
+        Set<String> unique = new LinkedHashSet<>();
+        for (String item : input) {
+            if (item == null) continue;
+            String trimmed = item.trim();
+            if (!trimmed.isEmpty()) unique.add(trimmed);
+        }
+        return new ArrayList<>(unique);
     }
 }

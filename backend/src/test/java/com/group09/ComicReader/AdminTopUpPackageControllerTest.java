@@ -59,7 +59,8 @@ class AdminTopUpPackageControllerTest {
                 {
                   "email": "%s",
                   "password": "secret123",
-                  "fullName": "Pkg User"
+                                                                        "fullName": "Pkg User",
+                                                                        "dateOfBirth": "2000-01-01"
                 }
                 """.formatted(uniqueEmail);
 

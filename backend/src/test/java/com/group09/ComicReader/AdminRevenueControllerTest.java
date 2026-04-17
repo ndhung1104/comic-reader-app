@@ -93,7 +93,8 @@ class AdminRevenueControllerTest {
                 {
                   "email": "%s",
                   "password": "secret123",
-                  "fullName": "Rev User"
+                                                                        "fullName": "Rev User",
+                                                                        "dateOfBirth": "2000-01-01"
                 }
                 """.formatted(uniqueEmail);
 

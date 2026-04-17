@@ -61,6 +61,7 @@ public class AuthService {
         UserEntity user = new UserEntity();
         user.setEmail(email);
         user.setFullName(request.getFullName());
+        user.setDateOfBirth(request.getDateOfBirth());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRoles(Set.of(userRole));
 

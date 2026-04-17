@@ -34,7 +34,8 @@ class AuthControllerTest {
                 {
                   "email": "%s",
                   "password": "secret123",
-                  "fullName": "Test User"
+                                                                        "fullName": "Test User",
+                                                                        "dateOfBirth": "2000-01-01"
                 }
                 """.formatted(uniqueEmail);
 
@@ -77,7 +78,8 @@ class AuthControllerTest {
                 {
                   "email": "%s",
                   "password": "secret123",
-                  "fullName": "Test User"
+                                                                        "fullName": "Test User",
+                                                                        "dateOfBirth": "2000-01-01"
                 }
                 """.formatted(email);
 

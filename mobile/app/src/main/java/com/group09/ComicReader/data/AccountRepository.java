@@ -9,8 +9,10 @@ import androidx.annotation.NonNull;
 
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.model.ChangePasswordRequest;
+import com.group09.ComicReader.model.UpdateUserPreferencesRequest;
 import com.group09.ComicReader.model.UpdateProfileRequest;
 import com.group09.ComicReader.model.UserProfileResponse;
+import com.group09.ComicReader.model.UserPreferencesResponse;
 
 import org.json.JSONObject;
 
@@ -41,6 +43,12 @@ public class AccountRepository {
         void onError(@NonNull String message);
     }
 
+    public interface PreferencesCallback {
+        void onSuccess(@NonNull UserPreferencesResponse preferences);
+
+        void onError(@NonNull String message);
+    }
+
     private final ApiClient apiClient;
 
     public AccountRepository(@NonNull ApiClient apiClient) {
@@ -65,6 +73,52 @@ public class AccountRepository {
 
             @Override
             public void onFailure(@NonNull Call<UserProfileResponse> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+            }
+        });
+    }
+
+    public void getMyPreferences(@NonNull PreferencesCallback callback) {
+        apiClient.userApi().getMyPreferences().enqueue(new Callback<UserPreferencesResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<UserPreferencesResponse> call, @NonNull Response<UserPreferencesResponse> response) {
+                if (!response.isSuccessful()) {
+                    callback.onError(extractErrorMessage(response, "Failed to load preferences (" + response.code() + ")"));
+                    return;
+                }
+                UserPreferencesResponse body = response.body();
+                if (body == null) {
+                    callback.onError("Failed to load preferences");
+                    return;
+                }
+                callback.onSuccess(body);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<UserPreferencesResponse> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+            }
+        });
+    }
+
+    public void updateMyPreferences(@NonNull UpdateUserPreferencesRequest request, @NonNull PreferencesCallback callback) {
+        apiClient.userApi().updateMyPreferences(request).enqueue(new Callback<UserPreferencesResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<UserPreferencesResponse> call, @NonNull Response<UserPreferencesResponse> response) {
+                if (!response.isSuccessful()) {
+                    callback.onError(extractErrorMessage(response, "Failed to update preferences (" + response.code() + ")"));
+                    return;
+                }
+                UserPreferencesResponse body = response.body();
+                if (body == null) {
+                    callback.onError("Failed to update preferences");
+                    return;
+                }
+                callback.onSuccess(body);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<UserPreferencesResponse> call, @NonNull Throwable t) {
                 callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
             }
         });

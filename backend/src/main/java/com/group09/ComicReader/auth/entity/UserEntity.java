@@ -13,6 +13,7 @@ import jakarta.persistence.Table;
 
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -39,6 +40,15 @@ public class UserEntity {
 
     @Column(name = "avatar_url")
     private String avatarUrl;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column(name = "language_code")
+    private String languageCode;
+
+    @Column(name = "preferred_genres")
+    private String preferredGenres;
 
     @Column(nullable = false)
     private boolean enabled = true;

@@ -62,8 +62,8 @@ public class AuthRepository {
         });
     }
 
-    public void register(String email, String password, String fullName, @NonNull AuthCallback callback) {
-        apiClient.authApi().register(new RegisterRequest(email, password, fullName)).enqueue(new Callback<AuthResponse>() {
+    public void register(String email, String password, String fullName, String dateOfBirthIso, @NonNull AuthCallback callback) {
+        apiClient.authApi().register(new RegisterRequest(email, password, fullName, dateOfBirthIso)).enqueue(new Callback<AuthResponse>() {
             @Override
             public void onResponse(@NonNull Call<AuthResponse> call, @NonNull Response<AuthResponse> response) {
                 if (!response.isSuccessful()) {

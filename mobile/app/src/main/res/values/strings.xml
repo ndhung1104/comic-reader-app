@@ -154,6 +154,11 @@
     <string name="profile_menu_app_settings">App Settings</string>
     <string name="profile_menu_admin_dashboard">Admin Dashboard</string>
 
+    <string name="profile_menu_interests">Interests</string>
+    <string name="profile_interests_title">Your interests</string>
+    <string name="profile_interests_subtitle">Pick at least 3 genres you like.</string>
+    <string name="profile_interests_save">Save</string>
+
     <string name="wallet_title">Wallet and Coins</string>
     <string name="wallet_current_balance">Current Balance</string>
     <string name="wallet_coin_label">Coins</string>
@@ -281,5 +286,28 @@
     <string name="admin_nav_revenue">Revenue Dashboard</string>
     <string name="admin_nav_packages">Manage Packages</string>
     <string name="admin_nav_import">Import Comic</string>
+
+    <string name="onboarding_language_title">Choose your language</string>
+    <string name="onboarding_language_subtitle">You can change this later in Profile.</string>
+    <string name="onboarding_continue">Continue</string>
+
+    <string name="onboarding_dob_title">Age &amp; content filter</string>
+    <string name="onboarding_dob_subtitle">Select your date of birth to automatically hide 18+ content.</string>
+    <string name="onboarding_dob_pick">Select date of birth</string>
+    <string name="onboarding_dob_not_selected">Not selected</string>
+    <string name="onboarding_dob_required">Please select your date of birth</string>
+
+    <string name="register_dob_label">Date of birth</string>
+
+    <string name="onboarding_interests_title">Personalize your Home</string>
+    <string name="onboarding_interests_subtitle">Pick at least 3 genres you like.</string>
+    <string name="onboarding_genres_selected_count">Selected: %1$d</string>
+    <string name="onboarding_genres_min_required">Select at least %1$d genres</string>
+    <string name="onboarding_genres_ready">All set</string>
+    <string name="onboarding_genres_load_failed">Failed to load genres</string>
+
+    <string name="onboarding_art_style_title">Art style (optional)</string>
+    <string name="onboarding_art_style_subtitle">This helps us tune recommendations.</string>
+    <string name="onboarding_finish">Finish</string>
 </resources>
 

@@ -134,6 +134,32 @@
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_register_dob"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        android:hint="@string/register_dob_label"
+                        app:boxBackgroundColor="@color/surface_container_low"
+                        app:boxStrokeColor="@color/outline_variant"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/til_register_full_name">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edt_register_dob"
+                            android:layout_width="match_parent"
+                            android:layout_height="@dimen/input_height"
+                            android:focusable="false"
+                            android:clickable="true"
+                            android:inputType="none"
+                            android:textColor="@color/on_surface"
+                            android:textColorHint="@color/on_surface_variant"
+                            android:textSize="@dimen/text_md" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/til_register_email"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                         android:layout_width="0dp"
@@ -144,7 +170,7 @@
                         app:boxStrokeColor="@color/outline_variant"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@id/til_register_full_name">
+                        app:layout_constraintTop_toBottomOf="@id/til_register_dob">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/edt_register_email"

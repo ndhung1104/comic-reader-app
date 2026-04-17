@@ -25,6 +25,7 @@ import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.FragmentProfileBinding;
 import com.group09.ComicReader.model.ProfileMenuItem;
+import com.group09.ComicReader.model.UpdateUserPreferencesRequest;
 import com.group09.ComicReader.model.UserProfileResponse;
 import com.group09.ComicReader.viewmodel.ProfileViewModel;
 
@@ -254,6 +255,11 @@ public class ProfileFragment extends BaseFragment {
             Navigation.findNavController(getView()).navigate(action);
             return;
         }
+        if ("INTERESTS".equals(item.getType()) && getView() != null) {
+            NavDirections action = ProfileFragmentDirections.actionProfileToEditInterests();
+            Navigation.findNavController(getView()).navigate(action);
+            return;
+        }
         if ("LANGUAGE".equals(item.getType())) {
             AppSettingsStore settings = new AppSettingsStore(requireContext());
             String currentLang = settings.getLanguageCode();
@@ -261,6 +267,25 @@ public class ProfileFragment extends BaseFragment {
                 settings.setLanguageCode(code);
                 settings.setLanguageSelected(true);
                 AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(code));
+
+                if (sessionManager.hasToken()) {
+                    accountRepository.updateMyPreferences(
+                            new UpdateUserPreferencesRequest(code, null, null),
+                            new AccountRepository.PreferencesCallback() {
+                                @Override
+                                public void onSuccess(@NonNull com.group09.ComicReader.model.UserPreferencesResponse preferences) {
+                                    // no-op
+                                }
+
+                                @Override
+                                public void onError(@NonNull String message) {
+                                    if (binding == null) return;
+                                    showToast(message);
+                                }
+                            }
+                    );
+                }
+
                 // reload menu to update badge
                 boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
                 viewModel.loadData(isAdmin, requireContext());
