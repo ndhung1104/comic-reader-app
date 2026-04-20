@@ -20,6 +20,11 @@ import com.group09.ComicReader.base.BaseFragment;
 import com.group09.ComicReader.databinding.FragmentSearchBinding;
 import com.group09.ComicReader.model.Comic;
 import com.group09.ComicReader.viewmodel.SearchViewModel;
+import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
+import androidx.recyclerview.widget.RecyclerView;
+import com.group09.ComicReader.ui.search.PageNumberAdapter;
 
 public class SearchFragment extends BaseFragment {
 
@@ -28,11 +33,12 @@ public class SearchFragment extends BaseFragment {
     private SearchResultAdapter adapter;
     private boolean gridMode = true;
     private String initialFilter;
+    private PageNumberAdapter pageAdapter;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+            @Nullable Bundle savedInstanceState) {
         binding = FragmentSearchBinding.inflate(inflater, container, false);
         viewModel = new ViewModelProvider(this).get(SearchViewModel.class);
         return binding.getRoot();
@@ -78,10 +84,12 @@ public class SearchFragment extends BaseFragment {
         });
 
         viewModel.getFilters().observe(getViewLifecycleOwner(), filters -> {
-            if (filters == null || filters.isEmpty()) return;
+            if (filters == null || filters.isEmpty())
+                return;
             binding.cgSearchFilters.removeAllViews();
             for (String filter : filters) {
-                com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(requireContext(), null, com.google.android.material.R.attr.chipStyle);
+                com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(requireContext(),
+                        null, com.google.android.material.R.attr.chipStyle);
                 chip.setText(filter);
                 chip.setCheckable(true);
                 binding.cgSearchFilters.addView(chip);
@@ -95,7 +103,44 @@ public class SearchFragment extends BaseFragment {
                     comics == null ? 0 : comics.size()));
         });
 
+        binding.btnSearchPrev.setOnClickListener(v -> viewModel.prevPage());
+        binding.btnSearchNext.setOnClickListener(v -> viewModel.nextPage());
+
+        // setup horizontal page list
+        pageAdapter = new PageNumberAdapter(requireContext(), page -> viewModel.goToPage(page));
+        binding.rcvSearchPages
+                .setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
+        binding.rcvSearchPages.setAdapter(pageAdapter);
+
+        viewModel.getCurrentPage().observe(getViewLifecycleOwner(), pageNum -> {
+            Integer tot = viewModel.getTotalPages().getValue();
+            updatePageIndicator(pageNum, tot);
+        });
+
+        viewModel.getTotalPages().observe(getViewLifecycleOwner(), tot -> {
+            Integer pageNum = viewModel.getCurrentPage().getValue();
+            // build pages list
+            int t = tot == null || tot <= 0 ? 1 : tot;
+            List<Integer> pages = new ArrayList<>();
+            for (int i = 0; i < t; i++)
+                pages.add(i);
+            pageAdapter.setPages(pages);
+            updatePageIndicator(pageNum, tot);
+        });
+
         viewModel.loadInitial();
+    }
+
+    private void updatePageIndicator(@Nullable Integer pageNum, @Nullable Integer total) {
+        int p = pageNum == null ? 0 : pageNum;
+        int t = total == null || total <= 0 ? 1 : total;
+        // update selected state in page list
+        if (pageAdapter != null) {
+            pageAdapter.setSelected(p);
+            binding.rcvSearchPages.smoothScrollToPosition(p);
+        }
+        binding.btnSearchPrev.setEnabled(p > 0);
+        binding.btnSearchNext.setEnabled(p + 1 < t);
     }
 
     private void setGridMode(boolean grid) {
@@ -129,7 +174,8 @@ public class SearchFragment extends BaseFragment {
             }
         }
         if (childCount > 0) {
-            com.google.android.material.chip.Chip first = (com.google.android.material.chip.Chip) binding.cgSearchFilters.getChildAt(0);
+            com.google.android.material.chip.Chip first = (com.google.android.material.chip.Chip) binding.cgSearchFilters
+                    .getChildAt(0);
             first.setChecked(true);
             viewModel.updateFilter(String.valueOf(first.getText()));
         }
@@ -140,8 +186,8 @@ public class SearchFragment extends BaseFragment {
         if (comic == null || getView() == null) {
             return;
         }
-        SearchFragmentDirections.ActionSearchToComicDetail action =
-                SearchFragmentDirections.actionSearchToComicDetail(comic.getId());
+        SearchFragmentDirections.ActionSearchToComicDetail action = SearchFragmentDirections
+                .actionSearchToComicDetail(comic.getId());
         androidx.navigation.Navigation.findNavController(getView()).navigate(action);
     }
 

@@ -40,46 +40,61 @@ public class ComicRepository {
 
     public interface ComicListCallback {
         void onSuccess(List<Comic> comics);
+
+        void onError(String error);
+    }
+
+    public interface PagedComicCallback {
+        void onSuccess(List<Comic> comics, int page, int totalPages, long totalElements);
+
         void onError(String error);
     }
 
     public interface ComicCallback {
         void onSuccess(Comic comic);
+
         void onError(String error);
     }
 
     public interface CategoryListCallback {
         void onSuccess(List<String> categories);
+
         void onError(String error);
     }
 
     public interface CategoryPreviewCallback {
         void onSuccess(CategoryPreview preview);
+
         void onError(String error);
     }
 
     public interface CommentListCallback {
         void onSuccess(List<CommentItem> comments);
+
         void onError(String error);
     }
 
     public interface CommentCallback {
         void onSuccess(CommentItem comment);
+
         void onError(String error);
     }
 
     public interface PagedCommentCallback {
         void onSuccess(List<CommentItem> comments, boolean hasMore);
+
         void onError(String error);
     }
 
     public interface TranslateCallback {
         void onSuccess(String translatedTitle, String translatedSynopsis);
+
         void onError(String error);
     }
 
     public interface SimpleCallback {
         void onSuccess();
+
         void onError(String error);
     }
 
@@ -117,26 +132,57 @@ public class ComicRepository {
             callback.onError("ApiClient not initialized");
             return;
         }
-        apiClient.comicApi().getComics(null, null, page, size, null).enqueue(new Callback<PageResponse<ComicResponse>>() {
-            @Override
-            public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
-                    @NonNull Response<PageResponse<ComicResponse>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    List<Comic> comics = new ArrayList<>();
-                    for (ComicResponse res : response.body().getContent()) {
-                        comics.add(res.toComic());
+        apiClient.comicApi().getComics(null, null, page, size, null)
+                .enqueue(new Callback<PageResponse<ComicResponse>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
+                            @NonNull Response<PageResponse<ComicResponse>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            List<Comic> comics = new ArrayList<>();
+                            for (ComicResponse res : response.body().getContent()) {
+                                comics.add(res.toComic());
+                            }
+                            callback.onSuccess(applyUserContentFilter(comics));
+                        } else {
+                            callback.onError("Error: " + response.code());
+                        }
                     }
-                    callback.onSuccess(applyUserContentFilter(comics));
-                } else {
-                    callback.onError("Error: " + response.code());
-                }
-            }
 
-            @Override
-            public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
-                callback.onError(getNetworkMessage(t));
-            }
-        });
+                    @Override
+                    public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
+                        callback.onError(getNetworkMessage(t));
+                    }
+                });
+    }
+
+    public void getComicsPaged(int page, int size, @NonNull PagedComicCallback callback) {
+        if (apiClient == null) {
+            callback.onError("ApiClient not initialized");
+            return;
+        }
+        apiClient.comicApi().getComics(null, null, page, size, null)
+                .enqueue(new Callback<PageResponse<ComicResponse>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
+                            @NonNull Response<PageResponse<ComicResponse>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            List<Comic> comics = new ArrayList<>();
+                            for (ComicResponse res : response.body().getContent()) {
+                                comics.add(res.toComic());
+                            }
+                            PageResponse<ComicResponse> body = response.body();
+                            callback.onSuccess(applyUserContentFilter(comics), body.getNumber(), body.getTotalPages(),
+                                    body.getTotalElements());
+                        } else {
+                            callback.onError("Error: " + response.code());
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
+                        callback.onError(getNetworkMessage(t));
+                    }
+                });
     }
 
     public void getTrendingComics(@NonNull ComicListCallback callback) {
@@ -251,7 +297,7 @@ public class ComicRepository {
                 .enqueue(new Callback<PageResponse<ComicResponse>>() {
                     @Override
                     public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
-                                           @NonNull Response<PageResponse<ComicResponse>> response) {
+                            @NonNull Response<PageResponse<ComicResponse>> response) {
                         if (response.isSuccessful() && response.body() != null) {
                             List<Comic> comics = new ArrayList<>();
                             for (ComicResponse res : response.body().getContent()) {
@@ -286,7 +332,7 @@ public class ComicRepository {
                 .enqueue(new Callback<PageResponse<ComicResponse>>() {
                     @Override
                     public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
-                                           @NonNull Response<PageResponse<ComicResponse>> response) {
+                            @NonNull Response<PageResponse<ComicResponse>> response) {
                         if (response.isSuccessful() && response.body() != null) {
                             List<Comic> comics = new ArrayList<>();
                             for (ComicResponse res : response.body().getContent()) {
@@ -305,7 +351,8 @@ public class ComicRepository {
                 });
     }
 
-    public void getCategoryPreview(@NonNull String categoryId, int sampleSize, @NonNull CategoryPreviewCallback callback) {
+    public void getCategoryPreview(@NonNull String categoryId, int sampleSize,
+            @NonNull CategoryPreviewCallback callback) {
         if (apiClient == null) {
             callback.onError("ApiClient not initialized");
             return;
@@ -320,7 +367,7 @@ public class ComicRepository {
                 .enqueue(new Callback<PageResponse<ComicResponse>>() {
                     @Override
                     public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
-                                           @NonNull Response<PageResponse<ComicResponse>> response) {
+                            @NonNull Response<PageResponse<ComicResponse>> response) {
                         if (!response.isSuccessful() || response.body() == null) {
                             callback.onError("Error: " + response.code());
                             return;
@@ -337,11 +384,13 @@ public class ComicRepository {
                             sampleSynopsis = first.getSynopsis();
 
                             for (ComicResponse item : content) {
-                                String status = item.getStatus() == null ? "" : item.getStatus().trim().toUpperCase(Locale.US);
+                                String status = item.getStatus() == null ? ""
+                                        : item.getStatus().trim().toUpperCase(Locale.US);
                                 if (status.contains("COMPLETE")) {
                                     hasCompleted = true;
                                 }
-                                if (status.contains("ONGOING") || status.contains("UPDATING") || status.contains("NEW")) {
+                                if (status.contains("ONGOING") || status.contains("UPDATING")
+                                        || status.contains("NEW")) {
                                     hasOngoing = true;
                                 }
                             }
@@ -350,7 +399,8 @@ public class ComicRepository {
                             hasOngoing = true;
                         }
 
-                        int totalComics = (int) Math.max(0, Math.min(Integer.MAX_VALUE, response.body().getTotalElements()));
+                        int totalComics = (int) Math.max(0,
+                                Math.min(Integer.MAX_VALUE, response.body().getTotalElements()));
                         callback.onSuccess(new CategoryPreview(
                                 safeCategory,
                                 safeCategory,
@@ -440,7 +490,8 @@ public class ComicRepository {
         }
         apiClient.comicApi().rateComic(comicId, Map.of("score", score)).enqueue(new Callback<Map<String, String>>() {
             @Override
-            public void onResponse(@NonNull Call<Map<String, String>> call, @NonNull Response<Map<String, String>> response) {
+            public void onResponse(@NonNull Call<Map<String, String>> call,
+                    @NonNull Response<Map<String, String>> response) {
                 if (response.isSuccessful()) {
                     callback.onSuccess();
                 } else {
@@ -482,12 +533,16 @@ public class ComicRepository {
     }
 
     public void incrementViewCount(int comicId) {
-        if (apiClient == null) return;
+        if (apiClient == null)
+            return;
         apiClient.comicApi().incrementView(comicId).enqueue(new Callback<Void>() {
             @Override
-            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {}
+            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+            }
+
             @Override
-            public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {}
+            public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+            }
         });
     }
 
@@ -525,14 +580,15 @@ public class ComicRepository {
                     }
 
                     @Override
-                    public void onFailure(@NonNull Call<TranslateApi.ComicTranslateResponse> call, @NonNull Throwable t) {
+                    public void onFailure(@NonNull Call<TranslateApi.ComicTranslateResponse> call,
+                            @NonNull Throwable t) {
                         callback.onError(getNetworkMessage(t));
                     }
                 });
     }
 
     private String extractTranslationFailure(String translatedTitle, String translatedSynopsis) {
-        String[] translatedFields = {translatedTitle, translatedSynopsis};
+        String[] translatedFields = { translatedTitle, translatedSynopsis };
         for (String translatedField : translatedFields) {
             if (translatedField == null) {
                 continue;
@@ -681,26 +737,27 @@ public class ComicRepository {
         String safeQuery = (query == null || query.trim().isEmpty()) ? null : query.trim();
         String safeFilter = (filter == null || "All".equalsIgnoreCase(filter)) ? null : filter;
 
-        apiClient.comicApi().getComics(safeQuery, safeFilter, 0, 100, null).enqueue(new Callback<PageResponse<ComicResponse>>() {
-            @Override
-            public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
-                    @NonNull Response<PageResponse<ComicResponse>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    List<Comic> comics = new ArrayList<>();
-                    for (ComicResponse res : response.body().getContent()) {
-                        comics.add(res.toComic());
+        apiClient.comicApi().getComics(safeQuery, safeFilter, 0, 100, null)
+                .enqueue(new Callback<PageResponse<ComicResponse>>() {
+                    @Override
+                    public void onResponse(@NonNull Call<PageResponse<ComicResponse>> call,
+                            @NonNull Response<PageResponse<ComicResponse>> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            List<Comic> comics = new ArrayList<>();
+                            for (ComicResponse res : response.body().getContent()) {
+                                comics.add(res.toComic());
+                            }
+                            callback.onSuccess(applyUserContentFilter(comics));
+                        } else {
+                            callback.onError("Error: " + response.code());
+                        }
                     }
-                    callback.onSuccess(applyUserContentFilter(comics));
-                } else {
-                    callback.onError("Error: " + response.code());
-                }
-            }
 
-            @Override
-            public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
-                callback.onError(getNetworkMessage(t));
-            }
-        });
+                    @Override
+                    public void onFailure(@NonNull Call<PageResponse<ComicResponse>> call, @NonNull Throwable t) {
+                        callback.onError(getNetworkMessage(t));
+                    }
+                });
     }
 
     /* ========== Comments ========== */
@@ -763,7 +820,8 @@ public class ComicRepository {
         postComment(comicId, chapterId, null, content, callback);
     }
 
-    public void postComment(int comicId, Integer chapterId, Long parentCommentId, String content, @NonNull CommentCallback callback) {
+    public void postComment(int comicId, Integer chapterId, Long parentCommentId, String content,
+            @NonNull CommentCallback callback) {
         if (apiClient == null) {
             callback.onError("ApiClient not initialized");
             return;
@@ -784,7 +842,8 @@ public class ComicRepository {
                         if (errorBodyText != null && errorBodyText.toLowerCase(Locale.US).contains("banned")) {
                             callback.onError("Account is banned");
                         } else {
-                            callback.onError(ErrorParser.parseHttpError(code, errorBodyText, "Error: " + code).getMessage());
+                            callback.onError(
+                                    ErrorParser.parseHttpError(code, errorBodyText, "Error: " + code).getMessage());
                         }
                         return;
                     }
