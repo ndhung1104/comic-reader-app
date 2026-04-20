@@ -3,7 +3,9 @@ package com.group09.ComicReader.data;
 import androidx.annotation.NonNull;
 
 import com.group09.ComicReader.data.remote.ApiClient;
+import com.group09.ComicReader.model.AdminUserResponse;
 import com.group09.ComicReader.model.CommentItem;
+import com.group09.ComicReader.model.PageResponse;
 import com.group09.ComicReader.model.UserProfileResponse;
 
 import org.json.JSONObject;
@@ -20,10 +22,35 @@ public class AdminRepository {
         void onError(@NonNull String message);
     }
 
+    public interface UserListCallback {
+        void onSuccess(@NonNull PageResponse<AdminUserResponse> page);
+
+        void onError(@NonNull String message);
+    }
+
     private final ApiClient apiClient;
 
     public AdminRepository(@NonNull ApiClient apiClient) {
         this.apiClient = apiClient;
+    }
+
+    public void getUsers(String search, int page, int size, @NonNull UserListCallback callback) {
+        apiClient.adminApi().getUsers(search, page, size).enqueue(new Callback<PageResponse<AdminUserResponse>>() {
+            @Override
+            public void onResponse(@NonNull Call<PageResponse<AdminUserResponse>> call,
+                    @NonNull Response<PageResponse<AdminUserResponse>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Failed to load users (" + response.code() + ")"));
+                    return;
+                }
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<PageResponse<AdminUserResponse>> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+            }
+        });
     }
 
     public void banUser(long userId, @NonNull SimpleCallback callback) {

@@ -20,7 +20,11 @@ public class AdminUserService {
         this.userRepository = userRepository;
     }
 
-    public Page<UserResponse> getUsers(Pageable pageable) {
+    public Page<UserResponse> getUsers(String search, Pageable pageable) {
+        if (search != null && !search.trim().isEmpty()) {
+            return userRepository.findAllByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCase(search, search, pageable)
+                    .map(this::toUserResponse);
+        }
         return userRepository.findAll(pageable).map(this::toUserResponse);
     }
 

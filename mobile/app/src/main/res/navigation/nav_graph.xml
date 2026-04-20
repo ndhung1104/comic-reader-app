@@ -214,7 +214,16 @@
         <action
             android:id="@+id/action_admin_to_import"
             app:destination="@id/adminImportFragment" />
+        <action
+            android:id="@+id/action_admin_to_user_management"
+            app:destination="@id/adminUserManagementFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/adminUserManagementFragment"
+        android:name="com.group09.ComicReader.ui.admin.AdminUserManagementFragment"
+        android:label="admin_user_management"
+        tools:layout="@layout/fragment_admin_user_management" />
 
     <fragment
         android:id="@+id/adminRevenueFragment"
