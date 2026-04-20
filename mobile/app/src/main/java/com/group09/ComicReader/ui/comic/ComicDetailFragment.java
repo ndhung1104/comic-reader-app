@@ -38,6 +38,7 @@ import com.group09.ComicReader.databinding.FragmentComicDetailBinding;
 import com.group09.ComicReader.model.Chapter;
 import com.group09.ComicReader.model.Comic;
 import com.group09.ComicReader.ui.reader.ReaderActivity;
+import com.group09.ComicReader.ui.share.ShareSheetBottomSheetFragment;
 import com.group09.ComicReader.viewmodel.ComicDetailViewModel;
 import com.group09.ComicReader.viewmodel.CommentsViewModel;
 
@@ -391,14 +392,12 @@ public class ComicDetailFragment extends BaseFragment {
         }
         String url = com.group09.ComicReader.data.remote.ApiClient.toAbsolutePublicUrl(
                 "/share/comic/" + currentComic.getId());
-        String shareText = url;
+        String title = currentComic.getTitle() == null || currentComic.getTitle().trim().isEmpty()
+                ? getString(R.string.app_name)
+                : currentComic.getTitle();
 
-        Intent sendIntent = new Intent(Intent.ACTION_SEND);
-        sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
-        sendIntent.setType("text/plain");
-
-        Intent shareIntent = Intent.createChooser(sendIntent, getString(R.string.share_chooser_title));
-        startActivity(shareIntent);
+        ShareSheetBottomSheetFragment.newComicInstance(title, url)
+                .show(getChildFragmentManager(), ShareSheetBottomSheetFragment.TAG);
     }
 
     private void openReaderForChapter(Chapter chapter) {

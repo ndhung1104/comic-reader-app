@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cl_share_sheet_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_comment_sheet_surface"
+    android:paddingStart="@dimen/spacing_lg"
+    android:paddingTop="@dimen/spacing_sm"
+    android:paddingEnd="@dimen/spacing_lg"
+    android:paddingBottom="@dimen/spacing_lg">
+
+    <View
+        android:id="@+id/view_share_sheet_handle"
+        android:layout_width="@dimen/comment_sheet_handle_width"
+        android:layout_height="@dimen/comment_sheet_handle_height"
+        android:background="@color/surface_container_highest"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_share_sheet_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:textColor="@color/on_surface"
+        android:textSize="@dimen/text_xl"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@id/btn_share_sheet_close"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/view_share_sheet_handle"
+        tools:text="Share chapter link" />
+
+    <TextView
+        android:id="@+id/tv_share_sheet_subtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="@dimen/text_sm"
+        app:layout_constraintEnd_toStartOf="@id/btn_share_sheet_close"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_share_sheet_title"
+        tools:text="Pick a platform first, then choose the group or chat in the next screen." />
+
+    <ImageButton
+        android:id="@+id/btn_share_sheet_close"
+        android:layout_width="@dimen/top_bar_action_size"
+        android:layout_height="@dimen/top_bar_action_size"
+        android:background="@drawable/bg_browse_header_icon"
+        android:contentDescription="@string/content_close_share_sheet"
+        android:padding="@dimen/spacing_sm"
+        android:src="@drawable/ic_close_24"
+        app:layout_constraintBottom_toBottomOf="@id/tv_share_sheet_subtitle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/tv_share_sheet_title"
+        app:tint="@color/on_surface_variant" />
+
+    <TextView
+        android:id="@+id/tv_share_sheet_warning"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:background="@drawable/bg_card_surface"
+        android:padding="@dimen/spacing_sm"
+        android:text="@string/share_sheet_local_url_warning"
+        android:textColor="@color/error_dim"
+        android:textSize="@dimen/text_xs"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_share_sheet_subtitle" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_share_sheet_preview"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        app:cardBackgroundColor="@color/surface_container_low"
+        app:cardCornerRadius="@dimen/radius_xl"
+        app:cardElevation="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_share_sheet_warning">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="@dimen/spacing_lg">
+
+            <TextView
+                android:id="@+id/tv_share_sheet_preview_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card_surface"
+                android:paddingStart="@dimen/spacing_sm"
+                android:paddingTop="@dimen/spacing_xs"
+                android:paddingEnd="@dimen/spacing_sm"
+                android:paddingBottom="@dimen/spacing_xs"
+                android:text="@string/share_link_label"
+                android:textColor="@color/primary"
+                android:textSize="@dimen/text_xs"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/tv_share_sheet_preview_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:textColor="@color/on_surface"
+                android:textSize="@dimen/text_lg"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_share_sheet_preview_label"
+                tools:text="Solo Leveling" />
+
+            <TextView
+                android:id="@+id/tv_share_sheet_preview_caption"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:textColor="@color/on_surface_variant"
+                android:textSize="@dimen/text_sm"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_share_sheet_preview_title"
+                tools:text="Read Solo Leveling - Chapter 12 on ComicReader" />
+
+            <TextView
+                android:id="@+id/tv_share_sheet_preview_link"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:textColor="@color/primary"
+                android:textSize="@dimen/text_sm"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_share_sheet_preview_caption"
+                tools:text="https://comicreader.app/share/chapter/12" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:id="@+id/tv_share_sheet_platform_hint"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:textColor="@color/on_surface_variant"
+        android:textSize="@dimen/text_sm"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/card_share_sheet_preview"
+        tools:text="You'll choose the exact destination group inside the selected app." />
+
+    <LinearLayout
+        android:id="@+id/ll_share_sheet_row_one"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_share_sheet_platform_hint">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_share_sheet_copy_link"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/button_height"
+            android:layout_weight="1"
+            android:text="@string/share_action_copy_link"
+            android:textAllCaps="false"
+            android:textSize="@dimen/text_sm"
+            app:backgroundTint="@color/surface_container"
+            app:cornerRadius="@dimen/radius_lg" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_share_sheet_more_apps"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/button_height"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:layout_weight="1"
+            android:text="@string/share_action_more_apps"
+            android:textAllCaps="false"
+            android:textSize="@dimen/text_sm"
+            app:backgroundTint="@color/primary"
+            app:cornerRadius="@dimen/radius_lg" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_share_sheet_row_two"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_sm"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ll_share_sheet_row_one">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_share_sheet_facebook"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/button_height"
+            android:layout_weight="1"
+            android:text="@string/share_platform_facebook"
+            android:textAllCaps="false"
+            android:textSize="@dimen/text_sm"
+            app:cornerRadius="@dimen/radius_lg" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_share_sheet_zalo"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/button_height"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:layout_weight="1"
+            android:text="@string/share_platform_zalo"
+            android:textAllCaps="false"
+            android:textSize="@dimen/text_sm"
+            app:cornerRadius="@dimen/radius_lg" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_share_sheet_row_three"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_sm"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ll_share_sheet_row_two">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_share_sheet_discord"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/button_height"
+            android:layout_weight="1"
+            android:text="@string/share_platform_discord"
+            android:textAllCaps="false"
+            android:textSize="@dimen/text_sm"
+            app:cornerRadius="@dimen/radius_lg" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_share_sheet_telegram"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/button_height"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:layout_weight="1"
+            android:text="@string/share_platform_telegram"
+            android:textAllCaps="false"
+            android:textSize="@dimen/text_sm"
+            app:cornerRadius="@dimen/radius_lg" />
+
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_share_sheet_preview_page"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/button_height"
+        android:layout_marginTop="@dimen/spacing_sm"
+        android:text="@string/share_action_open_preview"
+        android:textAllCaps="false"
+        android:textSize="@dimen/text_sm"
+        app:cornerRadius="@dimen/radius_lg"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/ll_share_sheet_row_three" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

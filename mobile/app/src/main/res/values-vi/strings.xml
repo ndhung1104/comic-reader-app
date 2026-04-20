@@ -296,4 +296,26 @@
     <string name="onboarding_art_style_title">Nét vẽ (tùy chọn)</string>
     <string name="onboarding_art_style_subtitle">Giúp đề xuất phù hợp hơn.</string>
     <string name="onboarding_finish">Hoàn tất</string>
+    <string name="content_close_share_sheet">&#272;&#243;ng t&#249;y ch&#7885;n chia s&#7867;</string>
+    <string name="share_comic_caption_short">&#272;&#7885;c %1$s tr&#234;n ComicReader</string>
+    <string name="share_chapter_caption_short">&#272;&#7885;c %1$s - Ch&#432;&#417;ng %2$d tr&#234;n ComicReader</string>
+    <string name="share_chapter_caption_short_fallback">&#272;&#7885;c tr&#234;n ComicReader</string>
+    <string name="share_sheet_title_comic">Chia s&#7867; link truy&#7879;n</string>
+    <string name="share_sheet_title_chapter">Chia s&#7867; link ch&#432;&#417;ng</string>
+    <string name="share_sheet_subtitle">Ch&#7885;n n&#7873;n t&#7843;ng tr&#432;&#7899;c, sau &#273;&#243; ch&#7885;n nh&#243;m ho&#7863;c &#273;o&#7841;n chat &#7903; b&#432;&#7899;c ti&#7871;p theo.</string>
+    <string name="share_sheet_platform_hint">B&#7841;n s&#7869; ch&#7885;n &#273;&#237;ch nh&#243;m ho&#7863;c c&#7897;ng &#273;&#7891;ng c&#7909; th&#7875; trong &#7913;ng d&#7909;ng &#273;&#227; ch&#7885;n.</string>
+    <string name="share_sheet_local_url_warning">Link chia s&#7867; n&#224;y v&#7851;n &#273;ang d&#249;ng host local c&#7911;a emulator ho&#7863;c thi&#7871;t b&#7883;. H&#227;y c&#7845;u h&#236;nh `MOBILE_PUBLIC_BASE_URL` th&#224;nh &#273;&#7883;a ch&#7881; c&#243; th&#7875; truy c&#7853;p tr&#432;&#7899;c khi test v&#7899;i ng&#432;&#7901;i kh&#225;c ho&#7863;c app m&#7841;ng x&#227; h&#7897;i.</string>
+    <string name="share_link_label">Link chia s&#7867;</string>
+    <string name="share_action_copy_link">Sao ch&#233;p link</string>
+    <string name="share_action_more_apps">Th&#234;m &#7913;ng d&#7909;ng</string>
+    <string name="share_action_open_preview">M&#7903; trang preview</string>
+    <string name="share_platform_facebook">Facebook / Messenger</string>
+    <string name="share_platform_zalo">Zalo</string>
+    <string name="share_platform_discord">Discord</string>
+    <string name="share_platform_telegram">Telegram</string>
+    <string name="share_link_copied">&#272;&#227; sao ch&#233;p link</string>
+    <string name="share_copy_failed">Kh&#244;ng th&#7875; sao ch&#233;p link</string>
+    <string name="share_preview_unavailable">Kh&#244;ng c&#243; tr&#236;nh duy&#7879;t &#273;&#7875; m&#7903; trang preview</string>
+    <string name="share_target_unavailable">Kh&#244;ng c&#243; &#7913;ng d&#7909;ng ph&#249; h&#7907;p cho thao t&#225;c chia s&#7867; n&#224;y</string>
+    <string name="share_target_unavailable_fallback">Ch&#432;a c&#224;i %1$s. &#272;ang m&#7903; share sheet m&#7863;c &#273;&#7883;nh thay th&#7871;.</string>
 </resources>
