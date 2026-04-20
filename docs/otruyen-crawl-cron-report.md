@@ -154,12 +154,26 @@ CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
 - `application.yml` (defaults):
 
-```yaml
+````yaml
 otruyen:
     crawl:
         cron: ${OTRUYEN_CRAWL_CRON:0 0 3 * * SUN}
         zone: ${OTRUYEN_CRAWL_ZONE:UTC}
         enabled: ${OTRUYEN_CRAWL_ENABLED:true}
+
+### Startup automatic sync
+
+- New behavior: when the application starts and the `comics` table is empty, the application will automatically trigger an OTruyen sync in the background so the app can continue serving requests during the crawl. The startup invocation uses the full `syncComicsFromOTruyen()` flow and runs on the configured `taskExecutor`.
+- Controlled by property `otruyen.crawl.startup-enabled` (default `true`). To disable this automatic startup behaviour set:
+```yaml
+otruyen:
+    crawl:
+        startup-enabled: false
+````
+
+- Implementation details: The `DatabaseInitializer` listens for `ApplicationReadyEvent`, checks `comicRepository.count()`, and when zero submits a background task to run `oTruyenService.syncComicsFromOTruyen()` on the `taskExecutor` so the crawl does not block normal traffic.
+  Implication: the application will accept API traffic immediately while the initial crawl runs in the background. This provides faster availability at the cost of clients seeing partial results until the crawl completes.
+
 ```
 
 - Local DB config is loaded from `backend/.env` (DB_URL/DB_USERNAME/DB_PASSWORD).
@@ -183,3 +197,4 @@ otruyen:
 ---
 
 If you want, I can: (A) add the blocking `CompletableFuture` change so the scheduler waits for all async imports, (B) implement a simple ShedLock-based overlap guard, or (C) add Prometheus metrics and example alerts. Which should I do next?
+```
