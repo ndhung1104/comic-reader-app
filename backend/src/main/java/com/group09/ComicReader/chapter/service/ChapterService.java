@@ -3,8 +3,10 @@ package com.group09.ComicReader.chapter.service;
 import com.group09.ComicReader.chapter.dto.ChapterPageResponse;
 import com.group09.ComicReader.chapter.dto.ChapterRequest;
 import com.group09.ComicReader.chapter.dto.ChapterResponse;
+import com.group09.ComicReader.chapter.entity.ChapterFreeAdAccessEntity;
 import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.chapter.entity.ChapterPageEntity;
+import com.group09.ComicReader.chapter.repository.ChapterFreeAdAccessRepository;
 import com.group09.ComicReader.chapter.repository.ChapterPageRepository;
 import com.group09.ComicReader.chapter.repository.ChapterRepository;
 import com.group09.ComicReader.common.exception.BadRequestException;
@@ -38,27 +40,33 @@ public class ChapterService {
 
     private final ChapterRepository chapterRepository;
     private final ChapterPageRepository chapterPageRepository;
+    private final ChapterFreeAdAccessRepository chapterFreeAdAccessRepository;
     private final FileStorageService fileStorageService;
     private final ChapterPurchaseRepository purchaseRepository;
     private final VipSubscriptionRepository vipRepository;
     private final UserRepository userRepository;
     private final ChapterPremiumPolicyService chapterPremiumPolicyService;
+    private final ChapterAdPolicyService chapterAdPolicyService;
     private final RestTemplate restTemplate;
 
     public ChapterService(ChapterRepository chapterRepository,
             ChapterPageRepository chapterPageRepository,
+            ChapterFreeAdAccessRepository chapterFreeAdAccessRepository,
             FileStorageService fileStorageService,
             ChapterPurchaseRepository purchaseRepository,
             VipSubscriptionRepository vipRepository,
             UserRepository userRepository,
-            ChapterPremiumPolicyService chapterPremiumPolicyService) {
+            ChapterPremiumPolicyService chapterPremiumPolicyService,
+            ChapterAdPolicyService chapterAdPolicyService) {
         this.chapterRepository = chapterRepository;
         this.chapterPageRepository = chapterPageRepository;
+        this.chapterFreeAdAccessRepository = chapterFreeAdAccessRepository;
         this.fileStorageService = fileStorageService;
         this.purchaseRepository = purchaseRepository;
         this.vipRepository = vipRepository;
         this.userRepository = userRepository;
         this.chapterPremiumPolicyService = chapterPremiumPolicyService;
+        this.chapterAdPolicyService = chapterAdPolicyService;
         this.restTemplate = new RestTemplate();
     }
 
@@ -121,24 +129,30 @@ public class ChapterService {
 
     public ChapterResponse getChapter(Long chapterId) {
         ChapterEntity chapter = getChapterEntity(chapterId);
-        ChapterResponse response = toChapterResponse(chapter);
+        return buildChapterResponse(chapter, getCurrentUserOptional());
+    }
 
-        if (!chapter.isPremium()) {
-            response.setUnlocked(true);
-            return response;
+    @Transactional
+    public ChapterResponse claimFreeAccess(Long chapterId) {
+        ChapterEntity chapter = getChapterEntity(chapterId);
+        if (chapter.isPremium()) {
+            throw new BadRequestException("Premium chapters cannot be unlocked by ad access");
         }
 
-        Optional<UserEntity> userOptional = getCurrentUserOptional();
-        if (userOptional.isEmpty()) {
-            response.setUnlocked(false);
-            return response;
-        }
-
-        UserEntity user = userOptional.get();
+        UserEntity user = getCurrentUserOptional()
+                .orElseThrow(() -> new BadRequestException("Log in to persist ad-free access for this chapter"));
         boolean isVip = vipRepository.findActiveByUserId(user.getId(), LocalDateTime.now()).isPresent();
-        boolean purchased = purchaseRepository.existsByUserIdAndChapterId(user.getId(), chapter.getId());
-        response.setUnlocked(isVip || purchased);
-        return response;
+        if (!isVip
+                && chapterAdPolicyService.isFreeChapterAdEligible(chapter)
+                && !chapterFreeAdAccessRepository.existsByUserIdAndChapterId(user.getId(), chapterId)) {
+            ChapterFreeAdAccessEntity access = new ChapterFreeAdAccessEntity();
+            access.setUser(user);
+            access.setChapter(chapter);
+            access.setSource("FREE_AD_OPEN");
+            chapterFreeAdAccessRepository.save(access);
+        }
+
+        return buildChapterResponse(chapter, Optional.of(user));
     }
 
     @Transactional
@@ -220,6 +234,39 @@ public class ChapterService {
         response.setLanguage(entity.getLanguage());
         response.setPremium(entity.isPremium());
         response.setPrice(entity.getPrice());
+        return response;
+    }
+
+    private ChapterResponse buildChapterResponse(ChapterEntity chapter, Optional<UserEntity> userOptional) {
+        ChapterResponse response = toChapterResponse(chapter);
+        boolean adEligible = chapterAdPolicyService.isFreeChapterAdEligible(chapter);
+        response.setAdEligible(adEligible);
+
+        if (!chapter.isPremium()) {
+            response.setUnlocked(true);
+            if (userOptional.isEmpty()) {
+                response.setRequiresEntryBannerAd(adEligible);
+                return response;
+            }
+
+            UserEntity user = userOptional.get();
+            boolean isVip = vipRepository.findActiveByUserId(user.getId(), LocalDateTime.now()).isPresent();
+            boolean hasFreeAdAccess = chapterFreeAdAccessRepository.existsByUserIdAndChapterId(user.getId(), chapter.getId());
+            response.setRequiresEntryBannerAd(adEligible && !isVip && !hasFreeAdAccess);
+            return response;
+        }
+
+        response.setAdEligible(false);
+        response.setRequiresEntryBannerAd(false);
+        if (userOptional.isEmpty()) {
+            response.setUnlocked(false);
+            return response;
+        }
+
+        UserEntity user = userOptional.get();
+        boolean isVip = vipRepository.findActiveByUserId(user.getId(), LocalDateTime.now()).isPresent();
+        boolean purchased = purchaseRepository.existsByUserIdAndChapterId(user.getId(), chapter.getId());
+        response.setUnlocked(isVip || purchased);
         return response;
     }
 

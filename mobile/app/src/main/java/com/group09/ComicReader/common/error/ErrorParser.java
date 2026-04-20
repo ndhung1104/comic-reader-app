@@ -33,6 +33,9 @@ public final class ErrorParser {
         if (statusCode == 400) {
             return new ParsedError(AppError.BAD_REQUEST, message);
         }
+        if (statusCode == 429) {
+            return new ParsedError(AppError.RATE_LIMITED, message);
+        }
         if (statusCode == 404) {
             return new ParsedError(AppError.NOT_FOUND, message);
         }

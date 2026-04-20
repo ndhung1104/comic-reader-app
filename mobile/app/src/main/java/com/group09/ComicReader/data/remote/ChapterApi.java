@@ -21,6 +21,9 @@ public interface ChapterApi {
     @GET("/api/v1/chapters/{chapterId}/pages")
     Call<List<ReaderPageResponse>> getChapterPages(@Path("chapterId") long chapterId);
 
+    @POST("/api/v1/chapters/{chapterId}/free-access")
+    Call<ComicChapterResponse> claimFreeAccess(@Path("chapterId") long chapterId);
+
     @POST("/api/v1/chapters/{chapterId}/audio-playlist")
     Call<ChapterAudioPlaylistResponse> createOrGetAudioPlaylist(@Path("chapterId") long chapterId,
             @Body ChapterAudioPlaylistRequest request);

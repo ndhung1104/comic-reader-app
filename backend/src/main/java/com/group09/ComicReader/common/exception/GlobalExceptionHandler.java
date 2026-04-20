@@ -34,6 +34,11 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
     }
 
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<Map<String, Object>> handleTooManyRequests(TooManyRequestsException exception) {
+        return buildResponse(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException exception) {
         Map<String, String> fields = new HashMap<>();
@@ -61,4 +66,3 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(payload);
     }
 }
-

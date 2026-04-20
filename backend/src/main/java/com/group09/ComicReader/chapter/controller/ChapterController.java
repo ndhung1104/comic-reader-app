@@ -39,6 +39,11 @@ public class ChapterController {
         return ResponseEntity.ok(chapterService.getPages(chapterId));
     }
 
+    @PostMapping("/{chapterId}/free-access")
+    public ResponseEntity<ChapterResponse> claimFreeAccess(@PathVariable Long chapterId) {
+        return ResponseEntity.ok(chapterService.claimFreeAccess(chapterId));
+    }
+
     @PostMapping("/{chapterId}/audio-playlist")
     public ResponseEntity<ChapterAudioPlaylistResponse> createOrGetAudioPlaylist(@PathVariable Long chapterId,
             @Valid @RequestBody(required = false) ChapterAudioPlaylistRequest request) {
@@ -51,4 +56,3 @@ public class ChapterController {
         return ResponseEntity.ok(chapterAudioPlaylistService.getExistingPlaylist(chapterId, request));
     }
 }
-

@@ -162,8 +162,22 @@
     <string name="wallet_title">Wallet and Coins</string>
     <string name="wallet_current_balance">Current Balance</string>
     <string name="wallet_coin_label">Coins</string>
+    <string name="wallet_point_label">Points</string>
     <string name="wallet_packages">Top-up Packages</string>
     <string name="wallet_transactions">Recent Transactions</string>
+    <string name="wallet_vip_title">Premium membership</string>
+    <string name="wallet_vip_inactive">Premium is inactive. Unlock ad-free reading and premium chapter access with coins.</string>
+    <string name="wallet_vip_hint">Use your wallet coins to subscribe instantly. Premium users skip reader entry ads and unlock premium chapters.</string>
+    <string name="wallet_vip_monthly">Monthly VIP - 500 coins</string>
+    <string name="wallet_vip_yearly">Yearly VIP - 5000 coins</string>
+    <string name="wallet_vip_active_format">%1$s active until %2$s</string>
+    <string name="wallet_vip_plan_monthly">Monthly VIP</string>
+    <string name="wallet_vip_plan_yearly">Yearly VIP</string>
+    <string name="wallet_vip_plan_unknown">Unknown plan</string>
+    <string name="wallet_reward_title">Watch ads for bonus balance</string>
+    <string name="wallet_reward_subtitle">Use rewarded ads to earn extra coins or points without leaving the wallet.</string>
+    <string name="wallet_reward_coins">Watch for coins</string>
+    <string name="wallet_reward_points">Watch for points</string>
 
     <string name="comic_synopsis">Synopsis</string>
     <string name="comic_chapters">Chapters</string>
@@ -199,6 +213,8 @@
     <string name="reader_audio_speed_100">1.0x</string>
     <string name="reader_audio_speed_125">1.25x</string>
     <string name="reader_offline_download_required">No offline copy for this chapter. Please download it first.</string>
+    <string name="reader_entry_ad_label">Sponsored</string>
+    <string name="reader_entry_ad_hint">This free chapter is supported by a banner ad. Scroll past it and keep reading.</string>
 
     <string name="comment_hint">Write a comment...</string>
     <string name="comment_send">Send</string>
@@ -310,4 +326,3 @@
     <string name="onboarding_art_style_subtitle">This helps us tune recommendations.</string>
     <string name="onboarding_finish">Finish</string>
 </resources>
-

@@ -9,6 +9,8 @@ public class ComicChapterResponse {
     private boolean premium;
     private Integer price;
     private boolean unlocked;
+    private boolean adEligible;
+    private boolean requiresEntryBannerAd;
 
     public Long getId() {
         return id;
@@ -36,5 +38,13 @@ public class ComicChapterResponse {
 
     public boolean isUnlocked() {
         return unlocked;
+    }
+
+    public boolean isAdEligible() {
+        return adEligible;
+    }
+
+    public boolean isRequiresEntryBannerAd() {
+        return requiresEntryBannerAd;
     }
 }

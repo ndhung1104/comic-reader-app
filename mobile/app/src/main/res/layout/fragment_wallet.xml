@@ -93,7 +93,185 @@
                         app:layout_constraintBaseline_toBaselineOf="@id/tv_wallet_balance_value"
                         app:layout_constraintStart_toEndOf="@id/tv_wallet_balance_value" />
 
+                    <TextView
+                        android:id="@+id/tv_wallet_point_caption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_lg"
+                        android:text="@string/wallet_point_label"
+                        android:textColor="@color/text_primary"
+                        android:textSize="@dimen/text_sm"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tv_wallet_balance_value" />
+
+                    <TextView
+                        android:id="@+id/tv_wallet_point_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_sm"
+                        android:textColor="@color/text_primary"
+                        android:textSize="@dimen/text_md"
+                        android:textStyle="bold"
+                        app:layout_constraintBaseline_toBaselineOf="@id/tv_wallet_point_caption"
+                        app:layout_constraintStart_toEndOf="@id/tv_wallet_point_caption" />
+
                 </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_wallet_vip"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_lg"
+                app:cardBackgroundColor="@color/surface_container_low"
+                app:cardCornerRadius="@dimen/radius_lg"
+                app:cardElevation="0dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/card_wallet_balance">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/spacing_lg">
+
+                    <TextView
+                        android:id="@+id/tv_wallet_vip_title"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/wallet_vip_title"
+                        android:textColor="@color/text_primary"
+                        android:textSize="@dimen/text_md"
+                        android:textStyle="bold"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tv_wallet_vip_status"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:text="@string/wallet_vip_inactive"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="@dimen/text_sm"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tv_wallet_vip_title" />
+
+                    <TextView
+                        android:id="@+id/tv_wallet_vip_hint"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:text="@string/wallet_vip_hint"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="@dimen/text_xs"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tv_wallet_vip_status" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_wallet_vip_monthly"
+                        style="@style/Widget.Material3.Button"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/button_height"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:text="@string/wallet_vip_monthly"
+                        android:textSize="@dimen/text_sm"
+                        app:cornerRadius="@dimen/radius_lg"
+                        app:layout_constraintEnd_toStartOf="@id/btn_wallet_vip_yearly"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tv_wallet_vip_hint" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_wallet_vip_yearly"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/button_height"
+                        android:layout_marginStart="@dimen/spacing_sm"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:text="@string/wallet_vip_yearly"
+                        android:textSize="@dimen/text_sm"
+                        app:cornerRadius="@dimen/radius_lg"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/btn_wallet_vip_monthly"
+                        app:layout_constraintTop_toBottomOf="@id/tv_wallet_vip_hint" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_wallet_rewards"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_lg"
+                app:cardBackgroundColor="@color/surface_container_low"
+                app:cardCornerRadius="@dimen/radius_lg"
+                app:cardElevation="0dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/card_wallet_vip">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="@dimen/spacing_lg">
+
+                    <TextView
+                        android:id="@+id/tv_wallet_rewards_title"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/wallet_reward_title"
+                        android:textColor="@color/text_primary"
+                        android:textSize="@dimen/text_md"
+                        android:textStyle="bold"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tv_wallet_rewards_subtitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:text="@string/wallet_reward_subtitle"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="@dimen/text_xs"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tv_wallet_rewards_title" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_wallet_reward_coins"
+                        style="@style/Widget.Material3.Button"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/button_height"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:text="@string/wallet_reward_coins"
+                        android:textSize="@dimen/text_sm"
+                        app:cornerRadius="@dimen/radius_lg"
+                        app:layout_constraintEnd_toStartOf="@id/btn_wallet_reward_points"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tv_wallet_rewards_subtitle" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_wallet_reward_points"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/button_height"
+                        android:layout_marginStart="@dimen/spacing_sm"
+                        android:layout_marginTop="@dimen/spacing_md"
+                        android:text="@string/wallet_reward_points"
+                        android:textSize="@dimen/text_sm"
+                        app:cornerRadius="@dimen/radius_lg"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/btn_wallet_reward_coins"
+                        app:layout_constraintTop_toBottomOf="@id/tv_wallet_rewards_subtitle" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
             </com.google.android.material.card.MaterialCardView>
 
             <TextView
@@ -106,7 +284,7 @@
                 android:textSize="@dimen/text_lg"
                 android:textStyle="bold"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/card_wallet_balance" />
+                app:layout_constraintTop_toBottomOf="@id/card_wallet_rewards" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rcv_wallet_packages"

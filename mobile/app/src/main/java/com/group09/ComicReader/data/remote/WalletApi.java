@@ -1,10 +1,13 @@
 package com.group09.ComicReader.data.remote;
 
+import com.group09.ComicReader.model.AdRewardRequest;
 import com.group09.ComicReader.model.PageResponse;
 import com.group09.ComicReader.model.PurchaseChapterRequest;
 import com.group09.ComicReader.model.IapVerifyRequest;
 import com.group09.ComicReader.model.TopUpRequest;
 import com.group09.ComicReader.model.TransactionResponse;
+import com.group09.ComicReader.model.VipPurchaseRequest;
+import com.group09.ComicReader.model.VipStatusResponse;
 import com.group09.ComicReader.model.WalletResponse;
 
 import retrofit2.Call;
@@ -27,8 +30,17 @@ public interface WalletApi {
     @POST("/api/v1/wallet/iap-verify")
     Call<WalletResponse> verifyIap(@Body IapVerifyRequest request);
 
+    @POST("/api/v1/wallet/ad-reward")
+    Call<WalletResponse> claimAdReward(@Body AdRewardRequest request);
+
     @POST("/api/v1/wallet/purchase-chapter")
     Call<WalletResponse> purchaseChapter(@Body PurchaseChapterRequest request);
+
+    @GET("/api/v1/wallet/vip")
+    Call<VipStatusResponse> getVipStatus();
+
+    @POST("/api/v1/wallet/vip/purchase")
+    Call<VipStatusResponse> purchaseVip(@Body VipPurchaseRequest request);
 
     @GET("/api/v1/packages")
     Call<java.util.List<com.group09.ComicReader.model.WalletPackage>> getPackages();

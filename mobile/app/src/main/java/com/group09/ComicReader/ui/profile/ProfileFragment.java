@@ -21,12 +21,14 @@ import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.ProfileMenuAdapter;
 import com.group09.ComicReader.base.BaseFragment;
 import com.group09.ComicReader.data.AccountRepository;
+import com.group09.ComicReader.data.WalletRepository;
 import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.FragmentProfileBinding;
 import com.group09.ComicReader.model.ProfileMenuItem;
 import com.group09.ComicReader.model.UpdateUserPreferencesRequest;
 import com.group09.ComicReader.model.UserProfileResponse;
+import com.group09.ComicReader.model.VipStatusResponse;
 import com.group09.ComicReader.viewmodel.ProfileViewModel;
 
 import com.group09.ComicReader.data.local.AppSettingsStore;
@@ -43,6 +45,7 @@ public class ProfileFragment extends BaseFragment {
     private ProfileMenuAdapter adapter;
     private SessionManager sessionManager;
     private AccountRepository accountRepository;
+    private WalletRepository walletRepository;
     private ActivityResultLauncher<String> pickAvatarLauncher;
 
     @Nullable
@@ -53,6 +56,7 @@ public class ProfileFragment extends BaseFragment {
         viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
         sessionManager = new SessionManager(requireContext());
         accountRepository = new AccountRepository(new ApiClient(requireContext()));
+        walletRepository = new WalletRepository(new ApiClient(requireContext()));
 
         pickAvatarLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
             if (uri == null) return;
@@ -84,6 +88,13 @@ public class ProfileFragment extends BaseFragment {
             }
             pickAvatarLauncher.launch("image/*");
         });
+        binding.tvProfileMembership.setOnClickListener(v -> {
+            if (!sessionManager.hasToken()) {
+                Navigation.findNavController(v).navigate(R.id.loginFragment);
+                return;
+            }
+            Navigation.findNavController(v).navigate(R.id.walletFragment);
+        });
 
         renderForAuthState();
         boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
@@ -111,15 +122,46 @@ public class ProfileFragment extends BaseFragment {
             renderAvatarFromSession();
 
             maybeFetchMe();
+            refreshMembershipStatus();
 
             binding.btnProfileCreator.setVisibility(View.VISIBLE);
             setAuthButtonToLogout(binding.btnProfileLogout);
         } else {
             viewModel.setUserInfo(getString(R.string.profile_guest_name), getString(R.string.profile_not_signed_in));
             binding.btnProfileCreator.setVisibility(View.GONE);
+            binding.tvProfileMembership.setText(R.string.profile_membership);
             clearAvatar();
             setAuthButtonToLogin(binding.btnProfileLogout);
         }
+    }
+
+    private void refreshMembershipStatus() {
+        walletRepository.loadVipStatus(new WalletRepository.VipStatusCallback() {
+            @Override
+            public void onSuccess(@NonNull VipStatusResponse vipStatusResponse) {
+                if (binding == null) {
+                    return;
+                }
+                if (!vipStatusResponse.isVip()) {
+                    binding.tvProfileMembership.setText(R.string.profile_membership);
+                    return;
+                }
+
+                String plan = vipStatusResponse.getPlan();
+                if ("YEARLY".equalsIgnoreCase(plan)) {
+                    binding.tvProfileMembership.setText(R.string.wallet_vip_plan_yearly);
+                } else {
+                    binding.tvProfileMembership.setText(R.string.wallet_vip_plan_monthly);
+                }
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                if (binding != null) {
+                    binding.tvProfileMembership.setText(R.string.profile_membership);
+                }
+            }
+        });
     }
 
     private void maybeFetchMe() {
