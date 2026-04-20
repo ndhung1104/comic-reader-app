@@ -11,6 +11,7 @@ This document describes the new OTruyen crawling mechanism implemented in the ba
     - Full crawl and per-page import support (`syncComicsFromOTruyen`, `syncComicsFromOTruyenPage`).
     - Incremental weekly-only-new sync (`syncOnlyNewComics`) that stops when an already-imported comic is encountered.
     - Asynchronous detailed import of comic metadata and chapters (`OTruyenAsyncService.lazyLoadComicDetails`) to avoid blocking the scheduler.
+    - Dedicated executor for heavy importer work: `otruyenExecutor` (see `AsyncConfig`) and a safer fallback rejection policy so the app degrades gracefully under load.
     - Admin endpoint to trigger manual syncs: `POST /api/v1/admin/comics/sync?page={n}`.
     - Scheduler: `OTruyenScheduler.weeklyCrawl` driven by `otruyen.crawl.cron` property (default Sunday 03:00 UTC).
 
@@ -23,11 +24,11 @@ This document describes the new OTruyen crawling mechanism implemented in the ba
     - `saveBasicComic(...)` — annotated `@Transactional(propagation = Propagation.REQUIRES_NEW)` and calls `saveAndFlush` so the _shell_ is committed immediately and becomes visible to other threads / DB clients.
 
 - `OTruyenAsyncService`
-    - `@Async("taskExecutor") @Transactional void lazyLoadComicDetails(Long comicId, String slug)` — fetches the detail endpoint, updates `author`, `synopsis`, `coverUrl` when available, and imports chapters.
-    - Runs in the `taskExecutor` configured in `AsyncConfig` (4–8 threads by default).
+    - `@Async("otruyenExecutor") @Transactional void lazyLoadComicDetails(Long comicId, String slug)` — fetches the detail endpoint, updates `author`, `synopsis`, `coverUrl` when available, and imports chapters.
+    - Runs in the dedicated `otruyenExecutor` configured in `AsyncConfig` (tuned larger for importer tasks); the default `taskExecutor` is retained for general async work. Both executors use a `CallerRunsPolicy` fallback to avoid rejecting tasks under burst load.
 
 - `OTruyenScheduler`
-    - Annotated with `@Scheduled(cron = "${otruyen.crawl.cron:0 0 3 * * SUN}" , zone = "${otruyen.crawl.zone:UTC}")` and `@Async("taskExecutor")`, so the scheduled method runs asynchronously on the task executor.
+    - Annotated with `@Scheduled(cron = "${otruyen.crawl.cron:0 0 3 * * SUN}" , zone = "${otruyen.crawl.zone:UTC}")` and `@Async("otruyenExecutor")`, so the scheduled method runs asynchronously on the dedicated importer executor.
 
 - `AdminComicController`
     - `POST /api/v1/admin/comics/sync?page={n}` — public for convenience (per `SecurityConfig`) and useful for manual tests.
@@ -137,7 +138,7 @@ If you want `syncOnlyNewComics()` to block until all async detail imports finish
 
 ```java
 // in OTruyenAsyncService
-@Async("taskExecutor")
+@Async("otruyenExecutor")
 public CompletableFuture<Void> lazyLoadComicDetails(Long comicId, String slug) {
     // existing work
     return CompletableFuture.completedFuture(null);
@@ -171,8 +172,13 @@ otruyen:
         startup-enabled: false
 ````
 
-- Implementation details: The `DatabaseInitializer` listens for `ApplicationReadyEvent`, checks `comicRepository.count()`, and when zero submits a background task to run `oTruyenService.syncComicsFromOTruyen()` on the `taskExecutor` so the crawl does not block normal traffic.
-  Implication: the application will accept API traffic immediately while the initial crawl runs in the background. This provides faster availability at the cost of clients seeing partial results until the crawl completes.
+- Implementation details: The `DatabaseInitializer` listens for `ApplicationReadyEvent`, checks `comicRepository.count()`, and when zero submits a background task to run `oTruyenService.syncComicsFromOTruyenBackground()` on the configured executor so the crawl does not block normal traffic. The background-friendly crawl saves minimal shells via `ComicShellService.saveShell(...)` (each shell is saved and committed in its own REQUIRES_NEW transaction) and enforces a startup cap to avoid unbounded imports on fresh deployments.
+  Implication: the application will accept API traffic immediately while the initial crawl runs in the background. This provides faster availability at the cost of clients seeing partial results until the crawl completes; however, shells are committed incrementally so they become visible as they are discovered.
+
+### Immediate commit for startup saves
+
+- The startup background crawl uses a dedicated `ComicShellService.saveShell(...)` which is annotated with `@Transactional(propagation = REQUIRES_NEW)` and calls `saveAndFlush()` so each comic shell is committed immediately as it is discovered. This ensures shells are visible to other DB sessions (pgAdmin, API reads, async detail loaders) even while the overall crawl is still running.
+    - Startup cap: the background startup crawl enforces a default cap of 1000 comics (hard-coded in `OTruyenService.STARTUP_CRAWL_LIMIT`). This prevents uncontrolled large imports on fresh deployments; consider making this value configurable via `application.yml` if you need to tune it per environment.
 
 ```
 
