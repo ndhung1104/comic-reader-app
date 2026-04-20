@@ -36,7 +36,7 @@ public class OTruyenAsyncService {
         this.restTemplate = new RestTemplate();
     }
 
-    @Async("taskExecutor")
+    @Async("otruyenExecutor")
     @Transactional
     public void lazyLoadComicDetails(Long comicId, String slug) {
         log.info("Async: lazy loading details for comic {} (id={})", slug, comicId);

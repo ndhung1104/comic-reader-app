@@ -23,7 +23,7 @@ public class OTruyenScheduler {
      * Cron expression is configurable via property 'otruyen.crawl.cron'.
      * Default: run every Sunday at 03:00 UTC ("0 0 3 * * SUN").
      */
-    @Async("taskExecutor")
+    @Async("otruyenExecutor")
     @Scheduled(cron = "${otruyen.crawl.cron:0 0 3 * * SUN}", zone = "${otruyen.crawl.zone:UTC}")
     public void weeklyCrawl() {
         log.info("Starting scheduled OTruyen weekly crawl");

@@ -32,16 +32,20 @@ public class OTruyenService {
     private final ChapterPremiumPolicyService chapterPremiumPolicyService;
     private final RestTemplate restTemplate;
     private final OTruyenAsyncService oTruyenAsyncService;
+    private final ComicShellService comicShellService;
+    private static final long STARTUP_CRAWL_LIMIT = 1000L;
 
     public OTruyenService(ComicRepository comicRepository,
             ChapterRepository chapterRepository,
             ChapterPremiumPolicyService chapterPremiumPolicyService,
-            OTruyenAsyncService oTruyenAsyncService) {
+            OTruyenAsyncService oTruyenAsyncService,
+            ComicShellService comicShellService) {
         this.comicRepository = comicRepository;
         this.chapterRepository = chapterRepository;
         this.chapterPremiumPolicyService = chapterPremiumPolicyService;
         this.restTemplate = new RestTemplate();
         this.oTruyenAsyncService = oTruyenAsyncService;
+        this.comicShellService = comicShellService;
     }
 
     @Transactional
@@ -114,7 +118,7 @@ public class OTruyenService {
                     comic.setCreatedAt(LocalDateTime.now());
                     comic.setUpdatedAt(LocalDateTime.now());
 
-                    ComicEntity savedComic = comicRepository.save(comic);
+                    ComicEntity savedComic = comicRepository.saveAndFlush(comic);
                     log.info("Saved comic (page {}): {}", page, item.getName());
 
                     try {
@@ -200,10 +204,10 @@ public class OTruyenService {
                         break; // Break out of the FOR loop
                     }
 
-                    // If it's new, save the basic shell and kick off the lazy load!
+                    // If it's new, save the basic shell (committed immediately) and kick off the
+                    // lazy load!
                     log.info("Found NEW comic: {}", item.getName());
-                    ComicEntity savedComic = saveBasicComic(item, imageDomain);
-                    // trigger async detail + chapter import
+                    ComicEntity savedComic = comicShellService.saveShell(item, imageDomain);
                     try {
                         oTruyenAsyncService.lazyLoadComicDetails(savedComic.getId(), item.getSlug());
                     } catch (Exception e) {
@@ -225,36 +229,84 @@ public class OTruyenService {
         log.info("Weekly sync completed successfully.");
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public ComicEntity saveBasicComic(OTruyenResponseDTO.Item item, String imageDomain) {
-        ComicEntity comic = new ComicEntity();
-        comic.setTitle(item.getName() != null ? item.getName() : item.getSlug());
-        comic.setSlug(item.getSlug());
-        // Ensure non-null author to satisfy DB NOT NULL constraint; the async loader
-        // will update the real author when details are fetched.
-        comic.setAuthor("Unknown");
-
-        if (imageDomain != null && item.getThumbUrl() != null) {
-            comic.setCoverUrl(imageDomain + "/uploads/comics/" + item.getThumbUrl());
-        }
-
-        comic.setStatus(item.getStatus() != null ? item.getStatus() : "ongoing");
-
-        if (item.getCategory() != null && !item.getCategory().isEmpty()) {
-            String genres = item.getCategory().stream()
-                    .map(OTruyenResponseDTO.Category::getName)
-                    .collect(Collectors.joining(","));
-            comic.setGenres(genres);
-        }
-
-        comic.setCreatedAt(LocalDateTime.now());
-        comic.setUpdatedAt(LocalDateTime.now());
-
-        ComicEntity saved = comicRepository.saveAndFlush(comic);
-        return saved;
+        // Delegate to ComicShellService which uses REQUIRES_NEW to ensure commit
+        return comicShellService.saveShell(item, imageDomain);
     }
 
-    // ── Single Comic Import ────────────────────────────────
+    /**
+     * Background-friendly full crawl that saves shells with immediate commits
+     * and schedules async detail import for each saved comic.
+     */
+    public void syncComicsFromOTruyenBackground() {
+        int page = 1;
+        int maxPages = 1000;
+
+        long total = comicRepository.count();
+        if (total >= STARTUP_CRAWL_LIMIT) {
+            log.info("Startup crawl skipped: already {} comics (limit {})", total, STARTUP_CRAWL_LIMIT);
+            return;
+        }
+
+        while (page <= maxPages) {
+            try {
+                int saved = syncComicsFromOTruyenPageBackground(page);
+                if (saved == -1) {
+                    log.info("No items found on OTruyen page {}, stopping background crawl.", page);
+                    break;
+                }
+
+                total += saved;
+                if (total >= STARTUP_CRAWL_LIMIT) {
+                    log.info("Reached startup crawl limit of {} comics. Stopping background crawl.",
+                            STARTUP_CRAWL_LIMIT);
+                    break;
+                }
+
+                page++;
+                try {
+                    Thread.sleep(300);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+            } catch (Exception e) {
+                log.error("Error while background crawling OTruyen at page {}: {}", page, e.getMessage());
+                break;
+            }
+        }
+
+        log.info("Background OTruyen crawl completed up to page {}", Math.max(0, page - 1));
+    }
+
+    private int syncComicsFromOTruyenPageBackground(int page) {
+        String baseUrl = "https://otruyenapi.com/v1/api/danh-sach/dang-phat-hanh";
+        String url = (page > 1) ? baseUrl + "?page=" + page : baseUrl;
+        OTruyenResponseDTO response = restTemplate.getForObject(url, OTruyenResponseDTO.class);
+        if (response == null || response.getData() == null || response.getData().getItems() == null
+                || response.getData().getItems().isEmpty()) {
+            return -1; // no items on this page
+        }
+
+        int savedCount = 0;
+        List<OTruyenResponseDTO.Item> items = response.getData().getItems();
+        String imageDomain = response.getData().getAppDomainCdnImage();
+        for (OTruyenResponseDTO.Item item : items) {
+            if (comicRepository.findBySlug(item.getSlug()).isEmpty()) {
+                // Save minimal shell and commit immediately
+                ComicEntity savedComic = comicShellService.saveShell(item, imageDomain);
+                savedCount++;
+                log.info("Saved shell (page {}): {}", page, item.getName());
+                // schedule async detail + chapter import
+                try {
+                    oTruyenAsyncService.lazyLoadComicDetails(savedComic.getId(), item.getSlug());
+                } catch (Exception e) {
+                    log.error("Failed to trigger async load for {}", item.getSlug(), e);
+                }
+            }
+        }
+
+        return savedCount;
+    }
 
     @Transactional
     public ComicResponse importSingleComic(String sourceUrlOrSlug) {

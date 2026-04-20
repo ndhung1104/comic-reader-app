@@ -38,7 +38,7 @@ public class DatabaseInitializer {
             // Run in background so the application can serve requests while the crawl runs
             taskExecutor.execute(() -> {
                 try {
-                    oTruyenService.syncComicsFromOTruyen();
+                    oTruyenService.syncComicsFromOTruyenBackground();
                     log.info("Automatic startup OTruyen sync (background) completed.");
                 } catch (Exception e) {
                     log.error("Failed to auto-sync comics during startup", e);
