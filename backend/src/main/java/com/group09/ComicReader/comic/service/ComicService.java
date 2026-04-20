@@ -212,6 +212,37 @@ public class ComicService {
         comicRepository.delete(comic);
     }
 
+    /* ========== Creator Specific ========== */
+
+    @Transactional(readOnly = true)
+    public Page<ComicResponse> listMyComics(UserEntity creator, Pageable pageable) {
+        return comicRepository.findByCreatorOrderByCreatedAtDesc(creator, pageable)
+                .map(this::toComicResponse);
+    }
+
+    @Transactional
+    public ComicResponse creatorCreateComic(ComicRequest request, UserEntity creator) {
+        ComicEntity comic = new ComicEntity();
+        applyComicRequest(comic, request);
+        comic.setCreator(creator);
+        // Generate a slug if empty
+        if (comic.getSlug() == null || comic.getSlug().isEmpty()) {
+            comic.setSlug(com.group09.ComicReader.common.util.SlugUtils.toSlug(request.getTitle()) 
+                + "-" + System.currentTimeMillis());
+        }
+        ComicEntity saved = comicRepository.save(comic);
+        return toComicResponse(saved);
+    }
+
+    @Transactional
+    public void creatorDeleteComic(Long comicId, UserEntity creator) {
+        ComicEntity comic = getComicEntity(comicId);
+        if (comic.getCreator() == null || !comic.getCreator().getId().equals(creator.getId())) {
+            throw new com.group09.ComicReader.common.exception.BadRequestException("You do not have permission to delete this comic");
+        }
+        comicRepository.delete(comic);
+    }
+
     @Transactional
     public ChapterResponse createChapter(Long comicId, ChapterRequest request) {
         ComicEntity comic = getComicEntity(comicId);

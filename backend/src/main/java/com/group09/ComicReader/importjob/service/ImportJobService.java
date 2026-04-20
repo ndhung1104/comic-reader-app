@@ -12,6 +12,8 @@ import com.group09.ComicReader.auth.entity.UserEntity;
 import com.group09.ComicReader.auth.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -63,6 +65,12 @@ public class ImportJobService {
         return toResponse(job);
     }
 
+    @Transactional(readOnly = true)
+    public Page<ImportJobResponse> listMyJobs(UserEntity user, Pageable pageable) {
+        return importJobRepository.findAllByUserOrderByCreatedAtDesc(user, pageable)
+                .map(this::toResponse);
+    }
+
     @Scheduled(fixedDelayString = "${import-job.sync-interval-ms:3000}")
     public void syncQueuedJobs() {
         List<ImportJobEntity> queued = importJobRepository.findTop50ByStatusInOrderByUpdatedAtAsc(
@@ -100,6 +108,10 @@ public class ImportJobService {
                 job.setUpdatedAt(LocalDateTime.now());
                 // attach creator to comic
                 comicRepository.findById(resp.getId()).ifPresent(c -> {
+                    if (c.getSlug() == null || c.getSlug().isEmpty()) {
+                        c.setSlug(com.group09.ComicReader.common.util.SlugUtils.toSlug(c.getTitle()) 
+                            + "-" + System.currentTimeMillis());
+                    }
                     c.setCreator(job.getUser());
                     comicRepository.save(c);
                     job.setResultComic(c);
