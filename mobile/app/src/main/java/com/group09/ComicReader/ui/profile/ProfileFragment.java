@@ -24,10 +24,13 @@ import com.group09.ComicReader.data.AccountRepository;
 import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.FragmentProfileBinding;
+import com.group09.ComicReader.model.CreatorRequestResponse;
 import com.group09.ComicReader.model.ProfileMenuItem;
 import com.group09.ComicReader.model.UpdateUserPreferencesRequest;
 import com.group09.ComicReader.model.UserProfileResponse;
 import com.group09.ComicReader.viewmodel.ProfileViewModel;
+import com.group09.ComicReader.data.CreatorRepository;
+import androidx.appcompat.app.AlertDialog;
 
 import com.group09.ComicReader.data.local.AppSettingsStore;
 import com.group09.ComicReader.ui.common.LanguagePickerDialog;
@@ -43,19 +46,22 @@ public class ProfileFragment extends BaseFragment {
     private ProfileMenuAdapter adapter;
     private SessionManager sessionManager;
     private AccountRepository accountRepository;
+    private CreatorRepository creatorRepository;
     private ActivityResultLauncher<String> pickAvatarLauncher;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+            @Nullable Bundle savedInstanceState) {
         binding = FragmentProfileBinding.inflate(inflater, container, false);
         viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
         sessionManager = new SessionManager(requireContext());
         accountRepository = new AccountRepository(new ApiClient(requireContext()));
+        creatorRepository = new CreatorRepository(new ApiClient(requireContext()));
 
         pickAvatarLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
-            if (uri == null) return;
+            if (uri == null)
+                return;
             if (!sessionManager.hasToken()) {
                 return;
             }
@@ -75,8 +81,6 @@ public class ProfileFragment extends BaseFragment {
         viewModel.getEmail().observe(getViewLifecycleOwner(), email -> binding.tvProfileEmail.setText(email));
         viewModel.getMenuItems().observe(getViewLifecycleOwner(), adapter::submitList);
 
-        binding.btnProfileCreator.setOnClickListener(v -> showToast("Creator flow is not implemented"));
-
         binding.imgProfileAvatar.setOnClickListener(v -> {
             if (!sessionManager.hasToken()) {
                 Navigation.findNavController(v).navigate(R.id.loginFragment);
@@ -86,8 +90,10 @@ public class ProfileFragment extends BaseFragment {
         });
 
         renderForAuthState();
-        boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
-        viewModel.loadData(isAdmin, requireContext());
+        boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole())
+                || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
+        boolean isCreator = "CREATOR".equalsIgnoreCase(sessionManager.getRole());
+        viewModel.loadData(isAdmin, isCreator, requireContext());
     }
 
     @Override
@@ -102,7 +108,8 @@ public class ProfileFragment extends BaseFragment {
         if (isLoggedIn) {
             String name = sessionManager.getFullName();
             String email = sessionManager.getEmail();
-            if (email == null) email = "";
+            if (email == null)
+                email = "";
             if (name == null || name.trim().isEmpty()) {
                 name = email.trim().isEmpty() ? getString(R.string.profile_guest_name) : email;
             }
@@ -113,6 +120,17 @@ public class ProfileFragment extends BaseFragment {
             maybeFetchMe();
 
             binding.btnProfileCreator.setVisibility(View.VISIBLE);
+            String role = sessionManager.getRole();
+            if ("CREATOR".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role) || "ROLE_ADMIN".equalsIgnoreCase(role)) {
+                binding.btnProfileCreator.setText(R.string.profile_creator_already);
+                binding.btnProfileCreator.setEnabled(false);
+                binding.btnProfileCreator.setAlpha(0.5f);
+            } else {
+                binding.btnProfileCreator.setEnabled(true);
+                binding.btnProfileCreator.setAlpha(1.0f);
+                syncCreatorButton();
+            }
+
             setAuthButtonToLogout(binding.btnProfileLogout);
         } else {
             viewModel.setUserInfo(getString(R.string.profile_guest_name), getString(R.string.profile_not_signed_in));
@@ -120,6 +138,78 @@ public class ProfileFragment extends BaseFragment {
             clearAvatar();
             setAuthButtonToLogin(binding.btnProfileLogout);
         }
+    }
+
+    private void syncCreatorButton() {
+        binding.btnProfileCreator.setText(R.string.profile_creator);
+        binding.btnProfileCreator.setOnClickListener(v -> showBecomeCreatorDialog());
+
+        creatorRepository.getMyRequest(new CreatorRepository.CreatorRequestCallback() {
+            @Override
+            public void onSuccess(@NonNull CreatorRequestResponse response) {
+                if (binding == null) return;
+                String status = response.getStatus();
+                if ("PENDING".equalsIgnoreCase(status)) {
+                    binding.btnProfileCreator.setText(R.string.profile_creator_pending_title);
+                    binding.btnProfileCreator.setOnClickListener(v -> showPendingDialog());
+                } else if ("DENIED".equalsIgnoreCase(status)) {
+                    binding.btnProfileCreator.setText(R.string.profile_creator_denied_title);
+                    binding.btnProfileCreator.setOnClickListener(v -> showDeniedDialog(response.getAdminMessage()));
+                } else if ("APPROVED".equalsIgnoreCase(status)) {
+                    // This should ideally lead to role update, but for now disable it
+                    binding.btnProfileCreator.setText(R.string.profile_creator_already);
+                    binding.btnProfileCreator.setEnabled(false);
+                    binding.btnProfileCreator.setAlpha(0.5f);
+                }
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                // Not found or network error, keep "Become a Creator" state
+            }
+        });
+    }
+
+    private void showBecomeCreatorDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.profile_creator_dialog_title)
+                .setMessage(R.string.profile_creator_dialog_message)
+                .setNegativeButton(R.string.profile_creator_cancel, null)
+                .setPositiveButton(R.string.profile_creator_send_request, (dialog, which) -> sendCreatorRequest())
+                .show();
+    }
+
+    private void showPendingDialog() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.profile_creator_pending_title)
+                .setMessage(R.string.profile_creator_pending_message)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+    }
+
+    private void showDeniedDialog(String adminMessage) {
+        String message = getString(R.string.profile_creator_denied_message, adminMessage != null ? adminMessage : "No reason provided");
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.profile_creator_denied_title)
+                .setMessage(message)
+                .setNegativeButton(R.string.profile_creator_cancel, null)
+                .setPositiveButton(R.string.profile_creator_resend, (dialog, which) -> showBecomeCreatorDialog())
+                .show();
+    }
+
+    private void sendCreatorRequest() {
+        creatorRepository.requestCreator("I want to become a creator", new CreatorRepository.CreatorRequestCallback() {
+            @Override
+            public void onSuccess(@NonNull CreatorRequestResponse response) {
+                showToast("Request sent successfully");
+                syncCreatorButton();
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                showToast(message);
+            }
+        });
     }
 
     private void maybeFetchMe() {
@@ -130,12 +220,14 @@ public class ProfileFragment extends BaseFragment {
         boolean needsName = currentName == null || currentName.trim().isEmpty();
         boolean needsEmail = currentEmail == null || currentEmail.trim().isEmpty();
         boolean needsAvatar = currentAvatar == null || currentAvatar.trim().isEmpty();
-        if (!needsName && !needsEmail && !needsAvatar) return;
+        if (!needsName && !needsEmail && !needsAvatar)
+            return;
 
         accountRepository.getMe(new AccountRepository.MeCallback() {
             @Override
             public void onSuccess(@NonNull UserProfileResponse me) {
-                if (binding == null) return;
+                if (binding == null)
+                    return;
                 if (me.getEmail() != null && !me.getEmail().trim().isEmpty()) {
                     sessionManager.saveEmail(me.getEmail());
                 }
@@ -146,9 +238,11 @@ public class ProfileFragment extends BaseFragment {
                     sessionManager.saveAvatarUrl(me.getAvatarUrl());
                 }
                 String name = sessionManager.getFullName();
-                if (name == null || name.trim().isEmpty()) name = getString(R.string.profile_guest_name);
+                if (name == null || name.trim().isEmpty())
+                    name = getString(R.string.profile_guest_name);
                 String email = sessionManager.getEmail();
-                if (email == null) email = "";
+                if (email == null)
+                    email = "";
                 viewModel.setUserInfo(name, email);
 
                 renderAvatarFromSession();
@@ -162,7 +256,8 @@ public class ProfileFragment extends BaseFragment {
     }
 
     private void uploadAvatar(@NonNull Uri uri) {
-        if (binding == null) return;
+        if (binding == null)
+            return;
 
         Glide.with(binding.imgProfileAvatar)
                 .load(uri)
@@ -174,7 +269,8 @@ public class ProfileFragment extends BaseFragment {
         accountRepository.updateAvatar(requireContext(), uri, new AccountRepository.MeCallback() {
             @Override
             public void onSuccess(@NonNull UserProfileResponse me) {
-                if (binding == null) return;
+                if (binding == null)
+                    return;
                 if (me.getAvatarUrl() != null && !me.getAvatarUrl().trim().isEmpty()) {
                     sessionManager.saveAvatarUrl(me.getAvatarUrl());
                 }
@@ -183,7 +279,8 @@ public class ProfileFragment extends BaseFragment {
 
             @Override
             public void onError(@NonNull String message) {
-                if (binding == null) return;
+                if (binding == null)
+                    return;
                 showToast(message);
                 renderAvatarFromSession();
             }
@@ -191,7 +288,8 @@ public class ProfileFragment extends BaseFragment {
     }
 
     private void renderAvatarFromSession() {
-        if (binding == null) return;
+        if (binding == null)
+            return;
         String avatarUrl = sessionManager.getAvatarUrl();
         if (avatarUrl == null || avatarUrl.trim().isEmpty()) {
             clearAvatar();
@@ -207,7 +305,8 @@ public class ProfileFragment extends BaseFragment {
     }
 
     private void clearAvatar() {
-        if (binding == null) return;
+        if (binding == null)
+            return;
         Glide.with(binding.imgProfileAvatar).clear(binding.imgProfileAvatar);
         binding.imgProfileAvatar.setImageResource(R.drawable.ic_avatar_placeholder_24);
     }
@@ -232,7 +331,8 @@ public class ProfileFragment extends BaseFragment {
     }
 
     private void onMenuClicked(ProfileMenuItem item) {
-        if (item == null) return;
+        if (item == null)
+            return;
         if ("ACCOUNT_DETAILS".equals(item.getType()) && getView() != null) {
             if (!sessionManager.hasToken()) {
                 Navigation.findNavController(getView()).navigate(R.id.loginFragment);
@@ -244,6 +344,14 @@ public class ProfileFragment extends BaseFragment {
         if ("ADMIN_DASHBOARD".equals(item.getType()) && getView() != null) {
             NavDirections action = ProfileFragmentDirections.actionProfileToAdminDashboard();
             Navigation.findNavController(getView()).navigate(action);
+            return;
+        }
+        if ("ADMIN_CREATOR_REQUESTS".equals(item.getType()) && getView() != null) {
+            Navigation.findNavController(getView()).navigate(R.id.adminCreatorRequestsFragment);
+            return;
+        }
+        if ("CREATOR_STUDIO".equals(item.getType()) && getView() != null) {
+            Navigation.findNavController(getView()).navigate(R.id.creatorStudioFragment);
             return;
         }
         if (item.isNavigatesToWallet() && getView() != null) {
@@ -273,22 +381,25 @@ public class ProfileFragment extends BaseFragment {
                             new UpdateUserPreferencesRequest(code, null, null),
                             new AccountRepository.PreferencesCallback() {
                                 @Override
-                                public void onSuccess(@NonNull com.group09.ComicReader.model.UserPreferencesResponse preferences) {
+                                public void onSuccess(
+                                        @NonNull com.group09.ComicReader.model.UserPreferencesResponse preferences) {
                                     // no-op
                                 }
 
                                 @Override
                                 public void onError(@NonNull String message) {
-                                    if (binding == null) return;
+                                    if (binding == null)
+                                        return;
                                     showToast(message);
                                 }
-                            }
-                    );
+                            });
                 }
 
                 // reload menu to update badge
-                boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
-                viewModel.loadData(isAdmin, requireContext());
+                boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole())
+                        || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
+                boolean isCreator = "CREATOR".equalsIgnoreCase(sessionManager.getRole());
+                viewModel.loadData(isAdmin, isCreator, requireContext());
             }, currentLang);
             return;
         }
@@ -299,8 +410,10 @@ public class ProfileFragment extends BaseFragment {
             AppCompatDelegate.setDefaultNightMode(nextDarkMode
                     ? AppCompatDelegate.MODE_NIGHT_YES
                     : AppCompatDelegate.MODE_NIGHT_NO);
-            boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole()) || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
-            viewModel.loadData(isAdmin, requireContext());
+            boolean isAdmin = "ADMIN".equalsIgnoreCase(sessionManager.getRole())
+                    || "ROLE_ADMIN".equalsIgnoreCase(sessionManager.getRole());
+            boolean isCreator = "CREATOR".equalsIgnoreCase(sessionManager.getRole());
+            viewModel.loadData(isAdmin, isCreator, requireContext());
             return;
         }
         showToast(item.getLabel());

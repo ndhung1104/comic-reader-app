@@ -16,10 +16,23 @@ public class ProfileViewModel extends ViewModel {
     private final MutableLiveData<String> email = new MutableLiveData<>();
     private final MutableLiveData<List<ProfileMenuItem>> menuItems = new MutableLiveData<>();
 
-    public void loadData(boolean isAdmin, android.content.Context context) {
+    public void loadData(boolean isAdmin, boolean isCreator, android.content.Context context) {
         List<ProfileMenuItem> items = profileRepository.getMenuItems(context);
         if (isAdmin) {
-            items.add(0, new ProfileMenuItem("ADMIN_DASHBOARD", context.getString(com.group09.ComicReader.R.string.profile_menu_admin_dashboard), "ADMIN", com.group09.ComicReader.R.drawable.ic_nav_profile, false));
+            items.add(0,
+                    new ProfileMenuItem("ADMIN_DASHBOARD",
+                            context.getString(com.group09.ComicReader.R.string.profile_menu_admin_dashboard), "ADMIN",
+                            com.group09.ComicReader.R.drawable.ic_nav_profile, false));
+            items.add(0,
+                    new ProfileMenuItem("ADMIN_CREATOR_REQUESTS",
+                            context.getString(com.group09.ComicReader.R.string.admin_creator_requests_title), "ADMIN",
+                            com.group09.ComicReader.R.drawable.ic_nav_profile, false));
+        }
+        if (isCreator) {
+            items.add(0,
+                    new ProfileMenuItem("CREATOR_STUDIO",
+                            context.getString(com.group09.ComicReader.R.string.creator_studio_title), "CREATOR",
+                            com.group09.ComicReader.R.drawable.ic_nav_profile, false));
         }
         menuItems.setValue(items);
     }
@@ -29,7 +42,15 @@ public class ProfileViewModel extends ViewModel {
         email.setValue(emailAddress);
     }
 
-    public LiveData<String> getUsername() { return username; }
-    public LiveData<String> getEmail() { return email; }
-    public LiveData<List<ProfileMenuItem>> getMenuItems() { return menuItems; }
+    public LiveData<String> getUsername() {
+        return username;
+    }
+
+    public LiveData<String> getEmail() {
+        return email;
+    }
+
+    public LiveData<List<ProfileMenuItem>> getMenuItems() {
+        return menuItems;
+    }
 }

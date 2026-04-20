@@ -150,7 +150,16 @@
         <action
             android:id="@+id/action_profile_to_admin_dashboard"
             app:destination="@id/adminDashboardFragment" />
+        <action
+            android:id="@+id/action_profile_to_creator_studio"
+            app:destination="@id/creatorStudioFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/creatorStudioFragment"
+        android:name="com.group09.ComicReader.ui.creator.CreatorStudioFragment"
+        android:label="creator_studio"
+        tools:layout="@layout/fragment_creator_studio" />
 
     <fragment
         android:id="@+id/accountDetailsFragment"
@@ -215,4 +224,9 @@
         android:label="admin_import"
         tools:layout="@layout/fragment_admin_import" />
 
+    <fragment
+        android:id="@+id/adminCreatorRequestsFragment"
+        android:name="com.group09.ComicReader.ui.admin.AdminCreatorRequestsFragment"
+        android:label="admin_creator_requests"
+        tools:layout="@layout/fragment_admin_creator_requests" />
 </navigation>
