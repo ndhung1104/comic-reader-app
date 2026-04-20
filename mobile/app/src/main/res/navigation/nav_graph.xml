@@ -159,7 +159,17 @@
         android:id="@+id/creatorStudioFragment"
         android:name="com.group09.ComicReader.ui.creator.CreatorStudioFragment"
         android:label="creator_studio"
-        tools:layout="@layout/fragment_creator_studio" />
+        tools:layout="@layout/fragment_creator_studio">
+        <action
+            android:id="@+id/action_creatorStudioFragment_to_createComicFragment"
+            app:destination="@id/createComicFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createComicFragment"
+        android:name="com.group09.ComicReader.ui.creator.CreateComicFragment"
+        android:label="create_comic"
+        tools:layout="@layout/fragment_create_comic" />
 
     <fragment
         android:id="@+id/accountDetailsFragment"

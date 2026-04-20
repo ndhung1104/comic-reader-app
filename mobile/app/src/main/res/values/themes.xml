@@ -28,4 +28,8 @@
     </style>
 
     <style name="Theme.ComicReader" parent="Base.Theme.ComicReader" />
+
+    <style name="RoundedImageStyle" parent="">
+        <item name="cornerSize">12dp</item>
+    </style>
 </resources>
