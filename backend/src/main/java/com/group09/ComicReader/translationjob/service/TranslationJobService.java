@@ -1,5 +1,7 @@
 package com.group09.ComicReader.translationjob.service;
 
+import com.group09.ComicReader.ai.entity.AiFeature;
+import com.group09.ComicReader.ai.service.AiUsageService;
 import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.chapter.entity.ChapterPageEntity;
 import com.group09.ComicReader.chapter.repository.ChapterPageRepository;
@@ -72,6 +74,7 @@ public class TranslationJobService {
     private final TranslationWorkerProperties translationWorkerProperties;
     private final TtsWorkerProperties ttsWorkerProperties;
     private final FileStorageService fileStorageService;
+    private final AiUsageService aiUsageService;
 
     public TranslationJobService(TranslationJobRepository translationJobRepository,
             ChapterPageRepository chapterPageRepository,
@@ -82,7 +85,8 @@ public class TranslationJobService {
             TtsWorkerClient ttsWorkerClient,
             TranslationWorkerProperties translationWorkerProperties,
             TtsWorkerProperties ttsWorkerProperties,
-            FileStorageService fileStorageService) {
+            FileStorageService fileStorageService,
+            AiUsageService aiUsageService) {
         this.translationJobRepository = translationJobRepository;
         this.chapterPageRepository = chapterPageRepository;
         this.chapterPageOcrTextRepository = chapterPageOcrTextRepository;
@@ -93,48 +97,69 @@ public class TranslationJobService {
         this.translationWorkerProperties = translationWorkerProperties;
         this.ttsWorkerProperties = ttsWorkerProperties;
         this.fileStorageService = fileStorageService;
+        this.aiUsageService = aiUsageService;
     }
 
     @Transactional
     public TranslationJobResponse createJob(CreateTranslationJobRequest request) {
         ensureWorkerEnabled();
 
-        ChapterEntity chapter = chapterService.getChapterEntity(request.getChapterId());
-        List<ChapterPageEntity> pages = chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapter.getId());
-        if (pages.isEmpty()) {
-            throw new BadRequestException("Chapter has no pages to process");
-        }
+        AiUsageService.UsageContext usageContext = aiUsageService.beginUsage(
+                AiFeature.OCR_TRANSLATION_JOB,
+                "chapter-" + request.getChapterId(),
+                null,
+                "sourceLang=" + request.getSourceLang() + ",targetLang=" + request.getTargetLang()
+        );
 
-        String sourceLang = normalizeLanguage(request.getSourceLang(), "auto");
-        String targetLang = normalizeLanguage(request.getTargetLang(), "vi");
-
-        TranslationJobEntity job = new TranslationJobEntity();
-        job.setChapter(chapter);
-        job.setSourceLang(sourceLang);
-        job.setTargetLang(targetLang);
-        job.setStatus(TranslationJobStatus.QUEUED);
-        job.setCreatedAt(LocalDateTime.now());
-        job.setUpdatedAt(LocalDateTime.now());
-        job = translationJobRepository.save(job);
-
-        WorkerSubmitJobRequest workerRequest = buildWorkerSubmitRequest(job, pages);
-
-        WorkerSubmitJobResponse submitResponse;
         try {
-            submitResponse = withRetry(() -> translationWorkerClient.submitJob(workerRequest));
+            ChapterEntity chapter = chapterService.getChapterEntity(request.getChapterId());
+            List<ChapterPageEntity> pages = chapterPageRepository.findByChapterIdOrderByPageNumberAsc(chapter.getId());
+            if (pages.isEmpty()) {
+                throw new BadRequestException("Chapter has no pages to process");
+            }
+
+            String sourceLang = normalizeLanguage(request.getSourceLang(), "auto");
+            String targetLang = normalizeLanguage(request.getTargetLang(), "vi");
+
+            TranslationJobEntity job = new TranslationJobEntity();
+            job.setChapter(chapter);
+            job.setSourceLang(sourceLang);
+            job.setTargetLang(targetLang);
+            job.setStatus(TranslationJobStatus.QUEUED);
+            job.setRequesterUserId(usageContext.userId());
+            job.setCreatedAt(LocalDateTime.now());
+            job.setUpdatedAt(LocalDateTime.now());
+            job = translationJobRepository.save(job);
+
+            WorkerSubmitJobRequest workerRequest = buildWorkerSubmitRequest(job, pages);
+            WorkerSubmitJobResponse submitResponse;
+            try {
+                submitResponse = withRetry(() -> translationWorkerClient.submitJob(workerRequest));
+            } catch (RuntimeException exception) {
+                throw workerUnavailable(exception);
+            }
+
+            job.setExternalJobId(submitResponse.getJobId());
+            job.setStatus(mapWorkerStatus(submitResponse.getStatus(), TranslationJobStatus.RUNNING));
+            job.setErrorMessage(null);
+            job.setUpdatedAt(LocalDateTime.now());
+            if (isTerminal(job.getStatus())) {
+                job.setCompletedAt(LocalDateTime.now());
+            }
+
+            TranslationJobEntity savedJob = translationJobRepository.save(job);
+            aiUsageService.completeSuccess(
+                    usageContext,
+                    "translation-worker",
+                    null,
+                    pages.size(),
+                    "jobId=" + savedJob.getId() + ",externalJobId=" + savedJob.getExternalJobId()
+            );
+            return toResponse(savedJob);
         } catch (RuntimeException exception) {
-            throw workerUnavailable(exception);
+            aiUsageService.completeFailure(usageContext, "translation-worker", null, exception.getMessage());
+            throw exception;
         }
-
-        job.setExternalJobId(submitResponse.getJobId());
-        job.setStatus(mapWorkerStatus(submitResponse.getStatus(), TranslationJobStatus.RUNNING));
-        job.setErrorMessage(null);
-        job.setUpdatedAt(LocalDateTime.now());
-        if (isTerminal(job.getStatus())) {
-            job.setCompletedAt(LocalDateTime.now());
-        }
-
-        return toResponse(translationJobRepository.save(job));
     }
 
     @Transactional

@@ -1,5 +1,7 @@
 package com.group09.ComicReader.chapter.service;
 
+import com.group09.ComicReader.ai.entity.AiFeature;
+import com.group09.ComicReader.ai.service.AiUsageService;
 import com.group09.ComicReader.chapter.dto.ChapterAudioPageResponse;
 import com.group09.ComicReader.chapter.dto.ChapterAudioPlaylistRequest;
 import com.group09.ComicReader.chapter.dto.ChapterAudioPlaylistResponse;
@@ -47,6 +49,7 @@ public class ChapterAudioPlaylistService {
     private final TtsWorkerClient ttsWorkerClient;
     private final TtsWorkerProperties ttsWorkerProperties;
     private final FileStorageService fileStorageService;
+    private final AiUsageService aiUsageService;
 
     public ChapterAudioPlaylistService(ChapterService chapterService,
             ChapterPageRepository chapterPageRepository,
@@ -55,7 +58,8 @@ public class ChapterAudioPlaylistService {
             TranslationJobService translationJobService,
             TtsWorkerClient ttsWorkerClient,
             TtsWorkerProperties ttsWorkerProperties,
-            FileStorageService fileStorageService) {
+            FileStorageService fileStorageService,
+            AiUsageService aiUsageService) {
         this.chapterService = chapterService;
         this.chapterPageRepository = chapterPageRepository;
         this.chapterPageOcrTextRepository = chapterPageOcrTextRepository;
@@ -64,6 +68,7 @@ public class ChapterAudioPlaylistService {
         this.ttsWorkerClient = ttsWorkerClient;
         this.ttsWorkerProperties = ttsWorkerProperties;
         this.fileStorageService = fileStorageService;
+        this.aiUsageService = aiUsageService;
     }
 
     @Transactional
@@ -128,67 +133,85 @@ public class ChapterAudioPlaylistService {
         }
 
         if (!pagesToGenerate.isEmpty()) {
+            AiUsageService.UsageContext usageContext = aiUsageService.beginUsage(
+                    AiFeature.AUDIO_PLAYLIST,
+                    "chapter-" + chapterId,
+                    pagesToGenerate.size(),
+                    "lang=" + lang + ",voice=" + voice + ",speed=" + speed
+            );
             ensureTtsWorkerEnabled();
-
-            TtsWorkerSynthesizeBatchRequest workerRequest = new TtsWorkerSynthesizeBatchRequest();
-            workerRequest.setChapterId(String.valueOf(chapterId));
-            workerRequest.setLang(lang);
-            workerRequest.setVoice(voice);
-            workerRequest.setSpeed(speed);
-            workerRequest.setPages(pagesToGenerate);
-
-            TtsWorkerSynthesizeBatchResponse workerResponse;
             try {
-                workerResponse = ttsWorkerClient.synthesizeBatch(workerRequest);
-            } catch (RuntimeException exception) {
-                throw ttsUnavailable();
-            }
-            if (!"SUCCEEDED".equalsIgnoreCase(workerResponse.getStatus())) {
-                throw ttsUnavailable();
-            }
+                TtsWorkerSynthesizeBatchRequest workerRequest = new TtsWorkerSynthesizeBatchRequest();
+                workerRequest.setChapterId(String.valueOf(chapterId));
+                workerRequest.setLang(lang);
+                workerRequest.setVoice(voice);
+                workerRequest.setSpeed(speed);
+                workerRequest.setPages(pagesToGenerate);
 
-            Map<Integer, TtsWorkerAudioPage> generatedByPage = indexGeneratedByPage(workerResponse.getAudioPages());
-            for (TtsWorkerPageInput input : pagesToGenerate) {
-                TtsWorkerAudioPage generated = generatedByPage.get(input.getPageNumber());
-                if (generated == null || generated.getAudioBase64() == null || generated.getAudioBase64().isBlank()) {
-                    throw new BadRequestException("TTS worker returned missing audio for page " + input.getPageNumber());
-                }
-
-                byte[] audioBytes;
+                TtsWorkerSynthesizeBatchResponse workerResponse;
                 try {
-                    audioBytes = Base64.getDecoder().decode(generated.getAudioBase64());
-                } catch (IllegalArgumentException exception) {
-                    throw new BadRequestException("Invalid TTS audio payload for page " + input.getPageNumber());
+                    workerResponse = ttsWorkerClient.synthesizeBatch(workerRequest);
+                } catch (RuntimeException exception) {
+                    throw ttsUnavailable();
+                }
+                if (!"SUCCEEDED".equalsIgnoreCase(workerResponse.getStatus())) {
+                    throw ttsUnavailable();
                 }
 
-                String audioPath = fileStorageService.storeChapterPageAudio(
-                        chapterId,
-                        input.getPageNumber(),
-                        lang,
+                Map<Integer, TtsWorkerAudioPage> generatedByPage = indexGeneratedByPage(workerResponse.getAudioPages());
+                for (TtsWorkerPageInput input : pagesToGenerate) {
+                    TtsWorkerAudioPage generated = generatedByPage.get(input.getPageNumber());
+                    if (generated == null || generated.getAudioBase64() == null || generated.getAudioBase64().isBlank()) {
+                        throw new BadRequestException("TTS worker returned missing audio for page " + input.getPageNumber());
+                    }
+
+                    byte[] audioBytes;
+                    try {
+                        audioBytes = Base64.getDecoder().decode(generated.getAudioBase64());
+                    } catch (IllegalArgumentException exception) {
+                        throw new BadRequestException("Invalid TTS audio payload for page " + input.getPageNumber());
+                    }
+
+                    String audioPath = fileStorageService.storeChapterPageAudio(
+                            chapterId,
+                            input.getPageNumber(),
+                            lang,
+                            voice,
+                            speed,
+                            audioBytes
+                    );
+
+                    ChapterPageTtsAudioEntity entity = existingByPage.get(input.getPageNumber());
+                    if (entity == null) {
+                        entity = new ChapterPageTtsAudioEntity();
+                        entity.setChapter(chapterPages.get(0).getChapter());
+                        entity.setPageNumber(input.getPageNumber());
+                        entity.setLang(lang);
+                        entity.setVoice(voice);
+                        entity.setSpeed(speed);
+                        entity.setCreatedAt(LocalDateTime.now());
+                    }
+
+                    entity.setAudioPath(audioPath);
+                    entity.setDurationMs(generated.getDurationMs());
+                    entity.setSourceTextHash(hashByPage.get(input.getPageNumber()));
+                    ChapterPageOcrTextEntity sourceOcr = ocrByPage.get(input.getPageNumber());
+                    entity.setSourceOcrJob(sourceOcr == null ? null : sourceOcr.getOcrJob());
+                    entity.setUpdatedAt(LocalDateTime.now());
+                    ChapterPageTtsAudioEntity saved = chapterPageTtsAudioRepository.save(entity);
+                    existingByPage.put(saved.getPageNumber(), saved);
+                }
+
+                aiUsageService.completeSuccess(
+                        usageContext,
+                        "tts-worker",
                         voice,
-                        speed,
-                        audioBytes
+                        pagesToGenerate.size(),
+                        "chapterId=" + chapterId + ",lang=" + lang
                 );
-
-                ChapterPageTtsAudioEntity entity = existingByPage.get(input.getPageNumber());
-                if (entity == null) {
-                    entity = new ChapterPageTtsAudioEntity();
-                    entity.setChapter(chapterPages.get(0).getChapter());
-                    entity.setPageNumber(input.getPageNumber());
-                    entity.setLang(lang);
-                    entity.setVoice(voice);
-                    entity.setSpeed(speed);
-                    entity.setCreatedAt(LocalDateTime.now());
-                }
-
-                entity.setAudioPath(audioPath);
-                entity.setDurationMs(generated.getDurationMs());
-                entity.setSourceTextHash(hashByPage.get(input.getPageNumber()));
-                ChapterPageOcrTextEntity sourceOcr = ocrByPage.get(input.getPageNumber());
-                entity.setSourceOcrJob(sourceOcr == null ? null : sourceOcr.getOcrJob());
-                entity.setUpdatedAt(LocalDateTime.now());
-                ChapterPageTtsAudioEntity saved = chapterPageTtsAudioRepository.save(entity);
-                existingByPage.put(saved.getPageNumber(), saved);
+            } catch (RuntimeException exception) {
+                aiUsageService.completeFailure(usageContext, "tts-worker", voice, exception.getMessage());
+                throw exception;
             }
         }
 

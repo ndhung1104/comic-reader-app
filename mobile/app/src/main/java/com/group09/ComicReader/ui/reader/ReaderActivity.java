@@ -20,7 +20,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.group09.ComicReader.R;
+import com.group09.ComicReader.BuildConfig;
 import com.group09.ComicReader.adapter.ReaderCommentsFooterAdapter;
+import com.group09.ComicReader.adapter.ReaderEntryAdAdapter;
 import com.group09.ComicReader.adapter.ReaderPageAdapter;
 import com.group09.ComicReader.common.error.ErrorParser;
 import com.group09.ComicReader.data.ComicRepository;
@@ -85,6 +87,7 @@ public class ReaderActivity extends AppCompatActivity {
     private int chapterNumber;
     private String comicTitle;
     private ReaderPageAdapter pageAdapter;
+    private ReaderEntryAdAdapter entryAdAdapter;
     private ReaderViewModel viewModel;
     private ReaderRepository readerRepository;
     private ReaderCommentsFooterAdapter commentsFooterAdapter;
@@ -98,6 +101,8 @@ public class ReaderActivity extends AppCompatActivity {
     private boolean readerZoomed;
     private boolean paywallDialogVisible;
     private ComicChapterResponse currentChapterMeta;
+    private boolean entryAdUnavailable;
+    private boolean entryAdClaimPending;
     private ReaderAudioController audioController;
     private int lastRenderedPageIndex = RecyclerView.NO_POSITION;
     private int lastRenderedPageCount = -1;
@@ -169,6 +174,21 @@ public class ReaderActivity extends AppCompatActivity {
         }, MediaPlayerReaderAudioPlayer::new);
 
         pageAdapter = new ReaderPageAdapter();
+        entryAdAdapter = new ReaderEntryAdAdapter(new ReaderEntryAdAdapter.Listener() {
+            @Override
+            public void onAdImpression() {
+                handleEntryAdImpression();
+            }
+
+            @Override
+            public void onAdUnavailable() {
+                if (!isUiActive()) {
+                    return;
+                }
+                entryAdUnavailable = true;
+                updateEntryAdState();
+            }
+        });
         commentsFooterAdapter = new ReaderCommentsFooterAdapter(new ReaderCommentsFooterAdapter.Listener() {
             @Override
             public void onSeeMoreClicked() {
@@ -199,7 +219,7 @@ public class ReaderActivity extends AppCompatActivity {
             }
         });
 
-        ConcatAdapter concatAdapter = new ConcatAdapter(pageAdapter, commentsFooterAdapter);
+        ConcatAdapter concatAdapter = new ConcatAdapter(entryAdAdapter, pageAdapter, commentsFooterAdapter);
         pageAdapter.setItemZoomEnabled(!ENABLE_ZOOM_CONTAINER);
         layoutManager = new LinearLayoutManager(this);
         binding.rcvReaderPages.setLayoutManager(layoutManager);
@@ -292,7 +312,7 @@ public class ReaderActivity extends AppCompatActivity {
             updateReaderProgressUi();
             if (hasPages && comicId > 0 && sessionManager.hasToken() && !historyRecorded) {
                 historyRecorded = true;
-                viewModel.recordReadingHistory(comicId, chapterId, 1);
+                viewModel.recordReadingHistory(comicId, chapterId, resolveHistoryPageNumber());
             }
         });
         viewModel.getErrorMessage().observe(this, message -> {
@@ -300,6 +320,9 @@ public class ReaderActivity extends AppCompatActivity {
                 return;
             }
             if (message != null && !message.trim().isEmpty()) {
+                if (entryAdClaimPending) {
+                    entryAdClaimPending = false;
+                }
                 if (ErrorParser.isTokenExpiredMessage(message)) {
                     sessionManager.clear();
                     commentsFooterAdapter.setLoggedIn(false);
@@ -321,7 +344,16 @@ public class ReaderActivity extends AppCompatActivity {
             }
             Toast.makeText(this, getString(R.string.chapter_purchase_success), Toast.LENGTH_SHORT).show();
             paywallDialogVisible = false;
+            resolveChapterMetaIfNeeded();
             viewModel.loadChapterPages(chapterId);
+        });
+        viewModel.getFreeAccessChapter().observe(this, chapter -> {
+            if (!isUiActive() || chapter == null) {
+                return;
+            }
+            currentChapterMeta = chapter;
+            entryAdClaimPending = false;
+            updateEntryAdState();
         });
 
         viewModel.getAudioLoading().observe(this, loading -> updateAudioButtonState());
@@ -361,6 +393,8 @@ public class ReaderActivity extends AppCompatActivity {
                     return;
                 }
                 currentChapterMeta = chapter;
+                entryAdUnavailable = false;
+                entryAdClaimPending = false;
                 if (chapter.getComicId() != null && comicId <= 0) {
                     comicId = chapter.getComicId().intValue();
                 }
@@ -372,6 +406,7 @@ public class ReaderActivity extends AppCompatActivity {
                 }
                 initHeaderIfPossible();
                 initCommentsIfPossible();
+                updateEntryAdState();
             }
 
             @Override
@@ -409,6 +444,32 @@ public class ReaderActivity extends AppCompatActivity {
                 .setOnDismissListener(dialog -> paywallDialogVisible = false)
                 .setPositiveButton(R.string.chapter_purchase_buy_now, (dialog, which) -> viewModel.purchaseChapter(chapterId))
                 .show();
+    }
+
+    private void updateEntryAdState() {
+        if (entryAdAdapter == null) {
+            return;
+        }
+        boolean shouldShow = shouldShowEntryAd();
+        entryAdAdapter.update(shouldShow, BuildConfig.ADMOB_READER_BANNER_UNIT_ID);
+    }
+
+    private boolean shouldShowEntryAd() {
+        if (entryAdUnavailable || currentChapterMeta == null) {
+            return false;
+        }
+        return currentChapterMeta.isRequiresEntryBannerAd();
+    }
+
+    private void handleEntryAdImpression() {
+        if (entryAdClaimPending || currentChapterMeta == null || !currentChapterMeta.isRequiresEntryBannerAd()) {
+            return;
+        }
+        if (!sessionManager.hasToken()) {
+            return;
+        }
+        entryAdClaimPending = true;
+        viewModel.claimFreeChapterAccess(chapterId);
     }
 
     private void initHeaderIfPossible() {
@@ -589,6 +650,21 @@ public class ReaderActivity extends AppCompatActivity {
         View firstVisiblePageView = layoutManager.findViewByPosition(pagePosition);
         int offset = firstVisiblePageView == null ? 0 : firstVisiblePageView.getTop();
         readerProgressStore.saveProgress(comicId, chapterId, chapterNumber, pagePosition, offset);
+    }
+
+    private int resolveHistoryPageNumber() {
+        if (restoredProgress != null && restoredProgress.getPagePosition() >= 0) {
+            return restoredProgress.getPagePosition() + 1;
+        }
+        if (layoutManager != null) {
+            int firstVisibleAdapterPosition = layoutManager.findFirstVisibleItemPosition();
+            int pageCount = pageAdapter == null ? 0 : pageAdapter.getItemCount();
+            int pagePosition = ReaderProgressPositionResolver.resolvePagePosition(firstVisibleAdapterPosition, pageCount);
+            if (pagePosition >= 0) {
+                return pagePosition + 1;
+            }
+        }
+        return 1;
     }
 
     private void shareCurrentChapter() {

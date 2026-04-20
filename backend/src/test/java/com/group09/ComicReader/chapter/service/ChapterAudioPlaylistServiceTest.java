@@ -1,5 +1,6 @@
 package com.group09.ComicReader.chapter.service;
 
+import com.group09.ComicReader.ai.service.AiUsageService;
 import com.group09.ComicReader.chapter.dto.ChapterAudioPlaylistRequest;
 import com.group09.ComicReader.chapter.dto.ChapterPageResponse;
 import com.group09.ComicReader.chapter.entity.ChapterEntity;
@@ -59,6 +60,9 @@ class ChapterAudioPlaylistServiceTest {
     @Mock
     private FileStorageService fileStorageService;
 
+    @Mock
+    private AiUsageService aiUsageService;
+
     private ChapterAudioPlaylistService chapterAudioPlaylistService;
     private TtsWorkerProperties ttsWorkerProperties;
 
@@ -83,8 +87,12 @@ class ChapterAudioPlaylistServiceTest {
                 translationJobService,
                 ttsWorkerClient,
                 ttsWorkerProperties,
-                fileStorageService
+                fileStorageService,
+                aiUsageService
         );
+
+        when(aiUsageService.beginUsage(any(), any(), any(), any()))
+                .thenReturn(new AiUsageService.UsageContext(null, null));
     }
 
     @Test

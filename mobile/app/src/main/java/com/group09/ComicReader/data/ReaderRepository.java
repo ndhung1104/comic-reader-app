@@ -64,6 +64,12 @@ public class ReaderRepository {
         void onError(@NonNull String message);
     }
 
+    public interface FreeAccessCallback {
+        void onSuccess(@NonNull ComicChapterResponse chapter);
+
+        void onError(@NonNull String message);
+    }
+
     public interface PurchaseChapterCallback {
         void onSuccess(int newBalance);
 
@@ -240,6 +246,25 @@ public class ReaderRepository {
 
             @Override
             public void onFailure(@NonNull Call<WalletResponse> call, @NonNull Throwable throwable) {
+                callback.onError(getNetworkMessage(throwable));
+            }
+        });
+    }
+
+    public void claimFreeAccess(long chapterId, @NonNull FreeAccessCallback callback) {
+        enqueueTracked(apiClient.chapterApi().claimFreeAccess(chapterId), new Callback<ComicChapterResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<ComicChapterResponse> call,
+                                   @NonNull Response<ComicChapterResponse> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Failed to persist chapter access (" + response.code() + ")"));
+                    return;
+                }
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ComicChapterResponse> call, @NonNull Throwable throwable) {
                 callback.onError(getNetworkMessage(throwable));
             }
         });

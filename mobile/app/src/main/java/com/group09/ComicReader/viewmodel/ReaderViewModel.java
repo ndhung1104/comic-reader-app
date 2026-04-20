@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.group09.ComicReader.data.ReaderRepository;
+import com.group09.ComicReader.model.ComicChapterResponse;
 import com.group09.ComicReader.model.ReaderAudioPage;
 import com.group09.ComicReader.model.ReaderPage;
 
@@ -38,6 +39,7 @@ public class ReaderViewModel extends ViewModel {
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<Boolean> historySaved = new MutableLiveData<>(false);
     private final MutableLiveData<Integer> purchaseSuccessBalance = new MutableLiveData<>();
+    private final MutableLiveData<ComicChapterResponse> freeAccessChapter = new MutableLiveData<>();
     private final MutableLiveData<Boolean> audioLoading = new MutableLiveData<>(false);
     private final MutableLiveData<String> audioErrorMessage = new MutableLiveData<>();
     private final MutableLiveData<List<ReaderAudioPage>> audioPages = new MutableLiveData<>();
@@ -110,6 +112,20 @@ public class ReaderViewModel extends ViewModel {
         });
     }
 
+    public void claimFreeChapterAccess(long chapterId) {
+        readerRepository.claimFreeAccess(chapterId, new ReaderRepository.FreeAccessCallback() {
+            @Override
+            public void onSuccess(@NonNull ComicChapterResponse chapter) {
+                freeAccessChapter.postValue(chapter);
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                errorMessage.postValue(message);
+            }
+        });
+    }
+
     public LiveData<Boolean> getHistorySaved() {
         return historySaved;
     }
@@ -120,6 +136,10 @@ public class ReaderViewModel extends ViewModel {
 
     public LiveData<Integer> getPurchaseSuccessBalance() {
         return purchaseSuccessBalance;
+    }
+
+    public LiveData<ComicChapterResponse> getFreeAccessChapter() {
+        return freeAccessChapter;
     }
 
     public void createOrGetChapterAudioPlaylist(long chapterId) {

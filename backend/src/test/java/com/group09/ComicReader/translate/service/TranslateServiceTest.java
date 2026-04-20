@@ -1,5 +1,7 @@
 package com.group09.ComicReader.translate.service;
 
+import com.group09.ComicReader.ai.service.AiUsageService;
+import com.group09.ComicReader.common.exception.TooManyRequestsException;
 import com.group09.ComicReader.comic.service.ComicService;
 import com.group09.ComicReader.config.properties.TranslateProperties;
 import com.group09.ComicReader.translate.service.client.TranslatorClient;
@@ -13,12 +15,18 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TranslateServiceTest {
 
     @Mock
     private ComicService comicService;
+
+    @Mock
+    private AiUsageService aiUsageService;
 
     private TranslateProperties translateProperties;
     private FakeTranslatorClient localClient;
@@ -35,9 +43,12 @@ class TranslateServiceTest {
         localClient = new FakeTranslatorClient("local", "qwen2.5:1.5b");
         geminiClient = new FakeTranslatorClient("gemini", "gemini-2.5-flash");
         openrouterClient = new FakeTranslatorClient("openrouter", "google/gemini-2.0-flash-exp:free");
+        lenient().when(aiUsageService.beginUsage(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new AiUsageService.UsageContext(null, null));
         translateService = new TranslateService(
                 comicService,
                 translateProperties,
+                aiUsageService,
                 List.of(localClient, geminiClient, openrouterClient)
         );
     }
@@ -106,6 +117,16 @@ class TranslateServiceTest {
         assertThat(openrouterClient.getCallCount()).isEqualTo(1);
         assertThat(localClient.getCallCount()).isZero();
         assertThat(geminiClient.getCallCount()).isZero();
+    }
+
+    @Test
+    void shouldPropagateQuotaExceededFromUsageGuardrail() {
+        when(aiUsageService.beginUsage(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                .thenThrow(new TooManyRequestsException("Translation quota reached for today. Please try again tomorrow."));
+
+        assertThatThrownBy(() -> translateService.translate("hello", "en", "vi"))
+                .isInstanceOf(TooManyRequestsException.class)
+                .hasMessageContaining("quota reached");
     }
 
     private static class FakeTranslatorClient implements TranslatorClient {

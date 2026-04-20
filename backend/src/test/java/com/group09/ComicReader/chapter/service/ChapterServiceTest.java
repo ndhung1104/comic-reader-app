@@ -1,6 +1,7 @@
 package com.group09.ComicReader.chapter.service;
 
 import com.group09.ComicReader.chapter.entity.ChapterEntity;
+import com.group09.ComicReader.chapter.repository.ChapterFreeAdAccessRepository;
 import com.group09.ComicReader.chapter.repository.ChapterPageRepository;
 import com.group09.ComicReader.chapter.repository.ChapterRepository;
 import com.group09.ComicReader.common.exception.ForbiddenException;
@@ -36,6 +37,9 @@ class ChapterServiceTest {
     private FileStorageService fileStorageService;
 
     @Mock
+    private ChapterFreeAdAccessRepository chapterFreeAdAccessRepository;
+
+    @Mock
     private ChapterPurchaseRepository purchaseRepository;
 
     @Mock
@@ -47,6 +51,9 @@ class ChapterServiceTest {
     @Mock
     private ChapterPremiumPolicyService chapterPremiumPolicyService;
 
+    @Mock
+    private ChapterAdPolicyService chapterAdPolicyService;
+
     private ChapterService chapterService;
 
     @BeforeEach
@@ -54,11 +61,13 @@ class ChapterServiceTest {
         chapterService = new ChapterService(
                 chapterRepository,
                 chapterPageRepository,
+                chapterFreeAdAccessRepository,
                 fileStorageService,
                 purchaseRepository,
                 vipRepository,
                 userRepository,
-                chapterPremiumPolicyService
+                chapterPremiumPolicyService,
+                chapterAdPolicyService
         );
     }
 
