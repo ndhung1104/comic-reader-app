@@ -44,14 +44,16 @@ public class ComicService {
     private final UserRepository userRepository;
     private final ComicRatingRepository comicRatingRepository;
     private final ChapterPremiumPolicyService chapterPremiumPolicyService;
+    private final OTruyenService oTruyenService;
 
     public ComicService(ComicRepository comicRepository,
-                        ChapterRepository chapterRepository,
-                        ChapterPurchaseRepository purchaseRepository,
-                        VipSubscriptionRepository vipRepository,
-                        UserRepository userRepository,
-                        ComicRatingRepository comicRatingRepository,
-                        ChapterPremiumPolicyService chapterPremiumPolicyService) {
+            ChapterRepository chapterRepository,
+            ChapterPurchaseRepository purchaseRepository,
+            VipSubscriptionRepository vipRepository,
+            UserRepository userRepository,
+            ComicRatingRepository comicRatingRepository,
+            ChapterPremiumPolicyService chapterPremiumPolicyService,
+            OTruyenService oTruyenService) {
         this.comicRepository = comicRepository;
         this.chapterRepository = chapterRepository;
         this.purchaseRepository = purchaseRepository;
@@ -59,12 +61,19 @@ public class ComicService {
         this.userRepository = userRepository;
         this.comicRatingRepository = comicRatingRepository;
         this.chapterPremiumPolicyService = chapterPremiumPolicyService;
+        this.oTruyenService = oTruyenService;
     }
 
     public Page<ComicResponse> getComics(String keyword, String category, Pageable pageable) {
         String kw = (keyword == null) ? "" : keyword;
         String cat = (category == null) ? "" : category;
-        return comicRepository.searchComics(kw, cat, pageable).map(this::toComicResponse);
+
+        Page<ComicResponse> result = comicRepository.searchComics(kw, cat, pageable).map(this::toComicResponse);
+
+        // Pagination is served from the database. Crawling/import is done separately
+        // (full crawl on startup or via admin sync). Do not attempt lazy import here.
+
+        return result;
     }
 
     public ComicResponse getComic(Long comicId) {
@@ -100,7 +109,8 @@ public class ComicService {
         Pageable pageable = PageRequest.of(0, size);
         Page<ComicEntity> page;
         if (genres.size() >= 3) {
-            page = comicRepository.findRelatedByThreeGenres(comicId, genres.get(0), genres.get(1), genres.get(2), pageable);
+            page = comicRepository.findRelatedByThreeGenres(comicId, genres.get(0), genres.get(1), genres.get(2),
+                    pageable);
         } else if (genres.size() == 2) {
             page = comicRepository.findRelatedByTwoGenres(comicId, genres.get(0), genres.get(1), pageable);
         } else {
