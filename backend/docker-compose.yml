@@ -5,9 +5,9 @@ services:
     env_file:
       - .env
     ports:
-      - "5432:5432"
+      - '5432:5432'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,32 +42,38 @@ services:
       TTS_WORKER_BASE_URL: http://piper-tts-worker:8091
       LOCAL_LLM_BASE_URL: ${LOCAL_LLM_BASE_URL:-http://ollama:11434}
     ports:
-      - "8080:8080"
+      - '8080:8080'
     volumes:
       - uploads_data:/app/uploads
 
   comic-translate-worker:
-    profiles: ["ocr"]
+    profiles: ['ocr']
     build:
       context: ./worker/comic-translate-worker
       dockerfile: Dockerfile
     container_name: comicreader-translate-worker
     environment:
       OCR_MODEL_DIR: /var/lib/comic-translate/models
-      OCR_ORT_INTRA_OP_THREADS: "1"
-      OCR_ORT_INTER_OP_THREADS: "1"
-      PPOCR_REC_BATCH_SIZE: "4"
-      OCR_MAX_IMAGE_SIDE: "2048"
-      OCR_CROSS_ENGINE_FALLBACK: "false"
-      WORKER_MAX_CONCURRENT_JOBS: "1"
-      WORKER_IMAGE_FETCH_CONNECT_TIMEOUT_SECONDS: "10"
-      WORKER_IMAGE_FETCH_READ_TIMEOUT_SECONDS: "45"
-      WORKER_IMAGE_FETCH_MAX_RETRIES: "5"
-      WORKER_IMAGE_FETCH_BACKOFF_SECONDS: "1.5"
+      OCR_ORT_INTRA_OP_THREADS: '1'
+      OCR_ORT_INTER_OP_THREADS: '1'
+      PPOCR_REC_BATCH_SIZE: '4'
+      OCR_MAX_IMAGE_SIDE: '2048'
+      OCR_CROSS_ENGINE_FALLBACK: 'false'
+      WORKER_MAX_CONCURRENT_JOBS: '1'
+      WORKER_IMAGE_FETCH_CONNECT_TIMEOUT_SECONDS: '10'
+      WORKER_IMAGE_FETCH_READ_TIMEOUT_SECONDS: '45'
+      WORKER_IMAGE_FETCH_MAX_RETRIES: '5'
+      WORKER_IMAGE_FETCH_BACKOFF_SECONDS: '1.5'
     ports:
-      - "8090:8090"
+      - '8090:8090'
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')",
+        ]
       interval: 15s
       timeout: 5s
       retries: 20
@@ -77,16 +83,16 @@ services:
     restart: unless-stopped
 
   piper-tts-worker:
-    profiles: ["tts"]
+    profiles: ['tts']
     build:
       context: ./worker/piper-tts-worker
       dockerfile: Dockerfile
     container_name: comicreader-piper-tts-worker
     environment:
-      PIPER_STRICT_STARTUP: "false"
-      PIPER_SAMPLE_RATE: "22050"
+      PIPER_STRICT_STARTUP: 'false'
+      PIPER_SAMPLE_RATE: '22050'
       PIPER_MODEL_DIR: /var/lib/piper/models
-      PIPER_ENABLE_MODEL: "true"
+      PIPER_ENABLE_MODEL: 'true'
       PIPER_DEFAULT_VOICE: vi_VN-vais1000-medium
       PIPER_VOICE_VI: vi_VN-vais1000-medium
       PIPER_VOICE_EN: en_US-lessac-medium
@@ -94,9 +100,15 @@ services:
       PIPER_VOICE_KO: en_US-lessac-medium
       PIPER_FALLBACK_VOICE: en_US-lessac-medium
     ports:
-      - "8091:8091"
+      - '8091:8091'
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8091/health')"]
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://localhost:8091/health')",
+        ]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -108,9 +120,9 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: comicreader-ollama
-    profiles: ["local-llm"]
+    profiles: ['local-llm']
     ports:
-      - "11434:11434"
+      - '11434:11434'
     volumes:
       - ollama_data:/root/.ollama
 
