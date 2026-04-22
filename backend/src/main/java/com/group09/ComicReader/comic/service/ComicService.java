@@ -273,6 +273,7 @@ public class ComicService {
     private void applyComicRequest(ComicEntity comic, ComicRequest request) {
         comic.setTitle(request.getTitle());
         comic.setAuthor(request.getAuthor());
+        comic.setGenres(request.getGenres());
         comic.setSynopsis(request.getSynopsis());
         comic.setCoverUrl(request.getCoverUrl());
         comic.setStatus(request.getStatus());

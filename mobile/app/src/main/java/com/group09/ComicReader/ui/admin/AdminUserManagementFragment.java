@@ -84,8 +84,9 @@ public class AdminUserManagementFragment extends BaseFragment {
                     int totalItemCount = layoutManager.getItemCount();
                     int pastVisibleItems = layoutManager.findFirstVisibleItemPosition();
 
+                    // Threshold: Load more when there are 5 or fewer items left to scroll
                     if (!isLoading && !isLastPage) {
-                        if ((visibleItemCount + pastVisibleItems) >= totalItemCount) {
+                        if ((visibleItemCount + pastVisibleItems) >= (totalItemCount - 5)) {
                             loadUsers(false);
                         }
                     }
@@ -132,14 +133,20 @@ public class AdminUserManagementFragment extends BaseFragment {
             binding.prgLoading.setVisibility(View.VISIBLE);
         }
 
+        if (!refresh) {
+            adapter.setLoaderVisible(true);
+        }
         isLoading = true;
         adminRepository.getUsers(currentSearch, currentPage, 20, new AdminRepository.UserListCallback() {
             @Override
             public void onSuccess(@NonNull PageResponse<AdminUserResponse> page) {
-                isLoading = false;
-                if (isDetached() || binding == null) return;
+                if (isDetached() || binding == null) {
+                    isLoading = false;
+                    return;
+                }
                 
                 binding.prgLoading.setVisibility(View.GONE);
+                adapter.setLoaderVisible(false);
                 
                 List<AdminUserResponse> newUsers = page.getContent();
                 if (newUsers != null) {
@@ -151,14 +158,19 @@ public class AdminUserManagementFragment extends BaseFragment {
                 }
                 
                 binding.tvEmpty.setVisibility(userList.isEmpty() ? View.VISIBLE : View.GONE);
+                isLoading = false;
             }
 
             @Override
             public void onError(@NonNull String message) {
-                isLoading = false;
-                if (isDetached() || binding == null) return;
+                if (isDetached() || binding == null) {
+                    isLoading = false;
+                    return;
+                }
                 binding.prgLoading.setVisibility(View.GONE);
+                adapter.setLoaderVisible(false);
                 showToast(message);
+                isLoading = false;
             }
         });
     }

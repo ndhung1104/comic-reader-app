@@ -16,7 +16,12 @@ import com.group09.ComicReader.model.AdminUserResponse;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AdminUserAdapter extends ListAdapter<AdminUserResponse, AdminUserAdapter.UserViewHolder> {
+public class AdminUserAdapter extends ListAdapter<AdminUserResponse, RecyclerView.ViewHolder> {
+
+    private static final int TYPE_ITEM = 0;
+    private static final int TYPE_LOADING = 1;
+
+    private boolean isLoaderVisible = false;
 
     public interface OnUserActionListener {
         void onBan(AdminUserResponse user);
@@ -42,17 +47,47 @@ public class AdminUserAdapter extends ListAdapter<AdminUserResponse, AdminUserAd
         this.listener = listener;
     }
 
+    @Override
+    public int getItemViewType(int position) {
+        if (isLoaderVisible && position == getItemCount() - 1) {
+            return TYPE_LOADING;
+        }
+        return TYPE_ITEM;
+    }
+
+    @Override
+    public int getItemCount() {
+        return super.getItemCount() + (isLoaderVisible ? 1 : 0);
+    }
+
+    public void setLoaderVisible(boolean visible) {
+        this.isLoaderVisible = visible;
+        notifyDataSetChanged();
+    }
+
     @NonNull
     @Override
-    public UserViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        if (viewType == TYPE_LOADING) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_loading_footer, parent, false);
+            return new LoadingViewHolder(view);
+        }
         ItemAdminUserBinding binding = ItemAdminUserBinding.inflate(
                 LayoutInflater.from(parent.getContext()), parent, false);
         return new UserViewHolder(binding);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull UserViewHolder holder, int position) {
-        holder.bind(getItem(position));
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        if (holder instanceof UserViewHolder) {
+            ((UserViewHolder) holder).bind(getItem(position));
+        }
+    }
+
+    static class LoadingViewHolder extends RecyclerView.ViewHolder {
+        LoadingViewHolder(View itemView) {
+            super(itemView);
+        }
     }
 
     class UserViewHolder extends RecyclerView.ViewHolder {
