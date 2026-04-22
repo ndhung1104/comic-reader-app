@@ -37,6 +37,7 @@ import com.group09.ComicReader.model.ReaderPage;
 import com.group09.ComicReader.ui.reader.audio.MediaPlayerReaderAudioPlayer;
 import com.group09.ComicReader.ui.reader.audio.ReaderAudioController;
 import com.group09.ComicReader.ui.reader.audio.ReaderAudioError;
+import com.group09.ComicReader.ui.share.ShareSheetBottomSheetFragment;
 import com.group09.ComicReader.viewmodel.CommentsViewModel;
 import com.group09.ComicReader.viewmodel.ReaderViewModel;
 
@@ -595,13 +596,12 @@ public class ReaderActivity extends AppCompatActivity {
             return;
         }
         String url = ApiClient.toAbsolutePublicUrl("/share/chapter/" + chapterId);
+        String title = comicTitle == null || comicTitle.trim().isEmpty()
+                ? getString(R.string.app_name)
+                : comicTitle;
 
-        String shareText = url;
-
-        Intent sendIntent = new Intent(Intent.ACTION_SEND);
-        sendIntent.putExtra(Intent.EXTRA_TEXT, shareText);
-        sendIntent.setType("text/plain");
-        startActivity(Intent.createChooser(sendIntent, getString(R.string.share_chooser_title)));
+        ShareSheetBottomSheetFragment.newChapterInstance(title, url, chapterNumber)
+                .show(getSupportFragmentManager(), ShareSheetBottomSheetFragment.TAG);
     }
 
     private void resetZoomToBaseState() {

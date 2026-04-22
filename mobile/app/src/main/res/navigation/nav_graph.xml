@@ -150,7 +150,26 @@
         <action
             android:id="@+id/action_profile_to_admin_dashboard"
             app:destination="@id/adminDashboardFragment" />
+        <action
+            android:id="@+id/action_profile_to_creator_studio"
+            app:destination="@id/creatorStudioFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/creatorStudioFragment"
+        android:name="com.group09.ComicReader.ui.creator.CreatorStudioFragment"
+        android:label="creator_studio"
+        tools:layout="@layout/fragment_creator_studio">
+        <action
+            android:id="@+id/action_creatorStudioFragment_to_createComicFragment"
+            app:destination="@id/createComicFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createComicFragment"
+        android:name="com.group09.ComicReader.ui.creator.CreateComicFragment"
+        android:label="create_comic"
+        tools:layout="@layout/fragment_create_comic" />
 
     <fragment
         android:id="@+id/accountDetailsFragment"
@@ -195,7 +214,16 @@
         <action
             android:id="@+id/action_admin_to_import"
             app:destination="@id/adminImportFragment" />
+        <action
+            android:id="@+id/action_admin_to_user_management"
+            app:destination="@id/adminUserManagementFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/adminUserManagementFragment"
+        android:name="com.group09.ComicReader.ui.admin.AdminUserManagementFragment"
+        android:label="admin_user_management"
+        tools:layout="@layout/fragment_admin_user_management" />
 
     <fragment
         android:id="@+id/adminRevenueFragment"
@@ -215,4 +243,9 @@
         android:label="admin_import"
         tools:layout="@layout/fragment_admin_import" />
 
+    <fragment
+        android:id="@+id/adminCreatorRequestsFragment"
+        android:name="com.group09.ComicReader.ui.admin.AdminCreatorRequestsFragment"
+        android:label="admin_creator_requests"
+        tools:layout="@layout/fragment_admin_creator_requests" />
 </navigation>

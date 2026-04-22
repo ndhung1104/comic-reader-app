@@ -55,6 +55,9 @@ public interface ComicRepository extends JpaRepository<ComicEntity, Long> {
                                                @Param("g2") String g2,
                                                Pageable pageable);
 
+    /* Creator specific */
+    Page<ComicEntity> findByCreatorOrderByCreatedAtDesc(com.group09.ComicReader.auth.entity.UserEntity creator, Pageable pageable);
+
     /* Increment view count */
     @Modifying
     @Query("UPDATE ComicEntity c SET c.viewCount = c.viewCount + 1 WHERE c.id = :comicId")

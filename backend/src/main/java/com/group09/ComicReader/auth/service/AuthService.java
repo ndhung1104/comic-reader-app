@@ -95,7 +95,7 @@ public class AuthService {
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtService.generateToken(userDetails);
 
-        String role = user.getRoles().stream().findFirst().map(RoleEntity::getName).orElse("USER");
+        String role = highestRole(user.getRoles());
         return new AuthResponse(token, "Bearer", role);
     }
 
@@ -143,8 +143,23 @@ public class AuthService {
 
         UserEntity ensuredUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BadRequestException("Invalid Google token"));
-        String role = ensuredUser.getRoles().stream().findFirst().map(RoleEntity::getName).orElse("USER");
+        String role = highestRole(ensuredUser.getRoles());
         return new AuthResponse(token, "Bearer", role);
+    }
+
+    /**
+     * Returns the highest-privilege role name from a set of roles.
+     * Priority: ADMIN > CREATOR > USER (fallback).
+     */
+    private static String highestRole(Set<RoleEntity> roles) {
+        if (roles == null || roles.isEmpty()) {
+            return "USER";
+        }
+        boolean hasAdmin = roles.stream().anyMatch(r -> "ADMIN".equalsIgnoreCase(r.getName()));
+        if (hasAdmin) return "ADMIN";
+        boolean hasCreator = roles.stream().anyMatch(r -> "CREATOR".equalsIgnoreCase(r.getName()));
+        if (hasCreator) return "CREATOR";
+        return roles.stream().findFirst().map(RoleEntity::getName).orElse("USER");
     }
 }
 

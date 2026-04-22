@@ -74,6 +74,10 @@ public class ApiClient {
         return retrofit.create(AdminApi.class);
     }
 
+    public CreatorApi creatorApi() {
+        return retrofit.create(CreatorApi.class);
+    }
+
     public TranslateApi translateApi() {
         return retrofit.create(TranslateApi.class);
     }

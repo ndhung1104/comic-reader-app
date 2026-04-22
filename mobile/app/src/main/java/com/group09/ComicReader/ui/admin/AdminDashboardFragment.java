@@ -33,8 +33,7 @@ public class AdminDashboardFragment extends BaseFragment {
 
         binding.toolbarAdmin.setNavigationOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigateUp());
 
-        binding.btnAdminBanUser.setOnClickListener(v -> handleUserAction(true));
-        binding.btnAdminUnbanUser.setOnClickListener(v -> handleUserAction(false));
+        binding.btnAdminUserManagement.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(com.group09.ComicReader.R.id.action_admin_to_user_management));
 
         binding.btnAdminHideComment.setOnClickListener(v -> handleCommentAction(ActionType.HIDE));
         binding.btnAdminUnhideComment.setOnClickListener(v -> handleCommentAction(ActionType.UNHIDE));
@@ -47,35 +46,6 @@ public class AdminDashboardFragment extends BaseFragment {
         binding.btnAdminImport.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(com.group09.ComicReader.R.id.action_admin_to_import));
     }
 
-    private void handleUserAction(boolean isBan) {
-        String idStr = binding.edtAdminUserId.getText() != null ? binding.edtAdminUserId.getText().toString() : "";
-        if (idStr.isEmpty()) {
-            showToast("Please enter a User ID");
-            return;
-        }
-        long userId = Long.parseLong(idStr);
-        binding.tvAdminStatus.setText("Processing user action...");
-
-        AdminRepository.SimpleCallback callback = new AdminRepository.SimpleCallback() {
-            @Override
-            public void onSuccess(String message) {
-                binding.tvAdminStatus.setText(message);
-                showToast(message);
-            }
-
-            @Override
-            public void onError(@NonNull String message) {
-                binding.tvAdminStatus.setText("Error: " + message);
-                showToast(message);
-            }
-        };
-
-        if (isBan) {
-            adminRepository.banUser(userId, callback);
-        } else {
-            adminRepository.unbanUser(userId, callback);
-        }
-    }
 
     private enum ActionType {
         HIDE, UNHIDE, LOCK, UNLOCK, DELETE

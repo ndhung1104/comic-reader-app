@@ -58,10 +58,38 @@ class AdminUserControllerTest {
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
-
+ 
         JsonNode json = objectMapper.readTree(result);
         assertThat(json.get("content").isArray()).isTrue();
         assertThat(json.get("content").size()).isGreaterThanOrEqualTo(2);
+    }
+
+    @Test
+    void adminShouldSearchUsers() throws Exception {
+        // Search by email
+        String result = mockMvc.perform(get("/api/v1/admin/users")
+                        .param("search", "user@comicreader.dev")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode json = objectMapper.readTree(result);
+        assertThat(json.get("content").size()).isEqualTo(1);
+        assertThat(json.get("content").get(0).get("email").asText()).isEqualTo("user@comicreader.dev");
+
+        // Search by name (partial)
+        result = mockMvc.perform(get("/api/v1/admin/users")
+                        .param("search", "Demo")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        json = objectMapper.readTree(result);
+        assertThat(json.get("content").size()).isGreaterThanOrEqualTo(1);
     }
 
     @Test

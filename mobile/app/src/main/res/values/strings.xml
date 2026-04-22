@@ -141,7 +141,18 @@
     <string name="profile_new_password">New password</string>
     <string name="profile_confirm_password">Confirm new password</string>
     <string name="profile_update_password">Update password</string>
-    <string name="profile_creator">Become a Creator</string>
+    <string name="profile_creator">Trở thành Creator</string>
+    <string name="profile_creator_already">Đã trở thành Creator</string>
+    <string name="profile_creator_studio">Creator Studio</string>
+    <string name="profile_creator_dialog_title">Trở thành Creator</string>
+    <string name="profile_creator_dialog_message">Bạn có muốn gửi yêu cầu trở thành Creator để có thể đăng tải truyện của riêng mình không?</string>
+    <string name="profile_creator_send_request">Gửi yêu cầu</string>
+    <string name="profile_creator_cancel">Hủy</string>
+    <string name="profile_creator_pending_title">Yêu cầu đang chờ duyệt</string>
+    <string name="profile_creator_pending_message">Yêu cầu trở thành Creator của bạn đang được hệ thống xem xét. Vui lòng quay lại sau.</string>
+    <string name="profile_creator_denied_title">Yêu cầu bị từ chối</string>
+    <string name="profile_creator_denied_message">Yêu cầu của bạn đã bị từ chối. Lý do: %1$s. Bạn có muốn gửi lại yêu cầu không?</string>
+    <string name="profile_creator_resend">Gửi lại</string>
     <string name="profile_logout">Logout</string>
     <string name="profile_version">Version 1.0.0</string>
     <string name="profile_menu_language">Language</string>
@@ -222,11 +233,33 @@
     <string name="content_close_comments">Close comments</string>
     <string name="content_filter">Filter</string>
     <string name="content_share">Share</string>
+    <string name="content_close_share_sheet">Close share options</string>
 
     <string name="share_chooser_title">Share via</string>
     <string name="share_comic_caption">Read %1$s on ComicReader: %2$s</string>
     <string name="share_chapter_caption">Read %1$s - Chapter %2$d on ComicReader: %3$s</string>
     <string name="share_chapter_caption_fallback">Read on ComicReader: %1$s</string>
+    <string name="share_comic_caption_short">Read %1$s on ComicReader</string>
+    <string name="share_chapter_caption_short">Read %1$s - Chapter %2$d on ComicReader</string>
+    <string name="share_chapter_caption_short_fallback">Read on ComicReader</string>
+    <string name="share_sheet_title_comic">Share comic link</string>
+    <string name="share_sheet_title_chapter">Share chapter link</string>
+    <string name="share_sheet_subtitle">Pick a platform first, then choose the group or chat in the next screen.</string>
+    <string name="share_sheet_platform_hint">You\'ll choose the exact destination group or community inside the selected app.</string>
+    <string name="share_sheet_local_url_warning">This share URL still points to a local emulator or device host. Set `MOBILE_PUBLIC_BASE_URL` to a reachable address before testing with other people or social apps.</string>
+    <string name="share_link_label">Shared link</string>
+    <string name="share_action_copy_link">Copy link</string>
+    <string name="share_action_more_apps">More apps</string>
+    <string name="share_action_open_preview">Open preview page</string>
+    <string name="share_platform_facebook">Facebook / Messenger</string>
+    <string name="share_platform_zalo">Zalo</string>
+    <string name="share_platform_discord">Discord</string>
+    <string name="share_platform_telegram">Telegram</string>
+    <string name="share_link_copied">Link copied</string>
+    <string name="share_copy_failed">Could not copy the link</string>
+    <string name="share_preview_unavailable">No browser is available to open the preview page</string>
+    <string name="share_target_unavailable">No app is available for this share action</string>
+    <string name="share_target_unavailable_fallback">%1$s is not installed. Opening the system share sheet instead.</string>
     <string name="choose_language">Choose language</string>
     <string name="translate_button">Translate</string>
     <string name="translate_loading">Translating…</string>
@@ -309,5 +342,7 @@
     <string name="onboarding_art_style_title">Art style (optional)</string>
     <string name="onboarding_art_style_subtitle">This helps us tune recommendations.</string>
     <string name="onboarding_finish">Finish</string>
+    <string name="creator_studio_title">Creator Studio</string>
+    <string name="admin_creator_requests_title">Creator Requests</string>
 </resources>
 

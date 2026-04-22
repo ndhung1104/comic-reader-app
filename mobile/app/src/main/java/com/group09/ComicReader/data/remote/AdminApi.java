@@ -1,7 +1,9 @@
 package com.group09.ComicReader.data.remote;
 
+import com.group09.ComicReader.model.AdminUserResponse;
 import com.group09.ComicReader.model.ComicResponse;
 import com.group09.ComicReader.model.CommentItem;
+import com.group09.ComicReader.model.PageResponse;
 import com.group09.ComicReader.model.UserProfileResponse;
 
 import java.util.List;
@@ -15,8 +17,16 @@ import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
+import retrofit2.http.FormUrlEncoded;
+import retrofit2.http.Field;
 
 public interface AdminApi {
+
+    @GET("/api/v1/admin/users")
+    Call<PageResponse<AdminUserResponse>> getUsers(
+            @Query("search") String search,
+            @Query("page") int page,
+            @Query("size") int size);
 
     @PUT("/api/v1/admin/users/{userId}/ban")
     Call<UserProfileResponse> banUser(@Path("userId") long userId);
@@ -68,4 +78,20 @@ public interface AdminApi {
 
     @POST("/api/v1/admin/comics/import")
     Call<ComicResponse> importComic(@Body Map<String, String> body);
+
+    // ── Creator Requests ─────────────────────────────────
+
+    @GET("/api/v1/admin/creator-requests")
+    Call<com.group09.ComicReader.model.CreatorRequestPageResponse> getCreatorRequests(@Query("page") int page,
+            @Query("size") int size);
+
+    @FormUrlEncoded
+    @POST("/api/v1/admin/creator-requests/{id}/approve")
+    Call<com.group09.ComicReader.model.CreatorRequestResponse> approveCreatorRequest(@Path("id") long id,
+            @Field("adminMessage") String adminMessage);
+
+    @FormUrlEncoded
+    @POST("/api/v1/admin/creator-requests/{id}/deny")
+    Call<com.group09.ComicReader.model.CreatorRequestResponse> denyCreatorRequest(@Path("id") long id,
+            @Field("adminMessage") String adminMessage);
 }

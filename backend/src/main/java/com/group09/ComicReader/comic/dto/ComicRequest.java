@@ -19,6 +19,8 @@ public class ComicRequest {
     @NotBlank
     private String status;
 
+    private String genres;
+
     public String getTitle() {
         return title;
     }
@@ -57,6 +59,14 @@ public class ComicRequest {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getGenres() {
+        return genres;
+    }
+
+    public void setGenres(String genres) {
+        this.genres = genres;
     }
 }
 
