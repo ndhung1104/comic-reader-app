@@ -13,6 +13,11 @@ public class ComicReaderApp extends Application {
         super.onCreate();
 
         AppSettingsStore settings = new AppSettingsStore(this);
+
+        AppCompatDelegate.setDefaultNightMode(settings.isDarkModeEnabled()
+                ? AppCompatDelegate.MODE_NIGHT_YES
+                : AppCompatDelegate.MODE_NIGHT_NO);
+
         String languageCode = settings.getLanguageCode();
         if (languageCode != null && !languageCode.trim().isEmpty()) {
             AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageCode));
