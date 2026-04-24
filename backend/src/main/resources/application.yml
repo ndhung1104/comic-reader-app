@@ -79,3 +79,20 @@ otruyen:
         cron: ${OTRUYEN_CRAWL_CRON:0 0 3 * * SUN}
         zone: ${OTRUYEN_CRAWL_ZONE:UTC}
         enabled: ${OTRUYEN_CRAWL_ENABLED:true}
+
+wallet:
+    ad-reward:
+        cooldown-seconds: ${WALLET_AD_REWARD_COOLDOWN_SECONDS:45}
+        daily-claim-limit: ${WALLET_AD_REWARD_DAILY_CLAIM_LIMIT:20}
+        coin-amount: ${WALLET_AD_REWARD_COIN_AMOUNT:10}
+        point-amount: ${WALLET_AD_REWARD_POINT_AMOUNT:5}
+
+ai:
+    guardrails:
+        enabled: ${AI_GUARDRAILS_ENABLED:true}
+        translate-per-actor-per-day: ${AI_TRANSLATE_PER_ACTOR_PER_DAY:30}
+        translate-per-day: ${AI_TRANSLATE_PER_DAY:500}
+        translation-job-per-actor-per-day: ${AI_TRANSLATION_JOB_PER_ACTOR_PER_DAY:8}
+        translation-job-per-day: ${AI_TRANSLATION_JOB_PER_DAY:120}
+        audio-playlist-per-actor-per-day: ${AI_AUDIO_PLAYLIST_PER_ACTOR_PER_DAY:10}
+        audio-playlist-per-day: ${AI_AUDIO_PLAYLIST_PER_DAY:200}

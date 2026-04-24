@@ -3,7 +3,9 @@ package com.group09.ComicReader.comic.service;
 import com.group09.ComicReader.chapter.dto.ChapterRequest;
 import com.group09.ComicReader.chapter.dto.ChapterResponse;
 import com.group09.ComicReader.chapter.entity.ChapterEntity;
+import com.group09.ComicReader.chapter.repository.ChapterFreeAdAccessRepository;
 import com.group09.ComicReader.chapter.repository.ChapterRepository;
+import com.group09.ComicReader.chapter.service.ChapterAdPolicyService;
 import com.group09.ComicReader.chapter.service.ChapterPremiumPolicyService;
 import com.group09.ComicReader.comic.dto.ComicRequest;
 import com.group09.ComicReader.comic.dto.ComicResponse;
@@ -44,6 +46,8 @@ public class ComicService {
     private final UserRepository userRepository;
     private final ComicRatingRepository comicRatingRepository;
     private final ChapterPremiumPolicyService chapterPremiumPolicyService;
+    private final ChapterFreeAdAccessRepository chapterFreeAdAccessRepository;
+    private final ChapterAdPolicyService chapterAdPolicyService;
     private final OTruyenService oTruyenService;
 
     public ComicService(ComicRepository comicRepository,
@@ -53,6 +57,8 @@ public class ComicService {
             UserRepository userRepository,
             ComicRatingRepository comicRatingRepository,
             ChapterPremiumPolicyService chapterPremiumPolicyService,
+            ChapterFreeAdAccessRepository chapterFreeAdAccessRepository,
+            ChapterAdPolicyService chapterAdPolicyService,
             OTruyenService oTruyenService) {
         this.comicRepository = comicRepository;
         this.chapterRepository = chapterRepository;
@@ -61,6 +67,8 @@ public class ComicService {
         this.userRepository = userRepository;
         this.comicRatingRepository = comicRatingRepository;
         this.chapterPremiumPolicyService = chapterPremiumPolicyService;
+        this.chapterFreeAdAccessRepository = chapterFreeAdAccessRepository;
+        this.chapterAdPolicyService = chapterAdPolicyService;
         this.oTruyenService = oTruyenService;
     }
 
@@ -178,10 +186,19 @@ public class ComicService {
                     ChapterResponse r = toChapterResponse(ch);
                     if (!ch.isPremium()) {
                         r.setUnlocked(true);
+                        boolean adEligible = chapterAdPolicyService.isFreeChapterAdEligible(ch);
+                        r.setAdEligible(adEligible);
+                        boolean hasFreeAdAccess = hasAuthenticatedUser
+                                && chapterFreeAdAccessRepository.existsByUserIdAndChapterId(userOptional.get().getId(), ch.getId());
+                        r.setRequiresEntryBannerAd(adEligible && !userHasVip && (!hasAuthenticatedUser || !hasFreeAdAccess));
                     } else if (!hasAuthenticatedUser) {
                         r.setUnlocked(false);
+                        r.setAdEligible(false);
+                        r.setRequiresEntryBannerAd(false);
                     } else {
                         r.setUnlocked(userHasVip || userPurchasedIds.contains(ch.getId()));
+                        r.setAdEligible(false);
+                        r.setRequiresEntryBannerAd(false);
                     }
                     return r;
                 })

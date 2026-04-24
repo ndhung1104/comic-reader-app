@@ -1,5 +1,6 @@
 package com.group09.ComicReader.translationjob.service;
 
+import com.group09.ComicReader.ai.service.AiUsageService;
 import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.chapter.entity.ChapterPageEntity;
 import com.group09.ComicReader.chapter.repository.ChapterPageRepository;
@@ -73,6 +74,9 @@ class TranslationJobServiceTest {
     @Mock
     private FileStorageService fileStorageService;
 
+    @Mock
+    private AiUsageService aiUsageService;
+
     private TranslationJobService translationJobService;
     private TranslationWorkerProperties translationWorkerProperties;
     private TtsWorkerProperties ttsWorkerProperties;
@@ -96,8 +100,12 @@ class TranslationJobServiceTest {
                 ttsWorkerClient,
                 translationWorkerProperties,
                 ttsWorkerProperties,
-                fileStorageService
+                fileStorageService,
+                aiUsageService
         );
+
+        lenient().when(aiUsageService.beginUsage(any(), any(), any(), any()))
+                .thenReturn(new AiUsageService.UsageContext(null, null));
 
         ComicEntity comic = new ComicEntity();
         comic.setId(9L);

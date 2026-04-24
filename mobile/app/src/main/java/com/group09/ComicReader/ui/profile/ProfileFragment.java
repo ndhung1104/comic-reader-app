@@ -21,6 +21,7 @@ import com.group09.ComicReader.R;
 import com.group09.ComicReader.adapter.ProfileMenuAdapter;
 import com.group09.ComicReader.base.BaseFragment;
 import com.group09.ComicReader.data.AccountRepository;
+import com.group09.ComicReader.data.WalletRepository;
 import com.group09.ComicReader.data.local.SessionManager;
 import com.group09.ComicReader.data.remote.ApiClient;
 import com.group09.ComicReader.databinding.FragmentProfileBinding;
@@ -28,6 +29,7 @@ import com.group09.ComicReader.model.CreatorRequestResponse;
 import com.group09.ComicReader.model.ProfileMenuItem;
 import com.group09.ComicReader.model.UpdateUserPreferencesRequest;
 import com.group09.ComicReader.model.UserProfileResponse;
+import com.group09.ComicReader.model.VipStatusResponse;
 import com.group09.ComicReader.viewmodel.ProfileViewModel;
 import com.group09.ComicReader.data.CreatorRepository;
 import androidx.appcompat.app.AlertDialog;
@@ -47,6 +49,7 @@ public class ProfileFragment extends BaseFragment {
     private SessionManager sessionManager;
     private AccountRepository accountRepository;
     private CreatorRepository creatorRepository;
+    private WalletRepository walletRepository;
     private ActivityResultLauncher<String> pickAvatarLauncher;
 
     @Nullable
@@ -58,6 +61,7 @@ public class ProfileFragment extends BaseFragment {
         sessionManager = new SessionManager(requireContext());
         accountRepository = new AccountRepository(new ApiClient(requireContext()));
         creatorRepository = new CreatorRepository(new ApiClient(requireContext()));
+        walletRepository = new WalletRepository(new ApiClient(requireContext()));
 
         pickAvatarLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
             if (uri == null)
@@ -87,6 +91,13 @@ public class ProfileFragment extends BaseFragment {
                 return;
             }
             pickAvatarLauncher.launch("image/*");
+        });
+        binding.tvProfileMembership.setOnClickListener(v -> {
+            if (!sessionManager.hasToken()) {
+                Navigation.findNavController(v).navigate(R.id.loginFragment);
+                return;
+            }
+            Navigation.findNavController(v).navigate(R.id.walletFragment);
         });
 
         renderForAuthState();
@@ -118,6 +129,7 @@ public class ProfileFragment extends BaseFragment {
             renderAvatarFromSession();
 
             maybeFetchMe();
+            refreshMembershipStatus();
 
             binding.btnProfileCreator.setVisibility(View.VISIBLE);
             String role = sessionManager.getRole();
@@ -135,6 +147,7 @@ public class ProfileFragment extends BaseFragment {
         } else {
             viewModel.setUserInfo(getString(R.string.profile_guest_name), getString(R.string.profile_not_signed_in));
             binding.btnProfileCreator.setVisibility(View.GONE);
+            binding.tvProfileMembership.setText(R.string.profile_membership);
             clearAvatar();
             setAuthButtonToLogin(binding.btnProfileLogout);
         }
@@ -166,6 +179,35 @@ public class ProfileFragment extends BaseFragment {
             @Override
             public void onError(@NonNull String message) {
                 // Not found or network error, keep "Become a Creator" state
+            }
+        });
+    }
+
+    private void refreshMembershipStatus() {
+        walletRepository.loadVipStatus(new WalletRepository.VipStatusCallback() {
+            @Override
+            public void onSuccess(@NonNull VipStatusResponse vipStatusResponse) {
+                if (binding == null) {
+                    return;
+                }
+                if (!vipStatusResponse.isVip()) {
+                    binding.tvProfileMembership.setText(R.string.profile_membership);
+                    return;
+                }
+
+                String plan = vipStatusResponse.getPlan();
+                if ("YEARLY".equalsIgnoreCase(plan)) {
+                    binding.tvProfileMembership.setText(R.string.wallet_vip_plan_yearly);
+                } else {
+                    binding.tvProfileMembership.setText(R.string.wallet_vip_plan_monthly);
+                }
+            }
+
+            @Override
+            public void onError(@NonNull String message) {
+                if (binding != null) {
+                    binding.tvProfileMembership.setText(R.string.profile_membership);
+                }
             }
         });
     }

@@ -10,6 +10,8 @@ public class ChapterResponse {
     private boolean premium;
     private Integer price;
     private boolean unlocked;
+    private boolean adEligible;
+    private boolean requiresEntryBannerAd;
 
     public Long getId() {
         return id;
@@ -74,5 +76,20 @@ public class ChapterResponse {
     public void setUnlocked(boolean unlocked) {
         this.unlocked = unlocked;
     }
-}
 
+    public boolean isAdEligible() {
+        return adEligible;
+    }
+
+    public void setAdEligible(boolean adEligible) {
+        this.adEligible = adEligible;
+    }
+
+    public boolean isRequiresEntryBannerAd() {
+        return requiresEntryBannerAd;
+    }
+
+    public void setRequiresEntryBannerAd(boolean requiresEntryBannerAd) {
+        this.requiresEntryBannerAd = requiresEntryBannerAd;
+    }
+}

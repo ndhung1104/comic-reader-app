@@ -48,6 +48,37 @@ android {
             "GOOGLE_WEB_CLIENT_ID",
             envProperties.getProperty("MOBILE_GOOGLE_WEB_CLIENT_ID", "").asBuildConfigString()
         )
+
+        val adMobAppId = envProperties.getProperty(
+            "MOBILE_ADMOB_APP_ID",
+            "ca-app-pub-3940256099942544~3347511713"
+        )
+        buildConfigField("String", "ADMOB_APP_ID", adMobAppId.asBuildConfigString())
+        buildConfigField(
+            "String",
+            "ADMOB_WALLET_BANNER_UNIT_ID",
+            envProperties.getProperty(
+                "MOBILE_ADMOB_WALLET_BANNER_UNIT_ID",
+                "ca-app-pub-3940256099942544/6300978111"
+            ).asBuildConfigString()
+        )
+        buildConfigField(
+            "String",
+            "ADMOB_REWARDED_UNIT_ID",
+            envProperties.getProperty(
+                "MOBILE_ADMOB_REWARDED_UNIT_ID",
+                "ca-app-pub-3940256099942544/5224354917"
+            ).asBuildConfigString()
+        )
+        buildConfigField(
+            "String",
+            "ADMOB_READER_BANNER_UNIT_ID",
+            envProperties.getProperty(
+                "MOBILE_ADMOB_READER_BANNER_UNIT_ID",
+                "ca-app-pub-3940256099942544/6300978111"
+            ).asBuildConfigString()
+        )
+        manifestPlaceholders["admobAppId"] = adMobAppId
     }
 
     buildTypes {
@@ -87,6 +118,8 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.play.services.auth)
+    implementation(libs.play.services.ads)
+    implementation(libs.guava)
     implementation(libs.room.runtime)
     implementation(libs.work.runtime)
     annotationProcessor(libs.glide.compiler)

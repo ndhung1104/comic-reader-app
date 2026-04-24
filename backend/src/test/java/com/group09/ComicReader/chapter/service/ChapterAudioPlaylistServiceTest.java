@@ -1,5 +1,6 @@
 package com.group09.ComicReader.chapter.service;
 
+import com.group09.ComicReader.ai.service.AiUsageService;
 import com.group09.ComicReader.chapter.dto.ChapterAudioPlaylistRequest;
 import com.group09.ComicReader.chapter.dto.ChapterPageResponse;
 import com.group09.ComicReader.chapter.entity.ChapterEntity;
@@ -31,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,6 +61,9 @@ class ChapterAudioPlaylistServiceTest {
     @Mock
     private FileStorageService fileStorageService;
 
+    @Mock
+    private AiUsageService aiUsageService;
+
     private ChapterAudioPlaylistService chapterAudioPlaylistService;
     private TtsWorkerProperties ttsWorkerProperties;
 
@@ -83,8 +88,12 @@ class ChapterAudioPlaylistServiceTest {
                 translationJobService,
                 ttsWorkerClient,
                 ttsWorkerProperties,
-                fileStorageService
+                fileStorageService,
+                aiUsageService
         );
+
+        lenient().when(aiUsageService.beginUsage(any(), any(), any(), any()))
+                .thenReturn(new AiUsageService.UsageContext(null, null));
     }
 
     @Test

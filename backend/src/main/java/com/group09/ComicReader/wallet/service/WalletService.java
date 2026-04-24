@@ -6,18 +6,23 @@ import com.group09.ComicReader.chapter.entity.ChapterEntity;
 import com.group09.ComicReader.chapter.repository.ChapterRepository;
 import com.group09.ComicReader.common.exception.BadRequestException;
 import com.group09.ComicReader.common.exception.NotFoundException;
+import com.group09.ComicReader.wallet.config.WalletRewardProperties;
 import com.group09.ComicReader.wallet.dto.*;
+import com.group09.ComicReader.wallet.entity.AdRewardClaimEntity;
 import com.group09.ComicReader.wallet.entity.ChapterPurchaseEntity;
 import com.group09.ComicReader.wallet.entity.TopUpPackageEntity;
 import com.group09.ComicReader.wallet.entity.TransactionType;
 import com.group09.ComicReader.wallet.entity.UserWalletEntity;
 import com.group09.ComicReader.wallet.entity.VipSubscriptionEntity;
 import com.group09.ComicReader.wallet.entity.WalletTransactionEntity;
+import com.group09.ComicReader.wallet.repository.AdRewardClaimRepository;
 import com.group09.ComicReader.wallet.repository.ChapterPurchaseRepository;
 import com.group09.ComicReader.wallet.repository.TopUpPackageRepository;
 import com.group09.ComicReader.wallet.repository.UserWalletRepository;
 import com.group09.ComicReader.wallet.repository.VipSubscriptionRepository;
 import com.group09.ComicReader.wallet.repository.WalletTransactionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,12 +38,12 @@ import java.util.Optional;
 @Service
 public class WalletService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(WalletService.class);
+
     private static final Map<String, Integer> VIP_PRICES = Map.of(
             "MONTHLY", 500,
             "YEARLY", 5000
     );
-
-    private static final int AD_REWARD_COINS = 10;
 
     private static final Map<String, Integer> IAP_PRODUCTS = Map.of(
             "coins_100",  100,
@@ -50,26 +55,32 @@ public class WalletService {
 
     private final UserWalletRepository walletRepository;
     private final WalletTransactionRepository transactionRepository;
+    private final AdRewardClaimRepository adRewardClaimRepository;
     private final ChapterPurchaseRepository purchaseRepository;
     private final VipSubscriptionRepository vipRepository;
     private final TopUpPackageRepository topUpPackageRepository;
     private final ChapterRepository chapterRepository;
     private final UserRepository userRepository;
+    private final WalletRewardProperties walletRewardProperties;
 
     public WalletService(UserWalletRepository walletRepository,
                          WalletTransactionRepository transactionRepository,
+                         AdRewardClaimRepository adRewardClaimRepository,
                          ChapterPurchaseRepository purchaseRepository,
                          VipSubscriptionRepository vipRepository,
                          TopUpPackageRepository topUpPackageRepository,
                          ChapterRepository chapterRepository,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         WalletRewardProperties walletRewardProperties) {
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
+        this.adRewardClaimRepository = adRewardClaimRepository;
         this.purchaseRepository = purchaseRepository;
         this.vipRepository = vipRepository;
         this.topUpPackageRepository = topUpPackageRepository;
         this.chapterRepository = chapterRepository;
         this.userRepository = userRepository;
+        this.walletRewardProperties = walletRewardProperties;
     }
 
     // ── Read ────────────────────────────────────────────
@@ -97,12 +108,18 @@ public class WalletService {
         }
 
         UserEntity user = getCurrentUser();
+        String currency = normalizeCurrency(request.getCurrency());
+        String referenceId = normalizeReference(request.getReferenceId());
 
         // Lock the wallet row for update
         UserWalletEntity wallet = walletRepository.findByUserIdForUpdate(user.getId())
                 .orElseGet(() -> createWallet(user));
 
-        String currency = request.getCurrency() != null ? request.getCurrency() : "COIN";
+        if (referenceId != null && hasExistingTransaction(user.getId(), TransactionType.TOP_UP, referenceId)) {
+            LOGGER.info("wallet_topup_duplicate userId={} referenceId={}", user.getId(), referenceId);
+            return toWalletResponse(wallet);
+        }
+
         int newBalance;
 
         if ("POINT".equalsIgnoreCase(currency)) {
@@ -115,16 +132,22 @@ public class WalletService {
         wallet.setUpdatedAt(LocalDateTime.now());
         walletRepository.save(wallet);
 
-        // Record transaction
-        WalletTransactionEntity tx = new WalletTransactionEntity();
-        tx.setUser(user);
-        tx.setType(TransactionType.TOP_UP);
-        tx.setAmount(request.getAmount());
-        tx.setCurrency(currency.toUpperCase());
-        tx.setBalanceAfter(newBalance);
-        tx.setDescription("Top-up " + request.getAmount() + " " + currency);
-        tx.setReferenceId(request.getReferenceId());
-        transactionRepository.save(tx);
+        recordTransaction(
+                user,
+                TransactionType.TOP_UP,
+                request.getAmount(),
+                currency,
+                newBalance,
+                "Top-up " + request.getAmount() + " " + currency,
+                referenceId
+        );
+
+        LOGGER.info("wallet_topup_success userId={} amount={} currency={} balance={} referenceId={}",
+                user.getId(),
+                request.getAmount(),
+                currency,
+                newBalance,
+                referenceId);
 
         return toWalletResponse(wallet);
     }
@@ -158,7 +181,11 @@ public class WalletService {
         UserWalletEntity wallet = walletRepository.findByUserIdForUpdate(user.getId())
                 .orElseGet(() -> createWallet(user));
 
-        String currency = request.getCurrency() != null ? request.getCurrency() : "COIN";
+        if (purchaseRepository.existsByUserIdAndChapterId(user.getId(), chapter.getId())) {
+            throw new BadRequestException("Chapter already purchased");
+        }
+
+        String currency = normalizeCurrency(request.getCurrency());
         int newBalance;
 
         if ("POINT".equalsIgnoreCase(currency)) {
@@ -189,16 +216,22 @@ public class WalletService {
             throw new BadRequestException("Chapter already purchased");
         }
 
-        // Record transaction
-        WalletTransactionEntity tx = new WalletTransactionEntity();
-        tx.setUser(user);
-        tx.setType(TransactionType.PURCHASE);
-        tx.setAmount(price);
-        tx.setCurrency(currency.toUpperCase());
-        tx.setBalanceAfter(newBalance);
-        tx.setDescription("Purchase chapter: " + chapter.getTitle());
-        tx.setReferenceId("chapter-" + chapter.getId());
-        transactionRepository.save(tx);
+        recordTransaction(
+                user,
+                TransactionType.PURCHASE,
+                price,
+                currency,
+                newBalance,
+                "Purchase chapter: " + chapter.getTitle(),
+                buildPurchaseReference(user.getId(), chapter.getId())
+        );
+
+        LOGGER.info("wallet_purchase_success userId={} chapterId={} amount={} currency={} balance={}",
+                user.getId(),
+                chapter.getId(),
+                price,
+                currency,
+                newBalance);
 
         return toWalletResponse(wallet);
     }
@@ -238,16 +271,15 @@ public class WalletService {
 
         UserEntity user = getCurrentUser();
 
-        // Check if user already has active VIP
-        if (isUserVip(user.getId())) {
-            throw new BadRequestException("You already have an active VIP subscription");
-        }
-
         // Lock wallet
         UserWalletEntity wallet = walletRepository.findByUserIdForUpdate(user.getId())
                 .orElseGet(() -> createWallet(user));
 
-        String currency = request.getCurrency() != null ? request.getCurrency().toUpperCase() : "COIN";
+        if (isUserVip(user.getId())) {
+            throw new BadRequestException("You already have an active VIP subscription");
+        }
+
+        String currency = normalizeCurrency(request.getCurrency());
         int newBalance;
 
         if ("POINT".equalsIgnoreCase(currency)) {
@@ -280,16 +312,23 @@ public class WalletService {
         sub.setStatus("ACTIVE");
         vipRepository.save(sub);
 
-        // Record transaction
-        WalletTransactionEntity tx = new WalletTransactionEntity();
-        tx.setUser(user);
-        tx.setType(TransactionType.VIP_PURCHASE);
-        tx.setAmount(price);
-        tx.setCurrency(currency);
-        tx.setBalanceAfter(newBalance);
-        tx.setDescription("VIP " + plan + " subscription");
-        tx.setReferenceId("vip-" + sub.getId());
-        transactionRepository.save(tx);
+        recordTransaction(
+                user,
+                TransactionType.VIP_PURCHASE,
+                price,
+                currency,
+                newBalance,
+                "VIP " + plan + " subscription",
+                "vip-" + sub.getId()
+        );
+
+        LOGGER.info("wallet_vip_success userId={} plan={} amount={} currency={} balance={} vipId={}",
+                user.getId(),
+                plan,
+                price,
+                currency,
+                newBalance,
+                sub.getId());
 
         VipStatusResponse r = new VipStatusResponse();
         r.setVip(true);
@@ -304,14 +343,33 @@ public class WalletService {
 
     @Transactional
     public WalletResponse rewardAd(AdRewardRequest request) {
+        if (request == null) {
+            throw new BadRequestException("Reward request is required");
+        }
+
         UserEntity user = getCurrentUser();
+        String rewardId = normalizeReference(request.getRewardId());
+        if (rewardId == null) {
+            throw new BadRequestException("rewardId is required");
+        }
+
+        String placement = request.getPlacement() == null || request.getPlacement().isBlank()
+                ? "wallet"
+                : request.getPlacement().trim().toLowerCase();
+        String currency = normalizeCurrency(request.getRewardType());
 
         UserWalletEntity wallet = walletRepository.findByUserIdForUpdate(user.getId())
                 .orElseGet(() -> createWallet(user));
 
-        int reward = AD_REWARD_COINS;
-        String currency = (request != null && "POINT".equalsIgnoreCase(request.getRewardType()))
-                ? "POINT" : "COIN";
+        Optional<AdRewardClaimEntity> existingClaim = adRewardClaimRepository.findByUserIdAndRewardId(user.getId(), rewardId);
+        if (existingClaim.isPresent()) {
+            LOGGER.info("wallet_ad_reward_duplicate userId={} rewardId={} placement={}", user.getId(), rewardId, placement);
+            return toWalletResponse(wallet);
+        }
+
+        enforceAdRewardGuardrails(user.getId(), placement);
+
+        int reward = resolveRewardAmount(currency);
         int newBalance;
 
         if ("POINT".equals(currency)) {
@@ -324,16 +382,34 @@ public class WalletService {
         wallet.setUpdatedAt(LocalDateTime.now());
         walletRepository.save(wallet);
 
-        WalletTransactionEntity tx = new WalletTransactionEntity();
-        tx.setUser(user);
-        tx.setType(TransactionType.AD_REWARD);
-        tx.setAmount(reward);
-        tx.setCurrency(currency);
-        tx.setBalanceAfter(newBalance);
-        tx.setDescription("Ad reward +" + reward + " " + currency);
-        tx.setReferenceId(request != null && request.getAdUnitId() != null
-                ? "ad-" + request.getAdUnitId() : "ad-reward");
-        transactionRepository.save(tx);
+        AdRewardClaimEntity claim = new AdRewardClaimEntity();
+        claim.setUser(user);
+        claim.setRewardId(rewardId);
+        claim.setPlacement(placement);
+        claim.setRewardType(currency);
+        claim.setRewardAmount(reward);
+        claim.setAdProvider(request.getAdProvider());
+        claim.setAdUnitId(request.getAdUnitId());
+        adRewardClaimRepository.save(claim);
+
+        recordTransaction(
+                user,
+                TransactionType.AD_REWARD,
+                reward,
+                currency,
+                newBalance,
+                "Ad reward (" + placement + ") +" + reward + " " + currency,
+                "ad-" + rewardId
+        );
+
+        LOGGER.info("wallet_ad_reward_success userId={} rewardId={} placement={} amount={} currency={} balance={} provider={}",
+                user.getId(),
+                rewardId,
+                placement,
+                reward,
+                currency,
+                newBalance,
+                request.getAdProvider());
 
         return toWalletResponse(wallet);
     }
@@ -370,6 +446,7 @@ public class WalletService {
         Optional<WalletTransactionEntity> existing = transactionRepository
                 .findFirstByUserIdAndTypeAndReferenceId(user.getId(), TransactionType.TOP_UP, referenceId);
         if (existing.isPresent()) {
+            LOGGER.info("wallet_iap_duplicate userId={} referenceId={} productHint={}", user.getId(), referenceId, productHint);
             return toWalletResponse(wallet);
         }
 
@@ -377,15 +454,21 @@ public class WalletService {
         wallet.setUpdatedAt(LocalDateTime.now());
         walletRepository.save(wallet);
 
-        WalletTransactionEntity tx = new WalletTransactionEntity();
-        tx.setUser(user);
-        tx.setType(TransactionType.TOP_UP);
-        tx.setAmount(coinAmount);
-        tx.setCurrency("COIN");
-        tx.setBalanceAfter(wallet.getCoinBalance());
-        tx.setDescription("IAP " + productHint + " (" + request.getStore() + ")");
-        tx.setReferenceId(referenceId);
-        transactionRepository.save(tx);
+        recordTransaction(
+                user,
+                TransactionType.TOP_UP,
+                coinAmount,
+                "COIN",
+                wallet.getCoinBalance(),
+                "IAP " + productHint + " (" + request.getStore() + ")",
+                referenceId
+        );
+
+        LOGGER.info("wallet_iap_success userId={} referenceId={} productHint={} balance={}",
+                user.getId(),
+                referenceId,
+                productHint,
+                wallet.getCoinBalance());
 
         return toWalletResponse(wallet);
     }
@@ -398,6 +481,75 @@ public class WalletService {
         wallet.setCoinBalance(0);
         wallet.setPointBalance(0);
         return walletRepository.save(wallet);
+    }
+
+    private void enforceAdRewardGuardrails(Long userId, String placement) {
+        LocalDateTime now = LocalDateTime.now();
+        adRewardClaimRepository.findFirstByUserIdOrderByCreatedAtDesc(userId).ifPresent(lastClaim -> {
+            LocalDateTime nextAllowedAt = lastClaim.getCreatedAt().plusSeconds(walletRewardProperties.getCooldownSeconds());
+            if (nextAllowedAt.isAfter(now)) {
+                throw new BadRequestException("Please wait before claiming another ad reward.");
+            }
+        });
+
+        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+        long claimCount = adRewardClaimRepository.countByUserIdAndCreatedAtBetween(userId, startOfDay, endOfDay);
+        if (claimCount >= walletRewardProperties.getDailyClaimLimit()) {
+            throw new BadRequestException("Daily ad reward limit reached for today.");
+        }
+
+        LOGGER.info("wallet_ad_reward_guardrail_passed userId={} placement={} claimsToday={}", userId, placement, claimCount);
+    }
+
+    private int resolveRewardAmount(String currency) {
+        if ("POINT".equals(currency)) {
+            return walletRewardProperties.getPointAmount();
+        }
+        return walletRewardProperties.getCoinAmount();
+    }
+
+    private void recordTransaction(UserEntity user,
+            TransactionType type,
+            int amount,
+            String currency,
+            int balanceAfter,
+            String description,
+            String referenceId) {
+        WalletTransactionEntity tx = new WalletTransactionEntity();
+        tx.setUser(user);
+        tx.setType(type);
+        tx.setAmount(amount);
+        tx.setCurrency(currency);
+        tx.setBalanceAfter(balanceAfter);
+        tx.setDescription(description);
+        tx.setReferenceId(referenceId);
+        transactionRepository.save(tx);
+    }
+
+    private boolean hasExistingTransaction(Long userId, TransactionType type, String referenceId) {
+        if (referenceId == null) {
+            return false;
+        }
+        return transactionRepository.findFirstByUserIdAndTypeAndReferenceId(userId, type, referenceId).isPresent();
+    }
+
+    private String normalizeCurrency(String currency) {
+        if (currency == null || currency.isBlank()) {
+            return "COIN";
+        }
+        return "POINT".equalsIgnoreCase(currency.trim()) ? "POINT" : "COIN";
+    }
+
+    private String normalizeReference(String referenceId) {
+        if (referenceId == null || referenceId.isBlank()) {
+            return null;
+        }
+        return referenceId.trim();
+    }
+
+    private String buildPurchaseReference(Long userId, Long chapterId) {
+        return "chapter-" + userId + "-" + chapterId;
     }
 
     public UserEntity getCurrentUser() {

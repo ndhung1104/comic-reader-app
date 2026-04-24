@@ -6,6 +6,8 @@ public class AdRewardRequest {
     private String adUnitId;     // ad unit identifier
     private String rewardType;   // COIN or POINT (defaults to COIN)
     private Integer rewardAmount; // override amount (optional, server decides if null)
+    private String rewardId;     // client-side idempotency key per completed ad
+    private String placement;    // wallet, reader_paywall, etc.
 
     public String getAdProvider() { return adProvider; }
     public void setAdProvider(String adProvider) { this.adProvider = adProvider; }
@@ -18,4 +20,10 @@ public class AdRewardRequest {
 
     public Integer getRewardAmount() { return rewardAmount; }
     public void setRewardAmount(Integer rewardAmount) { this.rewardAmount = rewardAmount; }
+
+    public String getRewardId() { return rewardId; }
+    public void setRewardId(String rewardId) { this.rewardId = rewardId; }
+
+    public String getPlacement() { return placement; }
+    public void setPlacement(String placement) { this.placement = placement; }
 }

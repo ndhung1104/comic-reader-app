@@ -196,6 +196,94 @@ class WalletControllerTest {
                 .contains("Insufficient coin balance");
     }
 
+    @Test
+    void adRewardShouldBeIdempotentForSameRewardId() throws Exception {
+        String token = registerAndGetToken();
+        String payload = """
+                {
+                  "adProvider": "admob",
+                  "adUnitId": "rewarded-test",
+                  "rewardType": "COIN",
+                  "rewardId": "reward-123",
+                  "placement": "wallet"
+                }
+                """;
+
+        String firstResult = mockMvc.perform(post("/api/v1/wallet/ad-reward")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(objectMapper.readTree(firstResult).get("coinBalance").asInt()).isEqualTo(10);
+
+        String secondResult = mockMvc.perform(post("/api/v1/wallet/ad-reward")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(objectMapper.readTree(secondResult).get("coinBalance").asInt()).isEqualTo(10);
+
+        String txResult = mockMvc.perform(get("/api/v1/wallet/transactions?page=0&size=20")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode txContent = objectMapper.readTree(txResult).get("content");
+        assertThat(txContent).hasSize(1);
+        assertThat(txContent.get(0).get("referenceId").asText()).isEqualTo("ad-reward-123");
+    }
+
+    @Test
+    void adRewardShouldRejectSecondClaimDuringCooldown() throws Exception {
+        String token = registerAndGetToken();
+        String firstPayload = """
+                {
+                  "adProvider": "admob",
+                  "adUnitId": "rewarded-test",
+                  "rewardType": "POINT",
+                  "rewardId": "reward-cooldown-1",
+                  "placement": "wallet"
+                }
+                """;
+        String secondPayload = """
+                {
+                  "adProvider": "admob",
+                  "adUnitId": "rewarded-test",
+                  "rewardType": "COIN",
+                  "rewardId": "reward-cooldown-2",
+                  "placement": "wallet"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/wallet/ad-reward")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(firstPayload))
+                .andExpect(status().isOk());
+
+        String result = mockMvc.perform(post("/api/v1/wallet/ad-reward")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(secondPayload))
+                .andExpect(status().isBadRequest())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(objectMapper.readTree(result).get("error").asText())
+                .contains("Please wait before claiming another ad reward");
+    }
+
     private String registerAndGetToken() throws Exception {
         String email = "wallet-" + System.nanoTime() + "@comicreader.dev";
         String registerPayload = """
@@ -221,16 +309,27 @@ class WalletControllerTest {
     private ChapterEntity createPremiumChapter(int price) {
         ComicEntity comic = comicRepository.findAll().stream()
                 .min(Comparator.comparingLong(ComicEntity::getId))
-                .orElseThrow(() -> new IllegalStateException("No comic found for test setup"));
+                .orElseGet(this::createComicForTest);
 
         int nextChapterNumber = chapterRepository.countByComicId(comic.getId()) + 100;
         ChapterEntity chapter = new ChapterEntity();
         chapter.setComic(comic);
         chapter.setChapterNumber(nextChapterNumber);
         chapter.setTitle("Premium Test Chapter " + System.nanoTime());
+        chapter.setLanguage("vi");
         chapter.setPremium(true);
         chapter.setPrice(price);
         return chapterRepository.save(chapter);
+    }
+
+    private ComicEntity createComicForTest() {
+        ComicEntity comic = new ComicEntity();
+        comic.setTitle("Wallet Test Comic " + System.nanoTime());
+        comic.setAuthor("Test Author");
+        comic.setStatus("ONGOING");
+        comic.setSlug("wallet-test-" + System.nanoTime());
+        comic.setSynopsis("Test comic for wallet integration tests");
+        return comicRepository.save(comic);
     }
 
     private TopUpPackageEntity createTopUpPackage(int coins) {
