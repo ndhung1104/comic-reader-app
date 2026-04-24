@@ -23,6 +23,7 @@ class TranslateServiceTest {
     private TranslateProperties translateProperties;
     private FakeTranslatorClient localClient;
     private FakeTranslatorClient geminiClient;
+    private FakeTranslatorClient openrouterClient;
     private TranslateService translateService;
 
     @BeforeEach
@@ -33,7 +34,12 @@ class TranslateServiceTest {
 
         localClient = new FakeTranslatorClient("local", "qwen2.5:1.5b");
         geminiClient = new FakeTranslatorClient("gemini", "gemini-2.5-flash");
-        translateService = new TranslateService(comicService, translateProperties, List.of(localClient, geminiClient));
+        openrouterClient = new FakeTranslatorClient("openrouter", "google/gemini-2.0-flash-exp:free");
+        translateService = new TranslateService(
+                comicService,
+                translateProperties,
+                List.of(localClient, geminiClient, openrouterClient)
+        );
     }
 
     @Test
@@ -45,6 +51,7 @@ class TranslateServiceTest {
         assertThat(translated).isEqualTo("xin chao");
         assertThat(localClient.getCallCount()).isEqualTo(1);
         assertThat(geminiClient.getCallCount()).isZero();
+        assertThat(openrouterClient.getCallCount()).isZero();
     }
 
     @Test
@@ -58,6 +65,7 @@ class TranslateServiceTest {
         assertThat(translated).isEqualTo("xin chao tu gemini");
         assertThat(localClient.getCallCount()).isEqualTo(1);
         assertThat(geminiClient.getCallCount()).isEqualTo(1);
+        assertThat(openrouterClient.getCallCount()).isZero();
     }
 
     @Test
@@ -84,6 +92,20 @@ class TranslateServiceTest {
 
         String second = translateService.translate("hello", "en", "vi").getTranslatedText();
         assertThat(second).isEqualTo("result-gemini");
+    }
+
+    @Test
+    void shouldSupportOpenRouterProvider() {
+        translateProperties.setProvider("openrouter");
+        translateProperties.setFallbackProvider("none");
+        openrouterClient.setResult("xin chao tu openrouter");
+
+        String translated = translateService.translate("hello", "en", "vi").getTranslatedText();
+
+        assertThat(translated).isEqualTo("xin chao tu openrouter");
+        assertThat(openrouterClient.getCallCount()).isEqualTo(1);
+        assertThat(localClient.getCallCount()).isZero();
+        assertThat(geminiClient.getCallCount()).isZero();
     }
 
     private static class FakeTranslatorClient implements TranslatorClient {
