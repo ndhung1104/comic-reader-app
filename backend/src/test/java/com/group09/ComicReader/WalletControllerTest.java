@@ -309,16 +309,27 @@ class WalletControllerTest {
     private ChapterEntity createPremiumChapter(int price) {
         ComicEntity comic = comicRepository.findAll().stream()
                 .min(Comparator.comparingLong(ComicEntity::getId))
-                .orElseThrow(() -> new IllegalStateException("No comic found for test setup"));
+                .orElseGet(this::createComicForTest);
 
         int nextChapterNumber = chapterRepository.countByComicId(comic.getId()) + 100;
         ChapterEntity chapter = new ChapterEntity();
         chapter.setComic(comic);
         chapter.setChapterNumber(nextChapterNumber);
         chapter.setTitle("Premium Test Chapter " + System.nanoTime());
+        chapter.setLanguage("vi");
         chapter.setPremium(true);
         chapter.setPrice(price);
         return chapterRepository.save(chapter);
+    }
+
+    private ComicEntity createComicForTest() {
+        ComicEntity comic = new ComicEntity();
+        comic.setTitle("Wallet Test Comic " + System.nanoTime());
+        comic.setAuthor("Test Author");
+        comic.setStatus("ONGOING");
+        comic.setSlug("wallet-test-" + System.nanoTime());
+        comic.setSynopsis("Test comic for wallet integration tests");
+        return comicRepository.save(comic);
     }
 
     private TopUpPackageEntity createTopUpPackage(int coins) {
