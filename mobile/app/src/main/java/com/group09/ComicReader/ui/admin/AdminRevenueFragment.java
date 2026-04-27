@@ -28,6 +28,7 @@ public class AdminRevenueFragment extends BaseFragment {
     private FragmentAdminRevenueBinding binding;
     private AdminRevenueViewModel viewModel;
     private DailyRevenueAdapter adapter;
+    private AdminRepository repository;
 
     @Nullable
     @Override
@@ -41,7 +42,7 @@ public class AdminRevenueFragment extends BaseFragment {
         super.onViewCreated(view, savedInstanceState);
         
         ApiClient apiClient = new ApiClient(requireContext());
-        AdminRepository repository = new AdminRepository(apiClient);
+        repository = new AdminRepository(apiClient);
         viewModel = new ViewModelProvider(this, new AdminRevenueViewModel.Factory(repository)).get(AdminRevenueViewModel.class);
 
         binding.toolbar.setNavigationOnClickListener(v -> 
@@ -63,6 +64,33 @@ public class AdminRevenueFragment extends BaseFragment {
         binding.btnToday.setOnClickListener(v -> loadDataForPeriod(0));
         binding.btn7d.setOnClickListener(v -> loadDataForPeriod(6));
         binding.btn30d.setOnClickListener(v -> loadDataForPeriod(29));
+        binding.btnExport.setOnClickListener(v -> {
+            showToast("Exporting revenue report...");
+            
+            // Determine range based on UI state (simulated or actual)
+            // For simplicity, we use the same 30d range if we don't track the last selection
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                java.time.LocalDate toDate = java.time.LocalDate.now();
+                java.time.LocalDate fromDate = toDate.minusDays(30); // Default to 30d for export
+                String fromStr = fromDate.atStartOfDay().toString();
+                String toStr = toDate.atTime(23, 59, 59).toString();
+
+                repository.exportRevenue(fromStr, toStr, new AdminRepository.ExportCallback() {
+                    @Override
+                    public void onSuccess(String csvData) {
+                        String filename = "revenue_report_" + System.currentTimeMillis() + ".txt";
+                        saveCsvToDownloads(filename, csvData);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        showToast("Revenue Export Failed: " + message);
+                    }
+                });
+            } else {
+                showToast("Export not supported on this Android version");
+            }
+        });
     }
 
     private void loadDataForPeriod(int daysAgo) {

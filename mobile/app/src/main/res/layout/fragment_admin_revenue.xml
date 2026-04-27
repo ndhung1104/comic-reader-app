@@ -211,9 +211,21 @@
         android:textSize="18sp"
         android:textStyle="bold"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         app:layout_constraintTop_toBottomOf="@id/gl_summary"
         app:layout_constraintStart_toStartOf="parent"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_export"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Export CSV"
+        android:layout_marginEnd="16dp"
+        app:icon="@drawable/ic_download_24"
+        app:layout_constraintTop_toTopOf="@id/tv_daily_header"
+        app:layout_constraintBottom_toBottomOf="@id/tv_daily_header"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rcv_daily_revenue"

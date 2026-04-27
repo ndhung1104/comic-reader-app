@@ -11,6 +11,8 @@ public class ImportJobResponse {
     private String errorMessage;
     private String createdAt;
     private String updatedAt;
+    private String moderationStatus;
+    private String moderationReason;
 
     public Long getId() {
         return id;
@@ -74,5 +76,21 @@ public class ImportJobResponse {
 
     public void setUpdatedAt(String updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getModerationStatus() {
+        return moderationStatus;
+    }
+
+    public void setModerationStatus(String moderationStatus) {
+        this.moderationStatus = moderationStatus;
+    }
+
+    public String getModerationReason() {
+        return moderationReason;
+    }
+
+    public void setModerationReason(String moderationReason) {
+        this.moderationReason = moderationReason;
     }
 }

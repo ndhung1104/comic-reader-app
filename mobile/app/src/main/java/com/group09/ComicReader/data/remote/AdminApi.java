@@ -94,4 +94,29 @@ public interface AdminApi {
     @POST("/api/v1/admin/creator-requests/{id}/deny")
     Call<com.group09.ComicReader.model.CreatorRequestResponse> denyCreatorRequest(@Path("id") long id,
             @Field("adminMessage") String adminMessage);
+
+    // ── Moderation ───────────────────────────────────────
+
+    @GET("/api/v1/admin/moderation/imports")
+    Call<List<com.group09.ComicReader.model.ImportJobResponse>> getPendingImports();
+
+    @POST("/api/v1/admin/moderation/imports/{id}")
+    Call<com.group09.ComicReader.model.ImportJobResponse> moderateImport(
+            @Path("id") long id,
+            @Query("status") String status,
+            @Query("reason") String reason);
+
+    @GET("/api/v1/admin/moderation/summaries")
+    Call<List<com.group09.ComicReader.model.AiSummaryResponse>> getPendingSummaries();
+
+    // ── Export ───────────────────────────────────────────
+
+    @GET("/api/v1/admin/report/export/revenue")
+    Call<okhttp3.ResponseBody> exportRevenue(@Query("from") String from, @Query("to") String to);
+
+    @GET("/api/v1/admin/report/export/content")
+    Call<okhttp3.ResponseBody> exportContent(@Query("from") String from, @Query("to") String to);
+
+    @GET("/api/v1/admin/report/export/users")
+    Call<okhttp3.ResponseBody> exportUsers(@Query("from") String from, @Query("to") String to);
 }

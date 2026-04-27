@@ -28,6 +28,24 @@ public class AdminRepository {
         void onError(@NonNull String message);
     }
 
+    public interface ImportListCallback {
+        void onSuccess(@NonNull java.util.List<com.group09.ComicReader.model.ImportJobResponse> list);
+
+        void onError(@NonNull String message);
+    }
+
+    public interface ImportActionCallback {
+        void onSuccess(@NonNull com.group09.ComicReader.model.ImportJobResponse job);
+
+        void onError(@NonNull String message);
+    }
+
+    public interface SummaryListCallback {
+        void onSuccess(@NonNull java.util.List<com.group09.ComicReader.model.AiSummaryResponse> list);
+
+        void onError(@NonNull String message);
+    }
+
     private final ApiClient apiClient;
 
     public AdminRepository(@NonNull ApiClient apiClient) {
@@ -432,13 +450,144 @@ public class AdminRepository {
                         }
                         callback.onSuccess(response.body());
                     }
-
+    
                     @Override
                     public void onFailure(@NonNull Call<com.group09.ComicReader.model.CreatorRequestResponse> call,
                             @NonNull Throwable t) {
                         callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
                     }
                 });
+    }
+
+    // ── Moderation ───────────────────────────────────────
+
+    public void getPendingImports(@NonNull ImportListCallback callback) {
+        apiClient.adminApi().getPendingImports()
+                .enqueue(new Callback<java.util.List<com.group09.ComicReader.model.ImportJobResponse>>() {
+                    @Override
+                    public void onResponse(
+                            @NonNull Call<java.util.List<com.group09.ComicReader.model.ImportJobResponse>> call,
+                            @NonNull Response<java.util.List<com.group09.ComicReader.model.ImportJobResponse>> response) {
+                        if (!response.isSuccessful() || response.body() == null) {
+                            callback.onError(extractErrorMessage(response,
+                                    "Failed to load pending imports (" + response.code() + ")"));
+                            return;
+                        }
+                        callback.onSuccess(response.body());
+                    }
+
+                    @Override
+                    public void onFailure(
+                            @NonNull Call<java.util.List<com.group09.ComicReader.model.ImportJobResponse>> call,
+                            @NonNull Throwable t) {
+                        callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+                    }
+                });
+    }
+
+    public void moderateImport(long id, String status, String reason, @NonNull ImportActionCallback callback) {
+        apiClient.adminApi().moderateImport(id, status, reason)
+                .enqueue(new Callback<com.group09.ComicReader.model.ImportJobResponse>() {
+                    @Override
+                    public void onResponse(@NonNull Call<com.group09.ComicReader.model.ImportJobResponse> call,
+                            @NonNull Response<com.group09.ComicReader.model.ImportJobResponse> response) {
+                        if (!response.isSuccessful() || response.body() == null) {
+                            callback.onError(
+                                    extractErrorMessage(response, "Moderation failed (" + response.code() + ")"));
+                            return;
+                        }
+                        callback.onSuccess(response.body());
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<com.group09.ComicReader.model.ImportJobResponse> call,
+                            @NonNull Throwable t) {
+                        callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+                    }
+                });
+    }
+
+    public void getPendingSummaries(@NonNull SummaryListCallback callback) {
+        apiClient.adminApi().getPendingSummaries()
+                .enqueue(new Callback<java.util.List<com.group09.ComicReader.model.AiSummaryResponse>>() {
+                    @Override
+                    public void onResponse(
+                            @NonNull Call<java.util.List<com.group09.ComicReader.model.AiSummaryResponse>> call,
+                            @NonNull Response<java.util.List<com.group09.ComicReader.model.AiSummaryResponse>> response) {
+                        if (!response.isSuccessful() || response.body() == null) {
+                            callback.onError(extractErrorMessage(response,
+                                    "Failed to load pending summaries (" + response.code() + ")"));
+                            return;
+                        }
+                        callback.onSuccess(response.body());
+                    }
+
+                    @Override
+                    public void onFailure(
+                            @NonNull Call<java.util.List<com.group09.ComicReader.model.AiSummaryResponse>> call,
+                            @NonNull Throwable t) {
+                        callback.onError(t.getMessage() == null ? "Network error" : t.getMessage());
+                    }
+                });
+    }
+
+    public interface ExportCallback {
+        void onSuccess(String csvData);
+        void onError(String message);
+    }
+
+    public void exportRevenue(String from, String to, ExportCallback callback) {
+        apiClient.adminApi().exportRevenue(from, to).enqueue(new Callback<okhttp3.ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<okhttp3.ResponseBody> call, @NonNull Response<okhttp3.ResponseBody> response) {
+                handleExportResponse(response, callback);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<okhttp3.ResponseBody> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage());
+            }
+        });
+    }
+
+    public void exportContent(String from, String to, ExportCallback callback) {
+        apiClient.adminApi().exportContent(from, to).enqueue(new Callback<okhttp3.ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<okhttp3.ResponseBody> call, @NonNull Response<okhttp3.ResponseBody> response) {
+                handleExportResponse(response, callback);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<okhttp3.ResponseBody> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage());
+            }
+        });
+    }
+
+    public void exportUsers(String from, String to, ExportCallback callback) {
+        apiClient.adminApi().exportUsers(from, to).enqueue(new Callback<okhttp3.ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<okhttp3.ResponseBody> call, @NonNull Response<okhttp3.ResponseBody> response) {
+                handleExportResponse(response, callback);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<okhttp3.ResponseBody> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage());
+            }
+        });
+    }
+
+    private void handleExportResponse(Response<okhttp3.ResponseBody> response, ExportCallback callback) {
+        if (response.isSuccessful() && response.body() != null) {
+            try {
+                callback.onSuccess(response.body().string());
+            } catch (java.io.IOException e) {
+                callback.onError("Read error: " + e.getMessage());
+            }
+        } else {
+            callback.onError("Export failed (" + response.code() + ")");
+        }
     }
 
     @NonNull

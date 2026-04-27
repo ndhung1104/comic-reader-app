@@ -157,6 +157,30 @@
                 android:text="@string/admin_nav_import"
                 style="@style/Widget.Material3.Button.OutlinedButton" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_admin_moderation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:text="Content Moderation"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_admin_export_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:text="Export Content Report"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_admin_export_users"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:text="Export User Report"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
+
             <TextView
                 android:id="@+id/tv_admin_status"
                 android:layout_width="match_parent"

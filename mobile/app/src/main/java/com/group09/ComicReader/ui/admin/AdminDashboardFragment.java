@@ -44,6 +44,36 @@ public class AdminDashboardFragment extends BaseFragment {
         binding.btnAdminRevenue.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(com.group09.ComicReader.R.id.action_admin_to_revenue));
         binding.btnAdminPackages.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(com.group09.ComicReader.R.id.action_admin_to_packages));
         binding.btnAdminImport.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(com.group09.ComicReader.R.id.action_admin_to_import));
+        binding.btnAdminModeration.setOnClickListener(v -> androidx.navigation.Navigation.findNavController(v).navigate(com.group09.ComicReader.R.id.action_admin_to_moderation));
+        binding.btnAdminExportContent.setOnClickListener(v -> handleExport("content"));
+        binding.btnAdminExportUsers.setOnClickListener(v -> handleExport("users"));
+    }
+
+    private void handleExport(String type) {
+        showToast("Exporting " + type + " report...");
+        String from = "2000-01-01T00:00:00";
+        String to = "2100-01-01T00:00:00";
+        
+        AdminRepository.ExportCallback callback = new AdminRepository.ExportCallback() {
+            @Override
+            public void onSuccess(String csvData) {
+                String filename = type + "_report_" + System.currentTimeMillis() + ".txt";
+                saveCsvToDownloads(filename, csvData);
+                binding.tvAdminStatus.setText("Export " + type + " success! Saved as " + filename);
+            }
+
+            @Override
+            public void onError(String message) {
+                binding.tvAdminStatus.setText("Export " + type + " failed: " + message);
+                showToast("Export failed: " + message);
+            }
+        };
+
+        if ("content".equals(type)) {
+            adminRepository.exportContent(from, to, callback);
+        } else if ("users".equals(type)) {
+            adminRepository.exportUsers(from, to, callback);
+        }
     }
 
 

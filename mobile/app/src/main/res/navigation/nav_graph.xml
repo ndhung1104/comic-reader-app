@@ -220,6 +220,9 @@
         <action
             android:id="@+id/action_admin_to_user_management"
             app:destination="@id/adminUserManagementFragment" />
+        <action
+            android:id="@+id/action_admin_to_moderation"
+            app:destination="@id/adminModerationFragment" />
     </fragment>
 
     <fragment
@@ -261,4 +264,10 @@
             android:name="comic"
             app:argType="com.group09.ComicReader.model.ComicResponse" />
     </fragment>
+
+    <fragment
+        android:id="@+id/adminModerationFragment"
+        android:name="com.group09.ComicReader.ui.admin.AdminModerationFragment"
+        android:label="admin_moderation"
+        tools:layout="@layout/fragment_admin_moderation" />
 </navigation>
