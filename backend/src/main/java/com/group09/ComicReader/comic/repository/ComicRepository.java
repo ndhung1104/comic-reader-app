@@ -72,4 +72,7 @@ public interface ComicRepository extends JpaRepository<ComicEntity, Long> {
     @Modifying
     @Query("UPDATE ComicEntity c SET c.followerCount = c.followerCount + :delta WHERE c.id = :comicId")
     void adjustFollowerCount(@Param("comicId") Long comicId, @Param("delta") int delta);
+
+    @Query("SELECT c FROM ComicEntity c WHERE c.createdAt >= :from AND c.createdAt < :to ORDER BY c.createdAt ASC")
+    List<ComicEntity> findAllByDateRange(@Param("from") java.time.LocalDateTime from, @Param("to") java.time.LocalDateTime to);
 }

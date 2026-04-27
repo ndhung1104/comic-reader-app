@@ -14,6 +14,8 @@ public class AiGuardrailProperties {
     private int translationJobPerDay = 120;
     private int audioPlaylistPerActorPerDay = 10;
     private int audioPlaylistPerDay = 200;
+    private int aiSummaryPerActorPerDay = 50;
+    private int aiSummaryPerDay = 500;
 
     public boolean isEnabled() {
         return enabled;
@@ -69,5 +71,21 @@ public class AiGuardrailProperties {
 
     public void setAudioPlaylistPerDay(int audioPlaylistPerDay) {
         this.audioPlaylistPerDay = audioPlaylistPerDay;
+    }
+
+    public int getAiSummaryPerActorPerDay() {
+        return aiSummaryPerActorPerDay;
+    }
+
+    public void setAiSummaryPerActorPerDay(int aiSummaryPerActorPerDay) {
+        this.aiSummaryPerActorPerDay = aiSummaryPerActorPerDay;
+    }
+
+    public int getAiSummaryPerDay() {
+        return aiSummaryPerDay;
+    }
+
+    public void setAiSummaryPerDay(int aiSummaryPerDay) {
+        this.aiSummaryPerDay = aiSummaryPerDay;
     }
 }

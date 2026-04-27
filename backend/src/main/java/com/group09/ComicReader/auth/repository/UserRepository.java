@@ -11,5 +11,8 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     Optional<UserEntity> findByEmail(String email);
     boolean existsByEmail(String email);
     Page<UserEntity> findAllByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCase(String fullName, String email, Pageable pageable);
+    
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM UserEntity u WHERE u.createdAt >= :from AND u.createdAt < :to ORDER BY u.createdAt ASC")
+    java.util.List<UserEntity> findAllByDateRange(@org.springframework.data.repository.query.Param("from") java.time.LocalDateTime from, @org.springframework.data.repository.query.Param("to") java.time.LocalDateTime to);
 }
 
