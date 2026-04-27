@@ -55,8 +55,10 @@ public class CreatorStudioFragment extends BaseFragment {
         comicsAdapter = new CreatorComicsAdapter(new CreatorComicsAdapter.OnComicActionListener() {
             @Override
             public void onComicClick(ComicResponse comic) {
-                // Navigate to manage/edit current comic if we had a fragment for it
-                showToast("Managing " + comic.getTitle());
+                Bundle args = new Bundle();
+                args.putSerializable("comic", comic);
+                Navigation.findNavController(binding.getRoot())
+                        .navigate(com.group09.ComicReader.R.id.action_creatorStudioFragment_to_manageComicFragment, args);
             }
 
             @Override

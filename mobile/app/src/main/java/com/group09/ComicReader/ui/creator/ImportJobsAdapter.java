@@ -47,7 +47,8 @@ public class ImportJobsAdapter extends RecyclerView.Adapter<ImportJobsAdapter.Vi
             holder.binding.tvError.setVisibility(View.GONE);
         }
 
-        if ("RUNNING".equalsIgnoreCase(String.valueOf(job.getStatus())) || "QUEUED".equalsIgnoreCase(String.valueOf(job.getStatus()))) {
+        if ("RUNNING".equalsIgnoreCase(String.valueOf(job.getStatus()))
+                || "QUEUED".equalsIgnoreCase(String.valueOf(job.getStatus()))) {
             holder.binding.progressIndicator.setVisibility(View.VISIBLE);
         } else {
             holder.binding.progressIndicator.setVisibility(View.GONE);

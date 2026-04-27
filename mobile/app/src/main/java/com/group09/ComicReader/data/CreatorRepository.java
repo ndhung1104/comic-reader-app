@@ -62,6 +62,18 @@ public class CreatorRepository {
         void onError(@NonNull String message);
     }
 
+    public interface SummaryCallback {
+        void onSuccess(@NonNull com.group09.ComicReader.model.AiSummaryResponse response);
+
+        void onError(@NonNull String message);
+    }
+
+    public interface SummaryListCallback {
+        void onSuccess(@NonNull java.util.List<com.group09.ComicReader.model.AiSummaryResponse> responses);
+
+        void onError(@NonNull String message);
+    }
+
     public void enqueueImport(@NonNull String sourceUrl, @NonNull String sourceType,
             @NonNull EnqueueCallback callback) {
         java.util.Map<String, String> body = new java.util.HashMap<>();
@@ -246,6 +258,67 @@ public class CreatorRepository {
 
             @Override
             public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage());
+            }
+        });
+    }
+
+    public void generateSummary(long comicId, Long chapterId, @NonNull SummaryCallback callback) {
+        java.util.Map<String, Object> body = new java.util.HashMap<>();
+        body.put("comicId", comicId);
+        if (chapterId != null) body.put("chapterId", chapterId);
+
+        apiClient.aiApi().generateSummary(body).enqueue(new Callback<com.group09.ComicReader.model.AiSummaryResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<com.group09.ComicReader.model.AiSummaryResponse> call,
+                    @NonNull Response<com.group09.ComicReader.model.AiSummaryResponse> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Generation failed"));
+                    return;
+                }
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<com.group09.ComicReader.model.AiSummaryResponse> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage());
+            }
+        });
+    }
+
+    public void moderateSummary(long id, String status, String reason, @NonNull SummaryCallback callback) {
+        apiClient.aiApi().moderateSummary(id, status, reason).enqueue(new Callback<com.group09.ComicReader.model.AiSummaryResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<com.group09.ComicReader.model.AiSummaryResponse> call,
+                    @NonNull Response<com.group09.ComicReader.model.AiSummaryResponse> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Moderation failed"));
+                    return;
+                }
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<com.group09.ComicReader.model.AiSummaryResponse> call, @NonNull Throwable t) {
+                callback.onError(t.getMessage());
+            }
+        });
+    }
+
+    public void getSummaryHistory(long comicId, Long chapterId, @NonNull SummaryListCallback callback) {
+        apiClient.aiApi().getHistory(comicId, chapterId).enqueue(new Callback<java.util.List<com.group09.ComicReader.model.AiSummaryResponse>>() {
+            @Override
+            public void onResponse(@NonNull Call<java.util.List<com.group09.ComicReader.model.AiSummaryResponse>> call,
+                    @NonNull Response<java.util.List<com.group09.ComicReader.model.AiSummaryResponse>> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError(extractErrorMessage(response, "Failed to load history"));
+                    return;
+                }
+                callback.onSuccess(response.body());
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<java.util.List<com.group09.ComicReader.model.AiSummaryResponse>> call, @NonNull Throwable t) {
                 callback.onError(t.getMessage());
             }
         });

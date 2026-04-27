@@ -82,6 +82,10 @@ public class ApiClient {
         return retrofit.create(TranslateApi.class);
     }
 
+    public AiApi aiApi() {
+        return retrofit.create(AiApi.class);
+    }
+
     public static String toAbsoluteUrl(String pathOrUrl) {
         if (pathOrUrl == null || pathOrUrl.trim().isEmpty()) {
             return "";

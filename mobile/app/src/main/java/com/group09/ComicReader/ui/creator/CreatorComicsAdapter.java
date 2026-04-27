@@ -17,6 +17,7 @@ public class CreatorComicsAdapter extends RecyclerView.Adapter<CreatorComicsAdap
 
     public interface OnComicActionListener {
         void onComicClick(ComicResponse comic);
+
         void onComicDelete(ComicResponse comic);
     }
 

@@ -163,6 +163,9 @@
         <action
             android:id="@+id/action_creatorStudioFragment_to_createComicFragment"
             app:destination="@id/createComicFragment" />
+        <action
+            android:id="@+id/action_creatorStudioFragment_to_manageComicFragment"
+            app:destination="@id/manageComicFragment" />
     </fragment>
 
     <fragment
@@ -248,4 +251,14 @@
         android:name="com.group09.ComicReader.ui.admin.AdminCreatorRequestsFragment"
         android:label="admin_creator_requests"
         tools:layout="@layout/fragment_admin_creator_requests" />
+
+    <fragment
+        android:id="@+id/manageComicFragment"
+        android:name="com.group09.ComicReader.ui.creator.ManageComicFragment"
+        android:label="manage_comic"
+        tools:layout="@layout/fragment_manage_comic">
+        <argument
+            android:name="comic"
+            app:argType="com.group09.ComicReader.model.ComicResponse" />
+    </fragment>
 </navigation>

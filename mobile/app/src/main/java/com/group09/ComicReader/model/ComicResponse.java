@@ -3,7 +3,7 @@ package com.group09.ComicReader.model;
 import java.util.Collections;
 import java.util.List;
 
-public class ComicResponse {
+public class ComicResponse implements java.io.Serializable {
     private Long id;
     private String title;
     private String author;
