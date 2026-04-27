@@ -15,6 +15,9 @@ public class ImportJobResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private String moderationReason;
+    private com.group09.ComicReader.common.entity.ModerationStatus moderationStatus;
+
     public Long getId() {
         return id;
     }
@@ -77,5 +80,21 @@ public class ImportJobResponse {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getModerationReason() {
+        return moderationReason;
+    }
+
+    public void setModerationReason(String moderationReason) {
+        this.moderationReason = moderationReason;
+    }
+
+    public com.group09.ComicReader.common.entity.ModerationStatus getModerationStatus() {
+        return moderationStatus;
+    }
+
+    public void setModerationStatus(com.group09.ComicReader.common.entity.ModerationStatus moderationStatus) {
+        this.moderationStatus = moderationStatus;
     }
 }

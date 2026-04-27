@@ -20,27 +20,38 @@ public class ModerationController {
 
     private final ModerationService moderationService;
     private final AiSummaryRepository aiSummaryRepository;
+    private final com.group09.ComicReader.ai.service.AiSummaryService aiSummaryService;
 
-    public ModerationController(ModerationService moderationService, AiSummaryRepository aiSummaryRepository) {
+    public ModerationController(ModerationService moderationService, 
+                               AiSummaryRepository aiSummaryRepository,
+                               com.group09.ComicReader.ai.service.AiSummaryService aiSummaryService) {
         this.moderationService = moderationService;
         this.aiSummaryRepository = aiSummaryRepository;
+        this.aiSummaryService = aiSummaryService;
     }
 
     @GetMapping("/imports")
-    public ResponseEntity<List<ImportJobEntity>> getPendingImports() {
-        return ResponseEntity.ok(moderationService.getImportJobsForReview());
+    public ResponseEntity<List<com.group09.ComicReader.importjob.dto.ImportJobResponse>> getPendingImports() {
+        return ResponseEntity.ok(moderationService.getImportJobsForReview()
+                .stream()
+                .map(moderationService::toResponse)
+                .collect(Collectors.toList()));
     }
 
     @PostMapping("/imports/{id}")
-    public ResponseEntity<ImportJobEntity> moderateImport(
+    public ResponseEntity<com.group09.ComicReader.importjob.dto.ImportJobResponse> moderateImport(
             @PathVariable Long id,
             @RequestParam ModerationStatus status,
             @RequestParam(required = false) String reason) {
-        return ResponseEntity.ok(moderationService.moderateImportJob(id, status, reason));
+        return ResponseEntity.ok(moderationService.toResponse(moderationService.moderateImportJob(id, status, reason)));
     }
 
     @GetMapping("/summaries")
-    public ResponseEntity<List<AiSummaryEntity>> getPendingSummaries() {
-        return ResponseEntity.ok(aiSummaryRepository.findByStatus(ModerationStatus.REVIEW));
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public ResponseEntity<List<AiSummaryResponse>> getPendingSummaries() {
+        return ResponseEntity.ok(aiSummaryRepository.findByStatus(ModerationStatus.REVIEW)
+                .stream()
+                .map(aiSummaryService::toResponse)
+                .collect(Collectors.toList()));
     }
 }

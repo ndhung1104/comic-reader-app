@@ -27,7 +27,9 @@ public class ExportService {
     }
 
     public String exportRevenueCsv(LocalDateTime from, LocalDateTime to) {
+        System.out.println("Generating Revenue CSV from " + from + " to " + to);
         List<WalletTransactionEntity> transactions = walletTransactionRepository.findAllByDateRange(from, to);
+        System.out.println("Found " + transactions.size() + " transactions");
         StringBuilder sb = new StringBuilder();
         sb.append("ID,UserID,Amount,Type,ReferenceID,CreatedAt\n");
         for (WalletTransactionEntity t : transactions) {
@@ -42,7 +44,9 @@ public class ExportService {
     }
 
     public String exportContentCsv(LocalDateTime from, LocalDateTime to) {
+        System.out.println("Generating Content CSV from " + from + " to " + to);
         List<ComicEntity> comics = comicRepository.findAllByDateRange(from, to);
+        System.out.println("Found " + comics.size() + " comics");
         StringBuilder sb = new StringBuilder();
         sb.append("ID,Title,Author,Slug,ViewCount,FollowerCount,Rating,CreatedAt\n");
         for (ComicEntity c : comics) {
@@ -59,7 +63,9 @@ public class ExportService {
     }
 
     public String exportUserActivityCsv(LocalDateTime from, LocalDateTime to) {
+        System.out.println("Generating User CSV from " + from + " to " + to);
         List<UserEntity> users = userRepository.findAllByDateRange(from, to);
+        System.out.println("Found " + users.size() + " users");
         StringBuilder sb = new StringBuilder();
         sb.append("ID,FullName,Email,Role,Enabled,CreatedAt\n");
         for (UserEntity u : users) {

@@ -134,7 +134,7 @@ public class AiSummaryService {
                 .orElse(null);
     }
 
-    private AiSummaryResponse toResponse(AiSummaryEntity entity) {
+    public AiSummaryResponse toResponse(AiSummaryEntity entity) {
         AiSummaryResponse response = new AiSummaryResponse();
         response.setId(entity.getId());
         response.setComicId(entity.getComic().getId());
