@@ -1,3 +1,4 @@
+
 package com.group09.ComicReader.ai.service.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -82,7 +83,8 @@ public class OpenRouterAiClient implements AiClient {
         );
 
         if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
-            throw new IllegalStateException("OpenRouter returned non-success response: " + response.getStatusCode());
+            String errorMessage = extractOpenRouterError(response);
+            throw new IllegalStateException(errorMessage);
         }
 
         try {
@@ -91,6 +93,29 @@ public class OpenRouterAiClient implements AiClient {
         } catch (Exception e) {
             throw new IllegalStateException("Failed to parse OpenRouter response", e);
         }
+    }
+
+    private String extractOpenRouterError(ResponseEntity<String> response) {
+        String body = response.getBody();
+        if (body != null && !body.isBlank()) {
+            try {
+                JsonNode root = objectMapper.readTree(body);
+                JsonNode errorNode = root.path("error");
+                if (errorNode.isObject()) {
+                    String msg = errorNode.path("message").asText(null);
+                    if (msg != null && !msg.isBlank()) {
+                        return msg;
+                    }
+                }
+                String msg = root.path("message").asText(null);
+                if (msg != null && !msg.isBlank()) {
+                    return msg;
+                }
+            } catch (Exception ignored) {
+            }
+            return "OpenRouter error: " + body;
+        }
+        return "OpenRouter returned non-success response: " + response.getStatusCode();
     }
 
     private String normalize(String value) {

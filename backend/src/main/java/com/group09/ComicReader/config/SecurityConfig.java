@@ -44,7 +44,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/comics/**", "/api/v1/chapters/**", "/api/v1/categories").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/comics/*/view", "/api/v1/translate",
-                                "/api/v1/comics/*/translate", "/api/v1/chapters/*/audio-playlist").permitAll()
+                                "/api/v1/comics/*/translate", "/api/v1/chapters/*/audio-playlist", "/api/v1/ai/chat").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/packages").authenticated()
                         .requestMatchers("/api/v1/**").authenticated()

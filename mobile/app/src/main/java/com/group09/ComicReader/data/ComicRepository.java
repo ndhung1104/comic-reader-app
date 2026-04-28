@@ -98,6 +98,39 @@ public class ComicRepository {
         void onError(String error);
     }
 
+    public interface ChatCallback {
+        void onSuccess(String reply);
+
+        void onError(String error);
+    }
+
+    /* ========== AI Chat ========== */
+
+    public void chatWithAssistant(String message, @NonNull ChatCallback callback) {
+        if (apiClient == null) {
+            callback.onError("ApiClient not initialized");
+            return;
+        }
+        apiClient.aiApi().chat(java.util.Map.of("message", message))
+                .enqueue(new Callback<com.group09.ComicReader.model.AiChatResponse>() {
+                    @Override
+                    public void onResponse(@NonNull Call<com.group09.ComicReader.model.AiChatResponse> call,
+                            @NonNull Response<com.group09.ComicReader.model.AiChatResponse> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            String reply = response.body().getReply();
+                            callback.onSuccess(reply != null ? reply : "");
+                        } else {
+                            callback.onError("Error: " + response.code());
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<com.group09.ComicReader.model.AiChatResponse> call, @NonNull Throwable t) {
+                        callback.onError(getNetworkMessage(t));
+                    }
+                });
+    }
+
     private static ComicRepository instance;
     private final ApiClient apiClient;
     @Nullable

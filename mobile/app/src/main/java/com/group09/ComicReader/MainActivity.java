@@ -12,6 +12,7 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
 import com.group09.ComicReader.databinding.ActivityMainBinding;
+import com.group09.ComicReader.ui.chatbot.ChatbotAssistantView;
 import com.group09.ComicReader.ui.reader.ReaderActivity;
 
 public class MainActivity extends AppCompatActivity {
@@ -19,6 +20,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
     private ActivityMainBinding binding;
     private NavController navController;
+    private ChatbotAssistantView chatbotAssistant;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,9 +49,24 @@ public class MainActivity extends AppCompatActivity {
                     || destinationId == R.id.libraryFragment
                     || destinationId == R.id.profileFragment;
             binding.bnvMainTabs.setVisibility(showBottomNav ? View.VISIBLE : View.GONE);
+
+            boolean showChatbot = showBottomNav || destinationId == R.id.comicDetailFragment;
+            if (chatbotAssistant != null) {
+                chatbotAssistant.setVisible(showChatbot);
+            }
         });
 
+        chatbotAssistant = findViewById(R.id.chatbot_assistant);
+
         handleIncomingIntent(getIntent());
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (chatbotAssistant != null && chatbotAssistant.onBackPressed()) {
+            return;
+        }
+        super.onBackPressed();
     }
 
     @Override

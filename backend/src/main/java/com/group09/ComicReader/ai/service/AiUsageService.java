@@ -203,6 +203,7 @@ public class AiUsageService {
             case OCR_TRANSLATION_JOB -> aiGuardrailProperties.getTranslationJobPerActorPerDay();
             case AUDIO_PLAYLIST -> aiGuardrailProperties.getAudioPlaylistPerActorPerDay();
             case AI_SUMMARY -> aiGuardrailProperties.getAiSummaryPerActorPerDay();
+            case AI_CHAT -> aiGuardrailProperties.getChatPerActorPerDay();
         };
     }
 
@@ -212,6 +213,7 @@ public class AiUsageService {
             case OCR_TRANSLATION_JOB -> aiGuardrailProperties.getTranslationJobPerDay();
             case AUDIO_PLAYLIST -> aiGuardrailProperties.getAudioPlaylistPerDay();
             case AI_SUMMARY -> aiGuardrailProperties.getAiSummaryPerDay();
+            case AI_CHAT -> aiGuardrailProperties.getChatPerDay();
         };
     }
 
@@ -221,6 +223,7 @@ public class AiUsageService {
             case OCR_TRANSLATION_JOB -> "OCR quota reached for today. Please try again tomorrow.";
             case AUDIO_PLAYLIST -> "Audio generation quota reached for today. Please try again tomorrow.";
             case AI_SUMMARY -> "AI Summary quota reached for today. Please try again tomorrow.";
+            case AI_CHAT -> "Chat quota reached for today. Please try again tomorrow.";
         };
     }
 
@@ -230,6 +233,7 @@ public class AiUsageService {
             case OCR_TRANSLATION_JOB -> "OCR service is at capacity right now. Please try again later.";
             case AUDIO_PLAYLIST -> "Audio generation service is at capacity right now. Please try again later.";
             case AI_SUMMARY -> "AI Summary service is at capacity right now. Please try again later.";
+            case AI_CHAT -> "Chat service is at capacity right now. Please try again later.";
         };
     }
 

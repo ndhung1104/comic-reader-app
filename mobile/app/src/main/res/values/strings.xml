@@ -360,4 +360,10 @@
     <string name="onboarding_finish">Finish</string>
     <string name="creator_studio_title">Creator Studio</string>
     <string name="admin_creator_requests_title">Creator Requests</string>
+
+    <!-- Chatbot Assistant -->
+    <string name="chatbot_title">Comic Assistant</string>
+    <string name="chatbot_welcome">Hi! I\'m your comic assistant. Ask me about comics, genres, or get recommendations!</string>
+    <string name="chatbot_input_hint">Ask me anything...</string>
+    <string name="chatbot_error">Sorry, something went wrong: %1$s</string>
 </resources>

@@ -4,5 +4,6 @@ public enum AiFeature {
     TEXT_TRANSLATE,
     OCR_TRANSLATION_JOB,
     AUDIO_PLAYLIST,
-    AI_SUMMARY
+    AI_SUMMARY,
+    AI_CHAT
 }

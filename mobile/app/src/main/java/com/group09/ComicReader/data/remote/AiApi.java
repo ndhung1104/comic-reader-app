@@ -14,6 +14,9 @@ import retrofit2.http.Query;
 
 public interface AiApi {
 
+    @POST("/api/v1/ai/chat")
+    Call<com.group09.ComicReader.model.AiChatResponse> chat(@Body Map<String, Object> body);
+
     @POST("/api/v1/ai/summary/generate")
     Call<AiSummaryResponse> generateSummary(@Body Map<String, Object> body);
 

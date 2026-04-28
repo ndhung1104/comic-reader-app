@@ -16,6 +16,8 @@ public class AiGuardrailProperties {
     private int audioPlaylistPerDay = 200;
     private int aiSummaryPerActorPerDay = 50;
     private int aiSummaryPerDay = 500;
+    private int chatPerActorPerDay = 30;
+    private int chatPerDay = 500;
 
     public boolean isEnabled() {
         return enabled;
@@ -87,5 +89,21 @@ public class AiGuardrailProperties {
 
     public void setAiSummaryPerDay(int aiSummaryPerDay) {
         this.aiSummaryPerDay = aiSummaryPerDay;
+    }
+
+    public int getChatPerActorPerDay() {
+        return chatPerActorPerDay;
+    }
+
+    public void setChatPerActorPerDay(int chatPerActorPerDay) {
+        this.chatPerActorPerDay = chatPerActorPerDay;
+    }
+
+    public int getChatPerDay() {
+        return chatPerDay;
+    }
+
+    public void setChatPerDay(int chatPerDay) {
+        this.chatPerDay = chatPerDay;
     }
 }
